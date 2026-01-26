@@ -1,0 +1,28 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Sun circle -->
+  <circle cx="100" cy="100" r="70" fill="#F4C430"/>
+  
+  <!-- Sun rays -->
+  <line x1="100" y1="10" x2="100" y2="0" stroke="#F4C430" stroke-width="8" stroke-linecap="round"/>
+  <line x1="100" y1="200" x2="100" y2="190" stroke="#F4C430" stroke-width="8" stroke-linecap="round"/>
+  <line x1="10" y1="100" x2="0" y2="100" stroke="#F4C430" stroke-width="8" stroke-linecap="round"/>
+  <line x1="200" y1="100" x2="190" y2="100" stroke="#F4C430" stroke-width="8" stroke-linecap="round"/>
+  <line x1="35" y1="35" x2="25" y2="25" stroke="#F4C430" stroke-width="8" stroke-linecap="round"/>
+  <line x1="165" y1="35" x2="175" y2="25" stroke="#F4C430" stroke-width="8" stroke-linecap="round"/>
+  <line x1="35" y1="165" x2="25" y2="175" stroke="#F4C430" stroke-width="8" stroke-linecap="round"/>
+  <line x1="165" y1="165" x2="175" y2="175" stroke="#F4C430" stroke-width="8" stroke-linecap="round"/>
+  
+  <!-- Leaves (simplified) -->
+  <ellipse cx="45" cy="65" rx="12" ry="20" fill="#7CB342" transform="rotate(-25 45 65)"/>
+  <ellipse cx="55" cy="60" rx="12" ry="20" fill="#8BC34A" transform="rotate(-10 55 60)"/>
+  
+  <!-- Water waves -->
+  <path d="M 60 105 Q 70 100 80 105 Q 90 110 100 105" stroke="#4FC3F7" stroke-width="3" fill="none"/>
+  <path d="M 60 112 Q 70 107 80 112 Q 90 117 100 112" stroke="#29B6F6" stroke-width="3" fill="none"/>
+  
+  <!-- KAMN text -->
+  <text x="100" y="120" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="32" font-weight="bold">KAMN</text>
+  
+  <!-- ENTERPRISES text -->
+  <text x="100" y="140" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10" letter-spacing="2">ENTERPRISES</text>
+</svg>

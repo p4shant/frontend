@@ -1,0 +1,119 @@
+{
+    "work_type_mapping": {
+        "customer_data_gathering": {
+            "component": "CustomerDataGathering",
+            "label": "Customer Information",
+            "icon": "User"
+        },
+        "collect_remaining_amount": {
+            "component": "PaymentCollection",
+            "label": "Payment Collection",
+            "icon": "CreditCard"
+        },
+        "approval_of_payment_collection": {
+            "component": "PaymentApproval",
+            "label": "Payment Approval",
+            "icon": "CheckCircle"
+        },
+        "generate_bill": {
+            "component": "BillGeneration",
+            "label": "Bill Generation",
+            "icon": "FileText"
+        },
+        "complete_registration": {
+            "component": "RegistrationComplete",
+            "label": "Registration Status",
+            "icon": "CheckCircle"
+        },
+        "cot_request": {
+            "component": "COTRequest",
+            "label": "Change of Tenancy Request",
+            "icon": "FileText"
+        },
+        "load_request": {
+            "component": "LoadRequest",
+            "label": "Load Enhancement Request",
+            "icon": "Zap"
+        },
+        "name_correction_request": {
+            "component": "NameCorrectionRequest",
+            "label": "Name Correction Request",
+            "icon": "Edit"
+        },
+        "finance_registration": {
+            "component": "FinanceRegistration",
+            "label": "Finance Registration",
+            "icon": "DollarSign"
+        },
+        "hard_copy_indent_creation": {
+            "component": "createHardCopyindentCreationTask",
+            "label": "Hard Copy Indent",
+            "icon": "FileText"
+        },
+        "submit_indent_to_electrical_department": {
+            "component": "IndentSubmission",
+            "label": "Indent Submission",
+            "icon": "Send"
+        },
+        "meter_installation": {
+            "component": "MeterInstallation",
+            "label": "Meter Installation",
+            "icon": "Zap"
+        },
+        "plant_installation": {
+            "component": "PlantInstallation",
+            "label": "Solar Plant Installation",
+            "icon": "Zap"
+        },
+        "take_installed_item_photos": {
+            "component": "PhotoCapture",
+            "label": "Installation Photos",
+            "icon": "Camera"
+        },
+        "upload_installed_item_serial_number": {
+            "component": "SerialNumberUpload",
+            "label": "Serial Number Upload",
+            "icon": "Hash"
+        },
+        "inspection": {
+            "component": "Inspection",
+            "label": "Site Inspection",
+            "icon": "CheckCircle"
+        },
+        "apply_subsidy": {
+            "component": "SubsidyApplication",
+            "label": "Subsidy Application",
+            "icon": "Gift"
+        },
+        "subsidy_redemption": {
+            "component": "SubsidyRedemption",
+            "label": "Subsidy Redemption",
+            "icon": "TrendingUp"
+        },
+        "document_handover": {
+            "component": "DocumentHandover",
+            "label": "Document Handover",
+            "icon": "Archive"
+        },
+        "quality_assurance": {
+            "component": "QualityAssurance",
+            "label": "Quality Assurance",
+            "icon": "Shield"
+        },
+        "assign_qa": {
+            "component": "AssignQA",
+            "label": "Assign QA",
+            "icon": "Users"
+        },
+        "submit_warranty_document": {
+            "component": "WarrantyDocument",
+            "label": "Warranty Document",
+            "icon": "Award"
+        },
+        "create_cdr": {
+            "component": "CDRCreation",
+            "label": "CDR Creation",
+            "icon": "FileText"
+        }
+    }
+}

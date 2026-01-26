@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* @layer base {
+  :root {
+    font-family: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+    --bg: #e8f4fc;
+    --bg-alt: #d4ebf9;
+    --panel: #ffffff;
+    --panel-strong: #939ba2;
+    --text: #1a3a52;
+    --muted: #5a7a92;
+    --brand: #fdb913;
+    --brand-strong: #f39c12;
+    --success: #27ae60;
+    --blue: #0077be;
+    --blue-dark: #005a94;
+    --border: rgba(0, 119, 190, 0.12);
+    --shadow: 0 4px 20px rgba(0, 119, 190, 0.08);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background-color: #e8f4fc;
+    color: #1a3a52;
+    overflow-x: hidden;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    overflow-x: hidden;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button {
+    font-family: inherit;
+  }
+} */
+
+@layer utilities {
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
