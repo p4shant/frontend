@@ -173,7 +173,6 @@ function RegisterCustomer() {
                             <RegisterCustomerForm
                                 session={session}
                                 applicationId={selectedId}
-                                mode={selectedId ? 'edit' : 'create'}
                                 onSuccess={handleSuccess}
                                 onCancel={() => setIsOpen(false)}
                             />

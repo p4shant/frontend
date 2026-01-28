@@ -269,12 +269,12 @@ export default function RegisterCustomerForm({
 
     const getCurrentLocation = () => {
         if (!navigator.geolocation) {
-            setMsg('Geolocation is not supported by your browser')
+            setMsg('❌ Geolocation is not supported by your browser. Please use Chrome, Firefox, Safari, or Edge.')
             return
         }
 
         setLocationLoading(true)
-        setMsg('Getting GPS location...')
+        setMsg('📍 Getting GPS location...')
 
         // First try with high accuracy
         const tryGetLocation = (highAccuracy: boolean, retryCount = 0) => {
@@ -307,7 +307,7 @@ export default function RegisterCustomerForm({
                             site_address: f.site_address || address,
                             installation_pincode: pincode || f.installation_pincode,
                         }))
-                        setMsg(`Location captured successfully! (Accuracy: ${Math.round(accuracy)}m)`)
+                        setMsg(`✅ Location captured successfully! (Accuracy: ${Math.round(accuracy)}m)`)
                     } catch (err) {
                         console.error('Reverse geocoding failed:', err)
                         setForm((f) => ({
@@ -315,7 +315,7 @@ export default function RegisterCustomerForm({
                             site_latitude: latitude.toFixed(6),
                             site_longitude: longitude.toFixed(6),
                         }))
-                        setMsg(`Location coordinates captured! (Accuracy: ${Math.round(accuracy)}m)`)
+                        setMsg(`✅ Location coordinates captured! (Accuracy: ${Math.round(accuracy)}m)`)
                     }
                     setLocationLoading(false)
                 },
@@ -325,25 +325,29 @@ export default function RegisterCustomerForm({
                     // If high accuracy failed, try with low accuracy
                     if (highAccuracy && retryCount < 1) {
                         console.log('High accuracy failed, trying with low accuracy...')
-                        setMsg('Trying alternative GPS method...')
+                        setMsg('⚙️ Trying alternative GPS method...')
                         tryGetLocation(false, retryCount + 1)
                         return
                     }
 
-                    // Provide specific error messages
-                    let errorMsg = 'Unable to get location. '
+                    // Provide specific error messages with detailed instructions
+                    let errorMsg = ''
                     switch (error.code) {
                         case error.PERMISSION_DENIED:
-                            errorMsg += 'Please allow location access in your browser/device settings.'
+                            errorMsg = `❌ PERMISSION DENIED - To fix:\n
+1. Click the 🔒 lock icon next to the URL\n
+2. Find "Location" and set to "Allow"\n
+3. Refresh the page and try again\n
+4. If on mobile: Go to Settings → Privacy → Location Services and allow`
                             break
                         case error.POSITION_UNAVAILABLE:
-                            errorMsg += 'Location information unavailable. Please ensure GPS is enabled.'
+                            errorMsg = '❌ GPS DATA UNAVAILABLE - Please ensure:\n1. GPS is enabled on your device\n2. You are in an open area (not indoors)\n3. Try again in a few seconds'
                             break
                         case error.TIMEOUT:
-                            errorMsg += 'Location request timed out. Please try again in an open area.'
+                            errorMsg = '⏱️ TIMEOUT - Location took too long. Please:\n1. Try again in an open area\n2. Disable VPN if using one\n3. Check internet connection'
                             break
                         default:
-                            errorMsg += 'Please check GPS permissions and try again.'
+                            errorMsg = '❌ LOCATION ERROR - Please check:\n1. GPS permissions are allowed\n2. Internet connection is active\n3. Browser is up to date'
                     }
                     setMsg(errorMsg)
                     setLocationLoading(false)

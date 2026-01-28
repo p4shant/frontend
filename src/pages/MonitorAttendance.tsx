@@ -443,7 +443,7 @@ function MonitorAttendance() {
                                                     {record.punch_in_image_url ? (
                                                         <button
                                                             onClick={() => {
-                                                                const imageUrl = record.punch_in_image_url.startsWith('http')
+                                                                const imageUrl = record.punch_in_image_url!.startsWith('http')
                                                                     ? record.punch_in_image_url
                                                                     : `${API_BASE.replace('/api', '')}${record.punch_in_image_url}`
                                                                 setPreviewImage(imageUrl)
@@ -464,7 +464,7 @@ function MonitorAttendance() {
                                                     {record.punch_out_image_url ? (
                                                         <button
                                                             onClick={() => {
-                                                                const imageUrl = record.punch_out_image_url.startsWith('http')
+                                                                const imageUrl = record.punch_out_image_url!.startsWith('http')
                                                                     ? record.punch_out_image_url
                                                                     : `${API_BASE.replace('/api', '')}${record.punch_out_image_url}`
                                                                 setPreviewImage(imageUrl)

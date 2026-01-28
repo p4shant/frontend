@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Download, Loader, MapPin, Phone, User, FileText } from 'lucide-react';
+import { X, Download, Loader, MapPin, Phone, User } from 'lucide-react';
 import type { Task } from '../../__tests__/data/mockTasks';
 import { exportTaskApplicationToPDF } from '../../utils/pdfExport';
 import workTypeConfig from '../../config/workTypeComponents.json';
