@@ -34,7 +34,7 @@ interface AttendanceRecord {
 
 function MonitorAttendance() {
     const { user, token } = useAuth()
-    const API_BASE = import.meta.env.VITE_API_BASE || 'https://backend-tkpl.onrender.com/api'
+    const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000/api'
 
     const [stats, setStats] = useState<Stats>({
         totalEmployees: 0,

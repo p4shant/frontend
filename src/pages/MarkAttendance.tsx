@@ -244,11 +244,11 @@ const MarkAttendance = () => {
                                             {todayStatus.punch_in_image_url && (
                                                 <div className="flex-shrink-0">
                                                     <img
-                                                        src={`${import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://backend-tkpl.onrender.com'}${todayStatus.punch_in_image_url}`}
+                                                        src={`${import.meta.env.VITE_API_BASE?.replace('/api', '') || 'http://localhost:3000'}${todayStatus.punch_in_image_url}`}
                                                         alt="Punch In"
                                                         className="w-20 h-20 object-cover rounded-lg border-2 border-blue/30 cursor-pointer hover:opacity-80 transition"
                                                         onClick={() => {
-                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://backend-tkpl.onrender.com'
+                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'http://localhost:3000'
                                                             setPreviewImage(`${API_BASE}${todayStatus.punch_in_image_url}`)
                                                             setPreviewTitle('Punch In Photo')
                                                         }}
@@ -270,7 +270,7 @@ const MarkAttendance = () => {
                                                 {todayStatus.punch_in_image_url && (
                                                     <button
                                                         onClick={() => {
-                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://backend-tkpl.onrender.com'
+                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'http://localhost:3000'
                                                             setPreviewImage(`${API_BASE}${todayStatus.punch_in_image_url}`)
                                                             setPreviewTitle('Punch In Photo')
                                                         }}
@@ -290,11 +290,11 @@ const MarkAttendance = () => {
                                             {todayStatus.punch_out_image_url && (
                                                 <div className="flex-shrink-0">
                                                     <img
-                                                        src={`${import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://backend-tkpl.onrender.com'}${todayStatus.punch_out_image_url}`}
+                                                        src={`${import.meta.env.VITE_API_BASE?.replace('/api', '') || 'http://localhost:3000'}${todayStatus.punch_out_image_url}`}
                                                         alt="Punch Out"
                                                         className="w-20 h-20 object-cover rounded-lg border-2 border-purple/30 cursor-pointer hover:opacity-80 transition"
                                                         onClick={() => {
-                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://backend-tkpl.onrender.com'
+                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'http://localhost:3000'
                                                             setPreviewImage(`${API_BASE}${todayStatus.punch_out_image_url}`)
                                                             setPreviewTitle('Punch Out Photo')
                                                         }}
@@ -316,7 +316,7 @@ const MarkAttendance = () => {
                                                 {todayStatus.punch_out_image_url && (
                                                     <button
                                                         onClick={() => {
-                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://backend-tkpl.onrender.com'
+                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'http://localhost:3000'
                                                             setPreviewImage(`${API_BASE}${todayStatus.punch_out_image_url}`)
                                                             setPreviewTitle('Punch Out Photo')
                                                         }}

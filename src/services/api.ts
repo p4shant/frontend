@@ -1,5 +1,5 @@
 // Centralized API Service - All API endpoints consolidated in one place
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://backend-tkpl.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000/api';
 
 // ============================================================================
 // AUTH API

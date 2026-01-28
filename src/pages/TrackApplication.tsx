@@ -69,7 +69,7 @@ interface Customer {
 
 function TrackApplication() {
     const { token } = useAuth()
-    const API_BASE = import.meta.env.VITE_API_BASE || 'https://backend-tkpl.onrender.com/api'
+    const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000/api'
 
     const [customers, setCustomers] = useState<Customer[]>([])
     const [loading, setLoading] = useState(true)
