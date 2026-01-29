@@ -351,7 +351,7 @@ const MarkAttendance = () => {
                         </button>
 
                         <button
-                            className="px-4 py-2 rounded bg-purple text-bg hover:bg-purple/90 transition disabled:opacity-50"
+                            className="px-4 py-2 rounded bg-blue text-bg hover:bg-blue/90 transition disabled:opacity-50"
                             onClick={() => handleOpenCamera('punchOut')}
                             disabled={!todayStatus?.punch_in_time || !!todayStatus?.punch_out_time}
                         >
