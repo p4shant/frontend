@@ -35,6 +35,7 @@ interface AttendanceRecord {
 function MonitorAttendance() {
     const { user, token } = useAuth()
     const API_BASE = import.meta.env.VITE_API_BASE || 'https://srv1304976.hstgr.cloud/api'
+    const todayStr = new Date().toISOString().split('T')[0]
 
     const [stats, setStats] = useState<Stats>({
         totalEmployees: 0,
@@ -47,23 +48,29 @@ function MonitorAttendance() {
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
     const [filterStatus, setFilterStatus] = useState('all')
-    const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
-    const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0])
     const [previewImage, setPreviewImage] = useState<string | null>(null)
     const [previewTitle, setPreviewTitle] = useState<string>('')
+    const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null)
+    const [selectedEmployeeName, setSelectedEmployeeName] = useState<string>('')
+    const [selectedEmployeeRole, setSelectedEmployeeRole] = useState<string>('')
+    const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false)
+    const [modalDateFrom, setModalDateFrom] = useState<string>('')
+    const [modalDateTo, setModalDateTo] = useState<string>(todayStr)
+    const [employeeModalRecords, setEmployeeModalRecords] = useState<AttendanceRecord[]>([])
+    const [employeeModalLoading, setEmployeeModalLoading] = useState(false)
 
     useEffect(() => {
         if (user && token && user.employee_role === 'Master Admin') {
             fetchStats()
         }
-    }, [user, token, startDate, endDate])
+    }, [user, token])
 
     const fetchStats = async () => {
         try {
             setLoading(true)
             // Fetch with includeAbsentees flag to get all employees including absent ones
             const response = await fetch(
-                `${API_BASE}/attendance?limit=500&date_from=${startDate}&date_to=${endDate}&includeAbsentees=true`,
+                `${API_BASE}/attendance?limit=500&date_from=${todayStr}&date_to=${todayStr}&includeAbsentees=true`,
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -137,6 +144,21 @@ function MonitorAttendance() {
         }
     }
 
+    const formatDateIST = (dateStr: string | null) => {
+        if (!dateStr) return '-'
+        try {
+            const d = new Date(dateStr)
+            return d.toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                timeZone: 'Asia/Kolkata'
+            })
+        } catch {
+            return '-'
+        }
+    }
+
     const calculateHours = (punchIn: string | null, punchOut: string | null) => {
         if (!punchIn || !punchOut) return '-'
         try {
@@ -148,6 +170,82 @@ function MonitorAttendance() {
             return '-'
         }
     }
+
+    const getDateDaysAgo = (days: number) => {
+        const d = new Date()
+        d.setDate(d.getDate() - days)
+        return d.toISOString().split('T')[0]
+    }
+
+    const fetchEmployeeHistory = async (employeeId: number, dateFrom: string, dateTo: string) => {
+        if (!token) return
+        try {
+            setEmployeeModalLoading(true)
+            const response = await fetch(
+                `${API_BASE}/attendance?employee_id=${employeeId}&date_from=${dateFrom}&date_to=${dateTo}&limit=500`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                }
+            )
+
+            if (response.ok) {
+                const result = await response.json()
+                const records: AttendanceRecord[] = result.data || []
+                setEmployeeModalRecords(records)
+            } else {
+                setEmployeeModalRecords([])
+            }
+        } catch (err) {
+            console.error('Error fetching employee history:', err)
+            setEmployeeModalRecords([])
+        } finally {
+            setEmployeeModalLoading(false)
+        }
+    }
+
+    const openEmployeeModal = (record: AttendanceRecord) => {
+        setSelectedEmployeeId(record.employee_id)
+        setSelectedEmployeeName(record.employee_name)
+        setSelectedEmployeeRole(record.employee_role)
+        const defaultFrom = getDateDaysAgo(7)
+        setModalDateFrom(defaultFrom)
+        setModalDateTo(todayStr)
+        setIsEmployeeModalOpen(true)
+        fetchEmployeeHistory(record.employee_id, defaultFrom, todayStr)
+    }
+
+    const closeEmployeeModal = () => {
+        setIsEmployeeModalOpen(false)
+        setSelectedEmployeeId(null)
+        setSelectedEmployeeName('')
+        setSelectedEmployeeRole('')
+        setEmployeeModalRecords([])
+    }
+
+    useEffect(() => {
+        if (!isEmployeeModalOpen || !selectedEmployeeId) return
+        if (!modalDateFrom || !modalDateTo) return
+        fetchEmployeeHistory(selectedEmployeeId, modalDateFrom, modalDateTo)
+    }, [isEmployeeModalOpen, selectedEmployeeId, modalDateFrom, modalDateTo])
+
+    const employeeHistory = employeeModalRecords
+        .slice()
+        .sort((a, b) => (a.attendance_date < b.attendance_date ? 1 : -1))
+
+    const employeeSummary = employeeHistory.reduce(
+        (acc, r) => {
+            acc.total += 1
+            if (r.status === 'present') acc.present += 1
+            if (r.status === 'late') acc.late += 1
+            if (r.status === 'absent') acc.absent += 1
+            if (r.status === 'forgot_to_punch_out') acc.forgot += 1
+            return acc
+        },
+        { total: 0, present: 0, late: 0, absent: 0, forgot: 0 }
+    )
 
     const openMapLocation = (lat: string | number | null, lng: string | number | null) => {
         if (!lat || !lng || lat === 'N/A' || lng === 'N/A') {
@@ -346,22 +444,6 @@ function MonitorAttendance() {
                                     className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
                                 />
                             </div>
-
-                            <div className="flex gap-2">
-                                <input
-                                    type="date"
-                                    value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
-                                    className="px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
-                                />
-                                <span className="hidden sm:flex items-center text-gray-500">to</span>
-                                <input
-                                    type="date"
-                                    value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
-                                    className="px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
-                                />
-                            </div>
                         </div>
 
                         <div className="flex gap-1 sm:gap-2 flex-wrap">
@@ -431,7 +513,8 @@ function MonitorAttendance() {
                                         {filteredRecords.map((record, index) => (
                                             <tr
                                                 key={record.id || `absent-${record.employee_id}`}
-                                                className={`hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                                                onClick={() => openEmployeeModal(record)}
+                                                className={`hover:bg-blue-50 transition-colors cursor-pointer ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                                             >
                                                 <td className="px-3 sm:px-4 py-3 sm:py-4 text-gray-700 font-medium align-middle">{index + 1}</td>
                                                 <td className="px-3 sm:px-4 py-3 sm:py-4 font-semibold text-gray-800 align-middle whitespace-nowrap">{record.employee_name}</td>
@@ -442,7 +525,8 @@ function MonitorAttendance() {
                                                 <td className="px-3 sm:px-4 py-3 sm:py-4 text-center align-middle hidden lg:table-cell">
                                                     {record.punch_in_image_url ? (
                                                         <button
-                                                            onClick={() => {
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
                                                                 const imageUrl = record.punch_in_image_url!.startsWith('http')
                                                                     ? record.punch_in_image_url
                                                                     : `${API_BASE.replace('/api', '')}${record.punch_in_image_url}`
@@ -463,7 +547,8 @@ function MonitorAttendance() {
                                                 <td className="px-3 sm:px-4 py-3 sm:py-4 text-center align-middle hidden lg:table-cell">
                                                     {record.punch_out_image_url ? (
                                                         <button
-                                                            onClick={() => {
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
                                                                 const imageUrl = record.punch_out_image_url!.startsWith('http')
                                                                     ? record.punch_out_image_url
                                                                     : `${API_BASE.replace('/api', '')}${record.punch_out_image_url}`
@@ -483,7 +568,10 @@ function MonitorAttendance() {
                                                         <span className="truncate">{record.punch_in_location}</span>
                                                         {record.punch_in_latitude && record.punch_in_longitude && record.punch_in_latitude !== 'N/A' && (
                                                             <button
-                                                                onClick={() => openMapLocation(record.punch_in_latitude, record.punch_in_longitude)}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    openMapLocation(record.punch_in_latitude, record.punch_in_longitude)
+                                                                }}
                                                                 className="text-[9px] sm:text-[10px] text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 font-semibold"
                                                             >
                                                                 <MapPin size={10} /> View Map
@@ -496,7 +584,10 @@ function MonitorAttendance() {
                                                         <span className="truncate">{record.punch_out_location || '-'}</span>
                                                         {record.punch_out_latitude && record.punch_out_longitude && record.punch_out_latitude !== 'N/A' && (
                                                             <button
-                                                                onClick={() => openMapLocation(record.punch_out_latitude, record.punch_out_longitude)}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    openMapLocation(record.punch_out_latitude, record.punch_out_longitude)
+                                                                }}
                                                                 className="text-[9px] sm:text-[10px] text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 font-semibold"
                                                             >
                                                                 <MapPin size={10} /> View Map
@@ -517,6 +608,137 @@ function MonitorAttendance() {
                     )}
                 </div>
             </div>
+
+            {isEmployeeModalOpen && (
+                <div
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998] flex items-center justify-center p-3 sm:p-6"
+                    onClick={closeEmployeeModal}
+                >
+                    <div
+                        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden border border-blue/10"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-4 sm:px-6 py-4 flex items-start justify-between gap-3">
+                            <div>
+                                <h3 className="text-white font-bold text-base sm:text-lg">{selectedEmployeeName}</h3>
+                                <p className="text-blue-100 text-xs sm:text-sm">{selectedEmployeeRole} • {modalDateFrom || todayStr} to {modalDateTo}</p>
+                            </div>
+                            <button
+                                onClick={closeEmployeeModal}
+                                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className="px-4 sm:px-6 py-4 bg-white border-b border-slate-200">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                                <span className="text-xs font-semibold text-slate-600">Filter by date</span>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="date"
+                                        value={modalDateFrom}
+                                        onChange={(e) => setModalDateFrom(e.target.value)}
+                                        className="px-2 sm:px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                    <span className="text-xs text-slate-400">to</span>
+                                    <input
+                                        type="date"
+                                        value={modalDateTo}
+                                        onChange={(e) => setModalDateTo(e.target.value)}
+                                        className="px-2 sm:px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="px-4 sm:px-6 py-4 bg-slate-50 border-b border-slate-200">
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                                <div className="bg-white rounded-lg border border-slate-200 p-3 text-center">
+                                    <p className="text-[10px] text-slate-500 font-semibold">Total Days</p>
+                                    <p className="text-lg font-bold text-slate-800">{employeeSummary.total}</p>
+                                </div>
+                                <div className="bg-white rounded-lg border border-slate-200 p-3 text-center">
+                                    <p className="text-[10px] text-green-600 font-semibold">Present</p>
+                                    <p className="text-lg font-bold text-green-700">{employeeSummary.present}</p>
+                                </div>
+                                <div className="bg-white rounded-lg border border-slate-200 p-3 text-center">
+                                    <p className="text-[10px] text-yellow-600 font-semibold">Late</p>
+                                    <p className="text-lg font-bold text-yellow-700">{employeeSummary.late}</p>
+                                </div>
+                                <div className="bg-white rounded-lg border border-slate-200 p-3 text-center">
+                                    <p className="text-[10px] text-orange-600 font-semibold">Forgot P.Out</p>
+                                    <p className="text-lg font-bold text-orange-700">{employeeSummary.forgot}</p>
+                                </div>
+                                <div className="bg-white rounded-lg border border-slate-200 p-3 text-center">
+                                    <p className="text-[10px] text-red-600 font-semibold">Absent</p>
+                                    <p className="text-lg font-bold text-red-700">{employeeSummary.absent}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-4 sm:p-6 overflow-y-auto max-h-[60vh]">
+                            {employeeModalLoading ? (
+                                <div className="flex items-center justify-center py-10">
+                                    <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+                                    <span className="ml-3 text-sm text-slate-500">Loading attendance history...</span>
+                                </div>
+                            ) : employeeHistory.length === 0 ? (
+                                <div className="text-center text-slate-500 py-10">No attendance records found for this employee.</div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {employeeHistory.map((record) => (
+                                        <div key={`${record.employee_id}-${record.attendance_date}-${record.id ?? 'absent'}`} className="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                                <div>
+                                                    <p className="text-sm font-bold text-slate-800">{formatDateIST(record.attendance_date)}</p>
+                                                    <p className="text-xs text-slate-500">{record.punch_in_location}</p>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {getStatusBadge(record.status)}
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                                                    <p className="text-[10px] text-slate-500 font-semibold">Punch In</p>
+                                                    <p className="text-sm font-bold text-slate-800">{formatTime(record.punch_in_time)}</p>
+                                                    {record.punch_in_latitude && record.punch_in_longitude && record.punch_in_latitude !== 'N/A' && (
+                                                        <button
+                                                            onClick={() => openMapLocation(record.punch_in_latitude, record.punch_in_longitude)}
+                                                            className="mt-1 text-[10px] text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 font-semibold"
+                                                        >
+                                                            <MapPin size={10} /> View Map
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                                                    <p className="text-[10px] text-slate-500 font-semibold">Punch Out</p>
+                                                    <p className="text-sm font-bold text-slate-800">{formatTime(record.punch_out_time)}</p>
+                                                    {record.punch_out_latitude && record.punch_out_longitude && record.punch_out_latitude !== 'N/A' && (
+                                                        <button
+                                                            onClick={() => openMapLocation(record.punch_out_latitude, record.punch_out_longitude)}
+                                                            className="mt-1 text-[10px] text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 font-semibold"
+                                                        >
+                                                            <MapPin size={10} /> View Map
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                                                    <p className="text-[10px] text-slate-500 font-semibold">Total Hours</p>
+                                                    <p className="text-sm font-bold text-slate-800">{calculateHours(record.punch_in_time, record.punch_out_time)}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Image Preview Modal */}
             {previewImage && (
