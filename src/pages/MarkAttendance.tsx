@@ -37,6 +37,21 @@ const MarkAttendance = () => {
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+    const formatTimeIST = (time?: string | null) => {
+        if (!time) return '-';
+        try {
+            const d = new Date(time);
+            return d.toLocaleTimeString('en-IN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+                timeZone: 'Asia/Kolkata'
+            });
+        } catch {
+            return '-';
+        }
+    };
+
     const fetchTodayStatus = useCallback(async () => {
         if (!token) return;
         try {
@@ -260,7 +275,7 @@ const MarkAttendance = () => {
                                                     ✓ Punch In
                                                 </p>
                                                 <p className="text-sm mb-1">
-                                                    <strong>Time:</strong> {new Date(todayStatus.punch_in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })}
+                                                    <strong>Time:</strong> {formatTimeIST(todayStatus.punch_in_time)}
                                                 </p>
                                                 {(todayStatus.punch_in_latitude && todayStatus.punch_in_longitude) && (
                                                     <p className="text-xs text-text-dim">
@@ -306,7 +321,7 @@ const MarkAttendance = () => {
                                                     ✓ Punch Out
                                                 </p>
                                                 <p className="text-sm mb-1">
-                                                    <strong>Time:</strong> {new Date(todayStatus.punch_out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })}
+                                                    <strong>Time:</strong> {formatTimeIST(todayStatus.punch_out_time)}
                                                 </p>
                                                 {(todayStatus.punch_out_latitude && todayStatus.punch_out_longitude) && (
                                                     <p className="text-xs text-text-dim">
