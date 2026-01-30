@@ -132,14 +132,30 @@ function MonitorAttendance() {
     const formatTime = (time: string | null) => {
         if (!time) return '-'
         try {
+            // Try to match: "2026-01-30 12:48:00" or "2026-01-30T12:48:00"
+            const match = time.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/)
+
+            if (match) {
+                const hours = parseInt(match[1], 10)
+                const minutes = parseInt(match[2], 10)
+                const ampm = hours >= 12 ? 'PM' : 'AM'
+                const displayHours = hours % 12 || 12
+                return `${displayHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${ampm}`
+            }
+
+            // Fallback: try parsing as Date
             const d = new Date(time)
-            return d.toLocaleTimeString('en-IN', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-                timeZone: 'Asia/Kolkata'
-            })
-        } catch {
+            if (!isNaN(d.getTime())) {
+                const hours = d.getUTCHours()
+                const minutes = d.getUTCMinutes()
+                const ampm = hours >= 12 ? 'PM' : 'AM'
+                const displayHours = hours % 12 || 12
+                return `${displayHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${ampm}`
+            }
+
+            return '-'
+        } catch (e) {
+            console.error('Error formatting time:', time, e)
             return '-'
         }
     }
@@ -147,13 +163,13 @@ function MonitorAttendance() {
     const formatDateIST = (dateStr: string | null) => {
         if (!dateStr) return '-'
         try {
+            // Backend already stores IST date, so just format it without conversion
             const d = new Date(dateStr)
-            return d.toLocaleDateString('en-IN', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-                timeZone: 'Asia/Kolkata'
-            })
+            const day = d.getDate().toString().padStart(2, '0')
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            const month = months[d.getMonth()]
+            const year = d.getFullYear()
+            return `${day}-${month}-${year}`
         } catch {
             return '-'
         }

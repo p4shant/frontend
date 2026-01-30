@@ -40,14 +40,30 @@ const MarkAttendance = () => {
     const formatTimeIST = (time?: string | null) => {
         if (!time) return '-';
         try {
+            // Try to match: "2026-01-30 12:48:00" or "2026-01-30T12:48:00"
+            const match = time.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+
+            if (match) {
+                const hours = parseInt(match[1], 10);
+                const minutes = parseInt(match[2], 10);
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                const displayHours = hours % 12 || 12;
+                return `${displayHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+            }
+
+            // Fallback: try parsing as Date
             const d = new Date(time);
-            return d.toLocaleTimeString('en-IN', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-                timeZone: 'Asia/Kolkata'
-            });
-        } catch {
+            if (!isNaN(d.getTime())) {
+                const hours = d.getUTCHours();
+                const minutes = d.getUTCMinutes();
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                const displayHours = hours % 12 || 12;
+                return `${displayHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+            }
+
+            return '-';
+        } catch (e) {
+            console.error('Error formatting time:', time, e);
             return '-';
         }
     };
@@ -335,7 +351,7 @@ const MarkAttendance = () => {
                                                             setPreviewImage(`${API_BASE}${todayStatus.punch_out_image_url}`)
                                                             setPreviewTitle('Punch Out Photo')
                                                         }}
-                                                        className="mt-2 px-3 py-1 text-xs bg-purple text-white rounded hover:bg-purple/90 transition-colors font-semibold"
+                                                        className="mt-2 px-3 py-1 text-xs bg-rose-400 text-white rounded hover:bg-rose/90 transition-colors font-semibold"
                                                     >
                                                         View Full Image
                                                     </button>
@@ -366,7 +382,7 @@ const MarkAttendance = () => {
                         </button>
 
                         <button
-                            className="px-4 py-2 rounded bg-blue text-bg hover:bg-blue/90 transition disabled:opacity-50"
+                            className="px-4 py-2 rounded bg-rose-900 text-bg hover:bg-rose/30 transition disabled:opacity-50"
                             onClick={() => handleOpenCamera('punchOut')}
                             disabled={!todayStatus?.punch_in_time || !!todayStatus?.punch_out_time}
                         >
@@ -415,7 +431,7 @@ const MarkAttendance = () => {
                                     <button onClick={handleRetake} className="px-3 py-1.5 rounded border border-blue/12 hover:bg-panel-strong">
                                         Retake
                                     </button>
-                                    <button onClick={handleSubmit} disabled={processing} className="px-3 py-1.5 rounded bg-green text-bg hover:bg-green/90 disabled:opacity-50">
+                                    <button onClick={handleSubmit} disabled={processing} className="px-3 py-1.5 rounded bg-blue text-bg hover:bg-blue/90 disabled:opacity-50">
                                         {processing ? 'Submitting…' : 'Submit'}
                                     </button>
                                 </>
