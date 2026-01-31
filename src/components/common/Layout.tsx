@@ -22,7 +22,7 @@ function AppLayout({ children }: PropsWithChildren) {
             <Sidebar state={sidebarState} />
 
             {/* Main Content Area */}
-            <div className="flex flex-col flex-1 min-w-0 w-full">
+            <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
                 {/* Topbar */}
                 <Topbar
                     onMenuClick={toggleMobile}
@@ -32,7 +32,7 @@ function AppLayout({ children }: PropsWithChildren) {
 
                 {/* Page Content */}
                 <main
-                    className="flex-1 px-0 overflow-hidden"
+                    className="flex-1 overflow-y-auto overflow-x-hidden"
                     onClick={closeMobile}
                 >
                     {children}

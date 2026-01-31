@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import AppLayout from './components/common/Layout';
 import Dashboard from './pages/Dashboard';
 import RegisterCustomer from './pages/RegisterCustomer';
+import RegisterEmployee from './pages/RegisterEmployee';
 import MarkAttendance from './pages/MarkAttendance';
 import Profile from './pages/Profile';
 import TrackApplication from './pages/TrackApplication';
@@ -42,6 +43,16 @@ function App() {
           <ProtectedRoute>
             <AppLayout>
               <MarkAttendance />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/register-employee"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <RegisterEmployee />
             </AppLayout>
           </ProtectedRoute>
         }
