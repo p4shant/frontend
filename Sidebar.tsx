@@ -1,12 +1,17 @@
 import { NavLink } from 'react-router-dom';
-import { CalendarCheck, LayoutDashboard, PanelsTopLeft, Plus, UserRound } from 'lucide-react';
+import { CalendarCheck, LayoutDashboard, PanelsTopLeft, Plus, UserRound, UserPlus } from 'lucide-react';
 import kamnLogo from '../assets/kaman-logo.png';
+import { useAuth } from '../context/AuthContext';
 
 const NAV_ITEMS = [
     { label: 'Dashboard', to: '/', icon: <LayoutDashboard size={18} /> },
     { label: 'Register Customer', to: '/register-customer', icon: <PanelsTopLeft size={18} /> },
     { label: 'Mark Attendance', to: '/mark-attendance', icon: <CalendarCheck size={18} /> },
     { label: 'Profile', to: '/profile', icon: <UserRound size={18} /> },
+];
+
+const ADMIN_NAV_ITEMS = [
+    { label: 'Register Employee', to: '/register-employee', icon: <UserPlus size={18} />, adminOnly: true },
 ];
 
 interface SidebarState {
@@ -24,6 +29,10 @@ interface Props {
 
 function Sidebar({ state, onQuickRegister }: Props) {
     const { isCollapsed, isMobileOpen, toggleMobile, closeMobile } = state;
+    const { user } = useAuth();
+    const isMasterAdmin = user?.employee_role === 'Master Admin';
+
+    const allNavItems = isMasterAdmin ? [...NAV_ITEMS, ...ADMIN_NAV_ITEMS] : NAV_ITEMS;
 
     return (
         <>
@@ -67,7 +76,7 @@ function Sidebar({ state, onQuickRegister }: Props) {
                 </div>
 
                 <nav className="flex flex-col gap-1.5 px-2.5 py-2 pb-4">
-                    {NAV_ITEMS.map((item) => (
+                    {allNavItems.map((item) => (
                         <NavLink
                             key={item.to}
                             to={item.to}
@@ -140,7 +149,7 @@ function Sidebar({ state, onQuickRegister }: Props) {
                 </div>
 
                 <nav className="flex flex-col gap-1.5 px-2.5 py-2 pb-4">
-                    {NAV_ITEMS.map((item) => (
+                    {allNavItems.map((item) => (
                         <NavLink
                             key={item.to}
                             to={item.to}
