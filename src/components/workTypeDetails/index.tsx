@@ -706,7 +706,7 @@ export const RegistrationComplete: React.FC<WorkTypeDetailsProps> = ({ task: _ta
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Modal Header */}
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-3 flex items-center justify-between">
+                        <div className="bg-blue-500 px-4 py-3 flex items-center justify-between">
                             <h3 className="text-white font-semibold text-sm">{previewTitle}</h3>
                             <button
                                 onClick={closePreview}
@@ -772,7 +772,7 @@ export const PlantInstallation: React.FC<WorkTypeDetailsProps> = ({ task: _task,
                 const token = localStorage.getItem('auth_token');
 
                 // Fetch Technicians
-                const techResponse = await fetch('https://srv1304976.hstgr.cloud/api/employees?role=Technician', {
+                const techResponse = await fetch('https://srv1304976.hstgr.cloud /api/employees?role=Technician', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const techData = await techResponse.json();
@@ -781,7 +781,7 @@ export const PlantInstallation: React.FC<WorkTypeDetailsProps> = ({ task: _task,
                 }
 
                 // Fetch Technical Assistants
-                const assistantResponse = await fetch('https://srv1304976.hstgr.cloud/api/employees?role=Technical Assistant', {
+                const assistantResponse = await fetch('https://srv1304976.hstgr.cloud /api/employees?role=Technical Assistant', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const assistantData = await assistantResponse.json();
@@ -904,7 +904,7 @@ export const PlantInstallation: React.FC<WorkTypeDetailsProps> = ({ task: _task,
 
             const assistantIds = technicalAssistants.map(a => a.employeeId);
 
-            const response = await fetch('https://srv1304976.hstgr.cloud/api/plant-installation-details', {
+            const response = await fetch('https://srv1304976.hstgr.cloud /api/plant-installation-details', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1266,7 +1266,7 @@ export const createHardCopyindentCreationTask: React.FC<WorkTypeDetailsProps> = 
             const formData = new FormData();
             formData.append('indent_document', indentDocumentFile);
 
-            const response = await fetch(`https://srv1304976.hstgr.cloud/api/additional-documents/${customer.id}/indent`, {
+            const response = await fetch(`https://srv1304976.hstgr.cloud /api/additional-documents/${customer.id}/indent`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1416,7 +1416,7 @@ export const BillGeneration: React.FC<WorkTypeDetailsProps> = ({ task: _task, cu
             const formData = new FormData();
             formData.append('paybill_document', paybillDocumentFile);
 
-            const response = await fetch(`https://srv1304976.hstgr.cloud/api/additional-documents/${customer.id}/paybill`, {
+            const response = await fetch(`https://srv1304976.hstgr.cloud /api/additional-documents/${customer.id}/paybill`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

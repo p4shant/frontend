@@ -27,7 +27,17 @@ function RegisterCustomer() {
             if (!user || !token) { setLoading(false); return; }
             try {
                 setLoading(true);
-                const data = await registeredCustomersAPI.getByEmployee(user.id, token);
+                let data;
+
+                // Check if user is Master Admin or System Admin
+                if (user.employee_role === 'Master Admin' || user.employee_role === 'System Admin') {
+                    // Fetch all registered customers
+                    data = await registeredCustomersAPI.list(token, { page: 1, limit: 10000 });
+                } else {
+                    // Fetch only customers registered by this employee
+                    data = await registeredCustomersAPI.getByEmployee(user.id, token);
+                }
+
                 const rows = Array.isArray(data) ? data : data.data || [];
                 setCustomers(rows);
             } catch (e) {
@@ -56,7 +66,17 @@ function RegisterCustomer() {
         // Refresh the customer list
         if (user && token) {
             try {
-                const data = await registeredCustomersAPI.getByEmployee(user.id, token);
+                let data;
+
+                // Check if user is Master Admin or System Admin
+                if (user.employee_role === 'Master Admin' || user.employee_role === 'System Admin') {
+                    // Fetch all registered customers
+                    data = await registeredCustomersAPI.list(token, { page: 1, limit: 10000 });
+                } else {
+                    // Fetch only customers registered by this employee
+                    data = await registeredCustomersAPI.getByEmployee(user.id, token);
+                }
+
                 const rows = Array.isArray(data) ? data : data.data || [];
                 setCustomers(rows);
             } catch (e) {

@@ -69,7 +69,7 @@ interface Customer {
 
 function TrackApplication() {
     const { token } = useAuth()
-    const API_BASE = import.meta.env.VITE_API_BASE || 'https://srv1304976.hstgr.cloud/api'
+    const API_BASE = import.meta.env.VITE_API_BASE || 'https://srv1304976.hstgr.cloud /api'
 
     const [customers, setCustomers] = useState<Customer[]>([])
     const [loading, setLoading] = useState(true)
@@ -319,9 +319,10 @@ function TrackApplication() {
                                 <thead>
                                     <tr>
                                         <th className="px-3 sm:px-4 py-4 text-left font-bold sticky left-0 z-10 shadow-md" style={{ backgroundColor: '#BFC6C4', color: '#30364F' }}>Customer Name</th>
-                                        <th className="px-3 sm:px-4 py-4 text-left font-bold border-l border-gray-300" style={{ backgroundColor: '#F5E7C6', color: '#0C2C55' }}>Mobile Number</th>
-                                        <th className="px-3 sm:px-4 py-4 text-left font-bold border-l border-gray-300" style={{ backgroundColor: '#FFFDE1', color: '#233D4D' }}>District</th>
-                                        <th className="px-3 sm:px-4 py-4 text-center font-bold border-l border-gray-300" style={{ backgroundColor: '#BFC6C4', color: '#0F2854' }}>Progress</th>
+                                        <th className="px-3 sm:px-4 py-4 text-left font-bold border-l border-gray-300" style={{ backgroundColor: '#F5E7C6', color: '#0C2C55' }}>Created By</th>
+                                        <th className="px-3 sm:px-4 py-4 text-left font-bold border-l border-gray-300" style={{ backgroundColor: '#FFFDE1', color: '#233D4D' }}>Mobile Number</th>
+                                        <th className="px-3 sm:px-4 py-4 text-left font-bold border-l border-gray-300" style={{ backgroundColor: '#BFC6C4', color: '#30364F' }}>District</th>
+                                        <th className="px-3 sm:px-4 py-4 text-center font-bold border-l border-gray-300" style={{ backgroundColor: '#F5E7C6', color: '#0F2854' }}>Progress</th>
                                         {WORK_TYPES.map((wt, idx) => (
                                             <th key={wt.key} className="px-2 sm:px-3 py-4 text-center font-bold whitespace-nowrap border-l border-gray-300"
                                                 style={{
@@ -345,6 +346,12 @@ function TrackApplication() {
                                             >
                                                 <td className="px-3 sm:px-4 py-4 sticky left-0 bg-inherit z-10 shadow-sm">
                                                     <div className="font-bold text-gray-900 whitespace-nowrap">{customer.applicant_name}</div>
+                                                </td>
+                                                <td className="px-3 sm:px-4 py-4 text-gray-800 whitespace-nowrap border-l border-gray-300 font-medium">
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="font-semibold text-gray-900">{customer.created_by_name}</span>
+                                                        <span className="text-xs text-gray-600 bg-blue-50 px-2 py-0.5 rounded-full w-fit">{customer.created_by_role}</span>
+                                                    </div>
                                                 </td>
                                                 <td className="px-3 sm:px-4 py-4 text-gray-800 whitespace-nowrap border-l border-gray-300 font-medium">{customer.mobile_number}</td>
                                                 <td className="px-3 sm:px-4 py-4 text-gray-800 border-l border-gray-300 font-medium">{customer.district}</td>
