@@ -65,6 +65,8 @@ interface Customer {
     plant_category?: string
     margin_money?: number
     created_at?: string
+    created_by_name?: string
+    created_by_role?: string
 }
 
 function TrackApplication() {
