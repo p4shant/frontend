@@ -45,7 +45,7 @@ function Profile() {
         setError('');
 
         try {
-            const API_BASE = import.meta.env.VITE_API_BASE || 'https://srv1304976.hstgr.cloud /api';
+            const API_BASE = import.meta.env.VITE_API_BASE || 'https://srv1304976.hstgr.cloud/api';
             const response = await fetch(`${API_BASE}/employees/change-password`, {
                 method: 'PUT',
                 headers: {
