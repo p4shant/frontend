@@ -34,8 +34,18 @@ interface AttendanceRecord {
 
 function MonitorAttendance() {
     const { user, token } = useAuth()
-    const API_BASE = import.meta.env.VITE_API_BASE || 'https://srv1304976.hstgr.cloud/api'
-    const todayStr = new Date().toISOString().split('T')[0]
+    const API_BASE = import.meta.env.VITE_API_BASE || 'https://srv1304976.hstgr.cloud /api'
+
+    /**
+     * TIMEZONE HANDLING STRATEGY:
+     * - Database stores all timestamps in UTC (ISO format)
+     * - Database stores attendance_date as YYYY-MM-DD in IST calendar day
+     * - Frontend converts UTC times to IST (Asia/Kolkata) for display
+     * - IST is UTC+5:30
+     */
+
+    // Get today's date in IST format (YYYY-MM-DD) for API queries
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
 
     const [stats, setStats] = useState<Stats>({
         totalEmployees: 0,
@@ -131,45 +141,51 @@ function MonitorAttendance() {
 
     const formatTime = (time: string | null) => {
         if (!time) return '-'
-        try {
-            // Try to match: "2026-01-30 12:48:00" or "2026-01-30T12:48:00"
-            const match = time.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/)
 
-            if (match) {
-                const hours = parseInt(match[1], 10)
-                const minutes = parseInt(match[2], 10)
-                const ampm = hours >= 12 ? 'PM' : 'AM'
-                const displayHours = hours % 12 || 12
-                return `${displayHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${ampm}`
-            }
-
-            // Fallback: try parsing as Date
-            const d = new Date(time)
-            if (!isNaN(d.getTime())) {
-                const hours = d.getUTCHours()
-                const minutes = d.getUTCMinutes()
-                const ampm = hours >= 12 ? 'PM' : 'AM'
-                const displayHours = hours % 12 || 12
-                return `${displayHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${ampm}`
-            }
-
-            return '-'
-        } catch (e) {
-            console.error('Error formatting time:', time, e)
-            return '-'
+        // Handle MySQL datetime format: "2026-02-11 15:31:14"
+        // Convert to ISO format: "2026-02-11T15:31:14Z"
+        let isoTime = time
+        if (time && time.includes(' ') && !time.includes('T')) {
+            // MySQL format detected - replace space with T and add Z
+            isoTime = time.replace(' ', 'T') + 'Z'
         }
+
+        const date = new Date(isoTime)
+        if (isNaN(date.getTime())) return '-'
+
+        // Convert UTC time to IST (Asia/Kolkata timezone) for display
+        // Database stores all punch_in_time and punch_out_time in UTC
+        return date.toLocaleTimeString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        })
     }
+
 
     const formatDateIST = (dateStr: string | null) => {
         if (!dateStr) return '-'
         try {
-            // Backend already stores IST date, so just format it without conversion
-            const d = new Date(dateStr)
-            const day = d.getDate().toString().padStart(2, '0')
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-            const month = months[d.getMonth()]
-            const year = d.getFullYear()
-            return `${day}-${month}-${year}`
+            // Handle simple date format (YYYY-MM-DD)
+            // attendance_date from database is already in IST calendar day format
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                const [y, m, d] = dateStr.split('-')
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                return `${d}-${months[Number(m) - 1]}-${y}`
+            }
+
+            // Convert any date string to IST for display
+            const date = new Date(dateStr)
+            if (isNaN(date.getTime())) return '-'
+
+            const parts = date.toLocaleDateString('en-IN', {
+                timeZone: 'Asia/Kolkata',
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            })
+            return parts.replace(/\s/g, '-')
         } catch {
             return '-'
         }
@@ -177,20 +193,22 @@ function MonitorAttendance() {
 
     const calculateHours = (punchIn: string | null, punchOut: string | null) => {
         if (!punchIn || !punchOut) return '-'
-        try {
-            const inTime = new Date(punchIn)
-            const outTime = new Date(punchOut)
-            const diff = (outTime.getTime() - inTime.getTime()) / (1000 * 60 * 60)
-            return `${diff.toFixed(1)} hrs`
-        } catch {
-            return '-'
-        }
+
+        // Both timestamps are in UTC from database
+        // Calculate duration directly without timezone conversion
+        const inTime = new Date(punchIn)
+        const outTime = new Date(punchOut)
+        if (isNaN(inTime.getTime()) || isNaN(outTime.getTime())) return '-'
+
+        const diff = (outTime.getTime() - inTime.getTime()) / (1000 * 60 * 60)
+        return `${diff.toFixed(1)} hrs`
     }
 
     const getDateDaysAgo = (days: number) => {
-        const d = new Date()
-        d.setDate(d.getDate() - days)
-        return d.toISOString().split('T')[0]
+        // Get date N days ago in IST format (YYYY-MM-DD)
+        // Calculate days offset and format using IST timezone
+        const dateAgo = new Date(new Date().getTime() - days * 24 * 60 * 60 * 1000);
+        return dateAgo.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
     }
 
     const fetchEmployeeHistory = async (employeeId: number, dateFrom: string, dateTo: string) => {
@@ -367,7 +385,9 @@ function MonitorAttendance() {
             <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
                 <div className="mb-4 sm:mb-8">
                     <p className="text-gray-600 text-sm sm:text-base">
+                        {/* Display today's date in IST timezone */}
                         {new Date().toLocaleDateString('en-US', {
+                            timeZone: 'Asia/Kolkata',
                             weekday: 'long',
                             year: 'numeric',
                             month: 'long',
@@ -634,7 +654,7 @@ function MonitorAttendance() {
                         className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden border border-blue/10"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-4 sm:px-6 py-4 flex items-start justify-between gap-3">
+                        <div className="bg-violet-500 px-4 sm:px-6 py-4 flex items-start justify-between gap-3">
                             <div>
                                 <h3 className="text-white font-bold text-base sm:text-lg">{selectedEmployeeName}</h3>
                                 <p className="text-blue-100 text-xs sm:text-sm">{selectedEmployeeRole} • {modalDateFrom || todayStr} to {modalDateTo}</p>
@@ -766,7 +786,7 @@ function MonitorAttendance() {
                         className="relative bg-white rounded-lg sm:rounded-xl shadow-2xl max-w-4xl max-h-[90vh] overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
+                        <div className="bg-rose-600 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
                             <h3 className="text-white font-semibold text-xs sm:text-sm break-words pr-2">{previewTitle}</h3>
                             <button
                                 onClick={() => setPreviewImage(null)}

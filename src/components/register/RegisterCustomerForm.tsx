@@ -64,7 +64,10 @@ export default function RegisterCustomerForm({
     const UP_DISTRICTS = [
         'Ghazipur',
         'Varanasi',
-        'Azamgarh'
+        'Azamgarh',
+        'Mau',
+        'Ballia',
+        'Other'
     ]
 
     const [form, setForm] = useState<FormState>({
@@ -554,6 +557,33 @@ export default function RegisterCustomerForm({
             return
         }
 
+        // Validate file sizes BEFORE uploading (max 30MB per file)
+        const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB
+        const oversizedFiles: string[] = [];
+
+        for (const [fieldName, file] of Object.entries(files)) {
+            if (file && file.size > MAX_FILE_SIZE) {
+                oversizedFiles.push(`${fieldName.replace(/_/g, ' ')} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`);
+            }
+        }
+
+        for (const [fieldName, file] of Object.entries(cotFiles)) {
+            if (fieldName === 'aadhaar_photos' && Array.isArray(file)) {
+                (file as (File | null)[]).forEach((f, idx) => {
+                    if (f && f.size > MAX_FILE_SIZE) {
+                        oversizedFiles.push(`Aadhaar Photo ${idx + 1} (${(f.size / (1024 * 1024)).toFixed(2)}MB)`);
+                    }
+                });
+            } else if (file && !(file instanceof Array) && file.size > MAX_FILE_SIZE) {
+                oversizedFiles.push(`${fieldName.replace(/_/g, ' ')} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`);
+            }
+        }
+
+        if (oversizedFiles.length > 0) {
+            setMsg(`❌ File size exceeded! Max 10MB per file. Oversized files:\n${oversizedFiles.join('\n')}`)
+            return
+        }
+
         setLoading(true)
 
         try {
@@ -647,38 +677,59 @@ export default function RegisterCustomerForm({
 
             // Upload all files at once if there are any
             const urlUpdates: Record<string, any> = {};
-            if (Object.keys(filesToUpload).length > 0) {
-                const uploadResult = await registeredCustomersAPI.uploadDocuments(String(customerId), filesToUpload, token);
+            let fileUploadSuccess = true;
+            let fileUploadWarning = '';
 
-                if (uploadResult?.files) {
-                    // Map uploaded file URLs to database column names
-                    for (const [fieldName, fileInfo] of Object.entries(uploadResult.files)) {
-                        if (fieldName === 'cot_aadhaar_photos' && Array.isArray(fileInfo)) {
-                            // Handle multiple aadhaar photos
-                            const urls = fileInfo.map((f: any) => f.url);
-                            urlUpdates['cot_aadhaar_photos_urls'] = JSON.stringify(urls);
-                        } else if (urlMapping[fieldName]) {
-                            // Handle single file
-                            urlUpdates[urlMapping[fieldName]] = (fileInfo as any).url;
+            if (Object.keys(filesToUpload).length > 0) {
+                try {
+                    const uploadResult = await registeredCustomersAPI.uploadDocuments(String(customerId), filesToUpload, token);
+
+                    if (uploadResult?.files) {
+                        // Map uploaded file URLs to database column names
+                        for (const [fieldName, fileInfo] of Object.entries(uploadResult.files)) {
+                            if (fieldName === 'cot_aadhaar_photos' && Array.isArray(fileInfo)) {
+                                // Handle multiple aadhaar photos
+                                const urls = fileInfo.map((f: any) => f.url);
+                                urlUpdates['cot_aadhaar_photos_urls'] = JSON.stringify(urls);
+                            } else if (urlMapping[fieldName]) {
+                                // Handle single file
+                                urlUpdates[urlMapping[fieldName]] = (fileInfo as any).url;
+                            }
                         }
                     }
+                } catch (fileErr) {
+                    fileUploadSuccess = false;
+                    const fileErrMsg = fileErr instanceof Error ? fileErr.message : 'File upload failed';
+                    fileUploadWarning = `⚠️ Customer ${isEditMode ? 'saved' : 'created'} successfully but file upload failed: ${fileErrMsg}. You can upload files later.`;
+                    console.error('File upload error:', fileErr);
                 }
             }
 
             if (Object.keys(urlUpdates).length > 0) {
-                await registeredCustomersAPI.update(String(customerId), urlUpdates, token)
+                try {
+                    await registeredCustomersAPI.update(String(customerId), urlUpdates, token)
+                } catch (updateErr) {
+                    console.error('Error updating file URLs:', updateErr);
+                    // Don't throw - customer and files are already created/uploaded
+                }
             }
 
-            setMsg(isEditMode ? 'Application saved successfully!' : 'Application created successfully!')
+            // Show appropriate success message
+            if (fileUploadWarning) {
+                setMsg(fileUploadWarning);
+            } else {
+                setMsg(isEditMode ? '✅ Application saved successfully!' : '✅ Application created successfully!');
+            }
+
             Object.values(previews).forEach((url) => url && URL.revokeObjectURL(url))
 
             // Call onSuccess callback if provided (for modal closing)
             if (onSuccess) {
-                setTimeout(() => onSuccess(), 500)
+                setTimeout(() => onSuccess(), fileUploadSuccess ? 500 : 2000)
             }
         } catch (err) {
             const errMsg = err instanceof Error ? err.message : 'Network error.'
-            setMsg(errMsg)
+            setMsg(`❌ Error: ${errMsg}`)
             console.error(err)
         } finally {
             setLoading(false)
@@ -1188,7 +1239,7 @@ export default function RegisterCustomerForm({
                                                 <label className="block text-xs font-medium text-slate-600 mb-2">First Person Aadhaar Card *</label>
                                                 <input
                                                     type="file"
-                                                    accept="image/*,application/pdf"
+                                                    accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
                                                     onChange={(e) => onCotFile('live_to_live_aadhaar_1', e.target.files?.[0] ?? null)}
                                                     className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500"
                                                 />
@@ -1202,7 +1253,7 @@ export default function RegisterCustomerForm({
                                                 <label className="block text-xs font-medium text-slate-600 mb-2">Second Person Aadhaar Card *</label>
                                                 <input
                                                     type="file"
-                                                    accept="image/*,application/pdf"
+                                                    accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
                                                     onChange={(e) => onCotFile('live_to_live_aadhaar_2', e.target.files?.[0] ?? null)}
                                                     className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500"
                                                 />
@@ -1227,7 +1278,7 @@ export default function RegisterCustomerForm({
                                                 <label className="block text-xs font-medium text-slate-600 mb-2">Death Certificate *</label>
                                                 <input
                                                     type="file"
-                                                    accept="image/*,application/pdf"
+                                                    accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
                                                     onChange={(e) => onCotFile('death_certificate', e.target.files?.[0] ?? null)}
                                                     className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500"
                                                 />
@@ -1241,7 +1292,7 @@ export default function RegisterCustomerForm({
                                                 <label className="block text-xs font-medium text-slate-600 mb-2">House Papers *</label>
                                                 <input
                                                     type="file"
-                                                    accept="image/*,application/pdf"
+                                                    accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
                                                     onChange={(e) => onCotFile('house_papers', e.target.files?.[0] ?? null)}
                                                     className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500"
                                                 />
@@ -1269,7 +1320,7 @@ export default function RegisterCustomerForm({
                                                 <label className="block text-xs font-medium text-slate-600 mb-2">Family Registration Papers *</label>
                                                 <input
                                                     type="file"
-                                                    accept="image/*,application/pdf"
+                                                    accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
                                                     onChange={(e) => onCotFile('family_registration', e.target.files?.[0] ?? null)}
                                                     className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500"
                                                 />

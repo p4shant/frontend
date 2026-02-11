@@ -37,36 +37,56 @@ const MarkAttendance = () => {
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+    /**
+     * TIMEZONE HANDLING STRATEGY:
+     * - Database stores all timestamps in UTC (ISO format)
+     * - Frontend converts UTC to IST (Asia/Kolkata) for display only
+     * - IST is UTC+5:30
+     */
+
+    /**
+     * Convert UTC timestamp from database to IST format for display
+     * @param time - UTC datetime string from database (ISO format or MySQL format)
+     * @returns Formatted time string in IST (12-hour format with AM/PM)
+     */
     const formatTimeIST = (time?: string | null) => {
-        if (!time) return '-';
-        try {
-            // Try to match: "2026-01-30 12:48:00" or "2026-01-30T12:48:00"
-            const match = time.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+        if (!time) return '-'
 
-            if (match) {
-                const hours = parseInt(match[1], 10);
-                const minutes = parseInt(match[2], 10);
-                const ampm = hours >= 12 ? 'PM' : 'AM';
-                const displayHours = hours % 12 || 12;
-                return `${displayHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${ampm}`;
-            }
-
-            // Fallback: try parsing as Date
-            const d = new Date(time);
-            if (!isNaN(d.getTime())) {
-                const hours = d.getUTCHours();
-                const minutes = d.getUTCMinutes();
-                const ampm = hours >= 12 ? 'PM' : 'AM';
-                const displayHours = hours % 12 || 12;
-                return `${displayHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${ampm}`;
-            }
-
-            return '-';
-        } catch (e) {
-            console.error('Error formatting time:', time, e);
-            return '-';
+        // Handle MySQL datetime format: "2026-02-11 15:31:14"
+        // Convert to ISO format: "2026-02-11T15:31:14Z"
+        let isoTime = time
+        if (time && time.includes(' ') && !time.includes('T')) {
+            // MySQL format detected - replace space with T and add Z
+            isoTime = time.replace(' ', 'T') + 'Z'
         }
-    };
+
+        const date = new Date(isoTime)
+        if (isNaN(date.getTime())) return '-'
+
+        // Convert UTC time to IST (Asia/Kolkata timezone)
+        return date.toLocaleTimeString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        })
+    }
+
+    /**
+     * Get today's date in IST timezone (YYYY-MM-DD format)
+     * Used for displaying the current date to the user
+     * @returns Date string in format suitable for display
+     */
+    const getTodayDateIST = () => {
+        const today = new Date()
+        return today.toLocaleDateString('en-US', {
+            timeZone: 'Asia/Kolkata',
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        })
+    }
 
     const fetchTodayStatus = useCallback(async () => {
         if (!token) return;
@@ -249,12 +269,7 @@ const MarkAttendance = () => {
                 <div className="p-4">
                     <h2 className="text-lg font-semibold mb-1">Today's Attendance</h2>
                     <p className="text-sm text-text-dim">
-                        {new Date().toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        })}
+                        {getTodayDateIST()}
                     </p>
 
                     <div className="mt-4 mb-4">
@@ -275,11 +290,11 @@ const MarkAttendance = () => {
                                             {todayStatus.punch_in_image_url && (
                                                 <div className="flex-shrink-0">
                                                     <img
-                                                        src={`${import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://srv1304976.hstgr.cloud'}${todayStatus.punch_in_image_url}`}
+                                                        src={`${import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://srv1304976.hstgr.cloud '}${todayStatus.punch_in_image_url}`}
                                                         alt="Punch In"
                                                         className="w-20 h-20 object-cover rounded-lg border-2 border-blue/30 cursor-pointer hover:opacity-80 transition"
                                                         onClick={() => {
-                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://srv1304976.hstgr.cloud'
+                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://srv1304976.hstgr.cloud '
                                                             setPreviewImage(`${API_BASE}${todayStatus.punch_in_image_url}`)
                                                             setPreviewTitle('Punch In Photo')
                                                         }}
@@ -301,7 +316,7 @@ const MarkAttendance = () => {
                                                 {todayStatus.punch_in_image_url && (
                                                     <button
                                                         onClick={() => {
-                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://srv1304976.hstgr.cloud'
+                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://srv1304976.hstgr.cloud '
                                                             setPreviewImage(`${API_BASE}${todayStatus.punch_in_image_url}`)
                                                             setPreviewTitle('Punch In Photo')
                                                         }}
@@ -321,11 +336,11 @@ const MarkAttendance = () => {
                                             {todayStatus.punch_out_image_url && (
                                                 <div className="flex-shrink-0">
                                                     <img
-                                                        src={`${import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://srv1304976.hstgr.cloud'}${todayStatus.punch_out_image_url}`}
+                                                        src={`${import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://srv1304976.hstgr.cloud '}${todayStatus.punch_out_image_url}`}
                                                         alt="Punch Out"
                                                         className="w-20 h-20 object-cover rounded-lg border-2 border-purple/30 cursor-pointer hover:opacity-80 transition"
                                                         onClick={() => {
-                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://srv1304976.hstgr.cloud'
+                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://srv1304976.hstgr.cloud '
                                                             setPreviewImage(`${API_BASE}${todayStatus.punch_out_image_url}`)
                                                             setPreviewTitle('Punch Out Photo')
                                                         }}
@@ -347,11 +362,11 @@ const MarkAttendance = () => {
                                                 {todayStatus.punch_out_image_url && (
                                                     <button
                                                         onClick={() => {
-                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://srv1304976.hstgr.cloud'
+                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://srv1304976.hstgr.cloud '
                                                             setPreviewImage(`${API_BASE}${todayStatus.punch_out_image_url}`)
                                                             setPreviewTitle('Punch Out Photo')
                                                         }}
-                                                        className="mt-2 px-3 py-1 text-xs bg-rose-400 text-white rounded hover:bg-rose/90 transition-colors font-semibold"
+                                                        className="mt-2 px-3 py-1 text-xs bg-blue text-white rounded hover:bg-purple/90 transition-colors font-bold"
                                                     >
                                                         View Full Image
                                                     </button>
@@ -363,6 +378,11 @@ const MarkAttendance = () => {
 
                                 {todayStatus.total_hours && (
                                     <p className="mb-1">
+                                        {/* 
+                                          Total hours calculation is performed on the backend
+                                          using UTC timestamps (both punch_in_time and punch_out_time are in UTC)
+                                          So no timezone conversion is needed here - just display the value
+                                        */}
                                         <strong>Total Hours:</strong> {parseFloat(String(todayStatus.total_hours)).toFixed(2)} hrs
                                     </p>
                                 )}
@@ -382,7 +402,7 @@ const MarkAttendance = () => {
                         </button>
 
                         <button
-                            className="px-4 py-2 rounded bg-rose-900 text-bg hover:bg-rose/30 transition disabled:opacity-50"
+                            className="px-4 py-2 rounded bg-blue text-bg hover:bg-blue/90 transition disabled:opacity-50"
                             onClick={() => handleOpenCamera('punchOut')}
                             disabled={!todayStatus?.punch_in_time || !!todayStatus?.punch_out_time}
                         >
@@ -431,7 +451,7 @@ const MarkAttendance = () => {
                                     <button onClick={handleRetake} className="px-3 py-1.5 rounded border border-blue/12 hover:bg-panel-strong">
                                         Retake
                                     </button>
-                                    <button onClick={handleSubmit} disabled={processing} className="px-3 py-1.5 rounded bg-blue text-bg hover:bg-blue/90 disabled:opacity-50">
+                                    <button onClick={handleSubmit} disabled={processing} className="px-3 py-1.5 rounded bg-amber-600 text-bg hover:bg-green/90 disabled:opacity-50">
                                         {processing ? 'Submitting…' : 'Submit'}
                                     </button>
                                 </>
@@ -451,7 +471,7 @@ const MarkAttendance = () => {
                         className="relative bg-white rounded-xl shadow-2xl max-w-4xl max-h-[90vh] overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 flex items-center justify-between">
+                        <div className="bg-blue px-4 py-3 flex items-center justify-between">
                             <h3 className="text-white font-semibold text-sm">{previewTitle}</h3>
                             <button
                                 onClick={() => setPreviewImage(null)}
