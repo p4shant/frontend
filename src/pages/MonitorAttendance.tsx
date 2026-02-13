@@ -167,34 +167,6 @@ function MonitorAttendance() {
         })
     }
 
-
-    const formatDateIST = (dateStr: string | null) => {
-        if (!dateStr) return '-'
-        try {
-            // Handle simple date format (YYYY-MM-DD)
-            // attendance_date from database is already in IST calendar day format
-            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-                const [y, m, d] = dateStr.split('-')
-                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                return `${d}-${months[Number(m) - 1]}-${y}`
-            }
-
-            // Convert any date string to IST for display
-            const date = new Date(dateStr)
-            if (isNaN(date.getTime())) return '-'
-
-            const parts = date.toLocaleDateString('en-IN', {
-                timeZone: 'Asia/Kolkata',
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric'
-            })
-            return parts.replace(/\s/g, '-')
-        } catch {
-            return '-'
-        }
-    }
-
     const formatDateForApi = (date: Date) => {
         return date.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
     }
