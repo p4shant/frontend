@@ -15,6 +15,8 @@ const MASTER_ADMIN_ITEMS = [
     { label: 'Track Application', to: '/track-application', icon: <FileText size={18} /> },
 ];
 
+const MONITOR_ATTENDANCE_ITEM = { label: 'Monitor Attendance', to: '/monitor-attendance', icon: <Eye size={18} /> };
+
 const COMMON_ITEMS = [
     { label: 'Profile', to: '/profile', icon: <UserRound size={18} /> },
 ];
@@ -35,11 +37,13 @@ function Sidebar({ state }: Props) {
     const { isCollapsed, isMobileOpen, toggleMobile, closeMobile } = state;
     const { user } = useAuth();
     const isMasterAdmin = user?.employee_role === 'Master Admin';
+    const isAccountant = user?.employee_role === 'Accountant';
 
     // Build nav items based on user role
     const visibleNavItems = [
         ...NAV_ITEMS,
         ...(isMasterAdmin ? MASTER_ADMIN_ITEMS : []),
+        ...(!isMasterAdmin && isAccountant ? [MONITOR_ATTENDANCE_ITEM] : []),
         ...COMMON_ITEMS,
     ];
 

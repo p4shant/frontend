@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { Users, CheckCircle, Clock, MapPin, AlertCircle, Download } from 'lucide-react'
+import FullCalendar from '@fullcalendar/react'
+import dayGridPlugin from '@fullcalendar/daygrid'
+import type { DatesSetArg, EventInput } from '@fullcalendar/core'
 
 interface Stats {
     totalEmployees: number
@@ -68,9 +71,10 @@ function MonitorAttendance() {
     const [modalDateTo, setModalDateTo] = useState<string>(todayStr)
     const [employeeModalRecords, setEmployeeModalRecords] = useState<AttendanceRecord[]>([])
     const [employeeModalLoading, setEmployeeModalLoading] = useState(false)
+    const [addressCache, setAddressCache] = useState<Record<string, string>>({})
 
     useEffect(() => {
-        if (user && token && user.employee_role === 'Master Admin') {
+        if (user && token && (user.employee_role === 'Master Admin' || user.employee_role === 'Accountant')) {
             fetchStats()
         }
     }, [user, token])
@@ -191,6 +195,85 @@ function MonitorAttendance() {
         }
     }
 
+    const formatDateForApi = (date: Date) => {
+        return date.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
+    }
+
+    const getMonthRange = (baseDate = new Date()) => {
+        const start = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1)
+        const end = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0)
+        return {
+            from: formatDateForApi(start),
+            to: formatDateForApi(end)
+        }
+    }
+
+    const getLocationKey = (lat: string | number | null, lng: string | number | null) => {
+        if (!lat || !lng || lat === 'N/A' || lng === 'N/A') return null
+        const latitude = typeof lat === 'string' ? parseFloat(lat) : lat
+        const longitude = typeof lng === 'string' ? parseFloat(lng) : lng
+        if (isNaN(latitude) || isNaN(longitude)) return null
+        return `${latitude.toFixed(6)},${longitude.toFixed(6)}`
+    }
+
+    const formatAddress = (address: string | null) => {
+        if (!address) return null
+        const parts = address.split(',').map(p => p.trim()).filter(Boolean)
+        if (parts.length <= 3) return address
+        // Remove last 3 parts (state, postcode, country)
+        return parts.slice(0, -3).join(', ')
+    }
+
+    const fetchAddress = async (lat: number, lng: number) => {
+        try {
+            const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
+            const response = await fetch(url, {
+                headers: { 'Accept-Language': 'en' },
+            })
+            if (!response.ok) return null
+            const data = await response.json()
+            return formatAddress(data.display_name || null)
+        } catch {
+            return null
+        }
+    }
+
+    useEffect(() => {
+        if (attendanceRecords.length === 0) return
+
+        const uniqueKeys = new Map<string, { lat: number; lng: number }>()
+        attendanceRecords.forEach((record) => {
+            const inKey = getLocationKey(record.punch_in_latitude, record.punch_in_longitude)
+            if (inKey && !addressCache[inKey]) {
+                const [latStr, lngStr] = inKey.split(',')
+                uniqueKeys.set(inKey, { lat: Number(latStr), lng: Number(lngStr) })
+            }
+            const outKey = getLocationKey(record.punch_out_latitude, record.punch_out_longitude)
+            if (outKey && !addressCache[outKey]) {
+                const [latStr, lngStr] = outKey.split(',')
+                uniqueKeys.set(outKey, { lat: Number(latStr), lng: Number(lngStr) })
+            }
+        })
+
+        if (uniqueKeys.size === 0) return
+
+        let cancelled = false
+        const fetchAll = async () => {
+            for (const [key, coords] of uniqueKeys.entries()) {
+                if (cancelled) return
+                const address = await fetchAddress(coords.lat, coords.lng)
+                if (address && !cancelled) {
+                    setAddressCache((prev) => ({ ...prev, [key]: address }))
+                }
+            }
+        }
+
+        fetchAll()
+        return () => {
+            cancelled = true
+        }
+    }, [attendanceRecords])
+
     const calculateHours = (punchIn: string | null, punchOut: string | null) => {
         if (!punchIn || !punchOut) return '-'
 
@@ -202,13 +285,6 @@ function MonitorAttendance() {
 
         const diff = (outTime.getTime() - inTime.getTime()) / (1000 * 60 * 60)
         return `${diff.toFixed(1)} hrs`
-    }
-
-    const getDateDaysAgo = (days: number) => {
-        // Get date N days ago in IST format (YYYY-MM-DD)
-        // Calculate days offset and format using IST timezone
-        const dateAgo = new Date(new Date().getTime() - days * 24 * 60 * 60 * 1000);
-        return dateAgo.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
     }
 
     const fetchEmployeeHistory = async (employeeId: number, dateFrom: string, dateTo: string) => {
@@ -244,11 +320,11 @@ function MonitorAttendance() {
         setSelectedEmployeeId(record.employee_id)
         setSelectedEmployeeName(record.employee_name)
         setSelectedEmployeeRole(record.employee_role)
-        const defaultFrom = getDateDaysAgo(7)
-        setModalDateFrom(defaultFrom)
-        setModalDateTo(todayStr)
+        const { from, to } = getMonthRange()
+        setModalDateFrom(from)
+        setModalDateTo(to)
         setIsEmployeeModalOpen(true)
-        fetchEmployeeHistory(record.employee_id, defaultFrom, todayStr)
+        fetchEmployeeHistory(record.employee_id, from, to)
     }
 
     const closeEmployeeModal = () => {
@@ -259,15 +335,50 @@ function MonitorAttendance() {
         setEmployeeModalRecords([])
     }
 
-    useEffect(() => {
-        if (!isEmployeeModalOpen || !selectedEmployeeId) return
-        if (!modalDateFrom || !modalDateTo) return
-        fetchEmployeeHistory(selectedEmployeeId, modalDateFrom, modalDateTo)
-    }, [isEmployeeModalOpen, selectedEmployeeId, modalDateFrom, modalDateTo])
-
     const employeeHistory = employeeModalRecords
         .slice()
         .sort((a, b) => (a.attendance_date < b.attendance_date ? 1 : -1))
+
+    const calendarEvents = useMemo<EventInput[]>(() => {
+        return employeeHistory.map((record) => {
+            const isAbsent = record.status === 'absent'
+            const isMissingPunchOut = record.status === 'forgot_to_punch_out' || !record.punch_out_time
+            const eventDate = record.attendance_date
+            const title = isAbsent
+                ? 'Absent'
+                : `In: ${formatTime(record.punch_in_time)}\nOut: ${formatTime(record.punch_out_time)}`
+
+            let color = '#22c55e'
+            if (isMissingPunchOut) color = '#f97316'
+            if (isAbsent) color = '#ef4444'
+
+            return {
+                title,
+                start: eventDate,
+                allDay: true,
+                backgroundColor: color,
+                borderColor: color,
+                textColor: '#ffffff'
+            }
+        })
+    }, [employeeHistory])
+
+    const handleCalendarDatesSet = (info: DatesSetArg) => {
+        if (!selectedEmployeeId) return
+
+        // Calculate the date range for the visible month
+        const endInclusive = new Date(info.end)
+        endInclusive.setDate(endInclusive.getDate() - 1)
+        const from = formatDateForApi(info.start)
+        const to = formatDateForApi(endInclusive)
+
+        // Only fetch if the date range has actually changed
+        if (from !== modalDateFrom || to !== modalDateTo) {
+            setModalDateFrom(from)
+            setModalDateTo(to)
+            fetchEmployeeHistory(selectedEmployeeId, from, to)
+        }
+    }
 
     const employeeSummary = employeeHistory.reduce(
         (acc, r) => {
@@ -369,12 +480,12 @@ function MonitorAttendance() {
         document.body.removeChild(link)
     }
 
-    if (user?.employee_role !== 'Master Admin') {
+    if (user?.employee_role !== 'Master Admin' && user?.employee_role !== 'Accountant') {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-50 flex items-center justify-center p-4">
                 <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-6 sm:p-8 text-center max-w-md">
                     <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Access Denied</h2>
-                    <p className="text-gray-600 text-sm sm:text-base">This page is only available for Master Admin users.</p>
+                    <p className="text-gray-600 text-sm sm:text-base">This page is only available for Master Admin and Accountant users.</p>
                 </div>
             </div>
         )
@@ -600,8 +711,14 @@ function MonitorAttendance() {
                                                     )}
                                                 </td>
                                                 <td className="px-3 sm:px-4 py-3 sm:py-4 text-gray-600 text-[10px] sm:text-xs align-middle hidden md:table-cell">
-                                                    <div className="flex flex-col gap-1 max-w-[150px]">
-                                                        <span className="truncate">{record.punch_in_location}</span>
+                                                    <div className="flex flex-col gap-1 max-w-[200px]">
+                                                        {(() => {
+                                                            const key = getLocationKey(record.punch_in_latitude, record.punch_in_longitude)
+                                                            const address = key ? addressCache[key] : null
+                                                            return (
+                                                                <span className="truncate">{address || record.punch_in_location || '-'}</span>
+                                                            )
+                                                        })()}
                                                         {record.punch_in_latitude && record.punch_in_longitude && record.punch_in_latitude !== 'N/A' && (
                                                             <button
                                                                 onClick={(e) => {
@@ -616,8 +733,14 @@ function MonitorAttendance() {
                                                     </div>
                                                 </td>
                                                 <td className="px-3 sm:px-4 py-3 sm:py-4 text-gray-600 text-[10px] sm:text-xs align-middle hidden md:table-cell">
-                                                    <div className="flex flex-col gap-1 max-w-[150px]">
-                                                        <span className="truncate">{record.punch_out_location || '-'}</span>
+                                                    <div className="flex flex-col gap-1 max-w-[200px]">
+                                                        {(() => {
+                                                            const key = getLocationKey(record.punch_out_latitude, record.punch_out_longitude)
+                                                            const address = key ? addressCache[key] : null
+                                                            return (
+                                                                <span className="truncate">{address || record.punch_out_location || '-'}</span>
+                                                            )
+                                                        })()}
                                                         {record.punch_out_latitude && record.punch_out_longitude && record.punch_out_latitude !== 'N/A' && (
                                                             <button
                                                                 onClick={(e) => {
@@ -670,24 +793,8 @@ function MonitorAttendance() {
                         </div>
 
                         <div className="px-4 sm:px-6 py-4 bg-white border-b border-slate-200">
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                                <span className="text-xs font-semibold text-slate-600">Filter by date</span>
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="date"
-                                        value={modalDateFrom}
-                                        onChange={(e) => setModalDateFrom(e.target.value)}
-                                        className="px-2 sm:px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                    <span className="text-xs text-slate-400">to</span>
-                                    <input
-                                        type="date"
-                                        value={modalDateTo}
-                                        onChange={(e) => setModalDateTo(e.target.value)}
-                                        className="px-2 sm:px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                </div>
-                            </div>
+                            <p className="text-xs font-semibold text-slate-600">Monthly Attendance Calendar</p>
+                            <p className="text-[10px] text-slate-500 mt-1">Navigate to view attendance for different months</p>
                         </div>
 
                         <div className="px-4 sm:px-6 py-4 bg-slate-50 border-b border-slate-200">
@@ -721,54 +828,24 @@ function MonitorAttendance() {
                                     <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
                                     <span className="ml-3 text-sm text-slate-500">Loading attendance history...</span>
                                 </div>
-                            ) : employeeHistory.length === 0 ? (
-                                <div className="text-center text-slate-500 py-10">No attendance records found for this employee.</div>
                             ) : (
-                                <div className="space-y-3">
-                                    {employeeHistory.map((record) => (
-                                        <div key={`${record.employee_id}-${record.attendance_date}-${record.id ?? 'absent'}`} className="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow">
-                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                                <div>
-                                                    <p className="text-sm font-bold text-slate-800">{formatDateIST(record.attendance_date)}</p>
-                                                    <p className="text-xs text-slate-500">{record.punch_in_location}</p>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    {getStatusBadge(record.status)}
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                                                    <p className="text-[10px] text-slate-500 font-semibold">Punch In</p>
-                                                    <p className="text-sm font-bold text-slate-800">{formatTime(record.punch_in_time)}</p>
-                                                    {record.punch_in_latitude && record.punch_in_longitude && record.punch_in_latitude !== 'N/A' && (
-                                                        <button
-                                                            onClick={() => openMapLocation(record.punch_in_latitude, record.punch_in_longitude)}
-                                                            className="mt-1 text-[10px] text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 font-semibold"
-                                                        >
-                                                            <MapPin size={10} /> View Map
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                                                    <p className="text-[10px] text-slate-500 font-semibold">Punch Out</p>
-                                                    <p className="text-sm font-bold text-slate-800">{formatTime(record.punch_out_time)}</p>
-                                                    {record.punch_out_latitude && record.punch_out_longitude && record.punch_out_latitude !== 'N/A' && (
-                                                        <button
-                                                            onClick={() => openMapLocation(record.punch_out_latitude, record.punch_out_longitude)}
-                                                            className="mt-1 text-[10px] text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 font-semibold"
-                                                        >
-                                                            <MapPin size={10} /> View Map
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                                                    <p className="text-[10px] text-slate-500 font-semibold">Total Hours</p>
-                                                    <p className="text-sm font-bold text-slate-800">{calculateHours(record.punch_in_time, record.punch_out_time)}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
+                                <div className="bg-white rounded-lg">
+                                    <FullCalendar
+                                        plugins={[dayGridPlugin]}
+                                        initialView="dayGridMonth"
+                                        events={calendarEvents}
+                                        datesSet={handleCalendarDatesSet}
+                                        headerToolbar={{
+                                            left: 'prev,next today',
+                                            center: 'title',
+                                            right: ''
+                                        }}
+                                        height="auto"
+                                        contentHeight="auto"
+                                        eventDisplay="block"
+                                        dayMaxEvents={2}
+                                        eventClassNames="text-xs font-semibold"
+                                    />
                                 </div>
                             )}
                         </div>
