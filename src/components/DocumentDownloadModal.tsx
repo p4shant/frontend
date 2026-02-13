@@ -228,9 +228,8 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
 
     const downloadCompleteApplication = async () => {
         try {
-            // Dynamic import for html2pdf with type suppression
-            // @ts-ignore - html2pdf.js doesn't have TypeScript types, but works at runtime
-            const html2pdf = (await import('html2pdf.js')).default;
+            // Access html2pdf from global window object (loaded via CDN in index.html)
+            const html2pdf = (window as any).html2pdf;
 
             // Create HTML content for PDF
             const htmlContent = `
