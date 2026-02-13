@@ -77,6 +77,8 @@ function TrackApplication() {
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
     const [filterStatus, setFilterStatus] = useState('all')
+    const [districtFilter, setDistrictFilter] = useState('all')
+    const [createdByFilter, setCreatedByFilter] = useState('all')
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
     const [showCustomerModal, setShowCustomerModal] = useState(false)
 
@@ -151,6 +153,9 @@ function TrackApplication() {
         return total > 0 ? Math.round((completed / total) * 100) : 0
     }
 
+    const uniqueDistricts = Array.from(new Set(customers.map(c => c.district).filter(Boolean))).sort()
+    const uniqueCreatedBy = Array.from(new Set(customers.map(c => c.created_by_name).filter(Boolean))).sort()
+
     // Filter customers
     const filteredCustomers = customers.filter(customer => {
         const matchesSearch =
@@ -159,12 +164,15 @@ function TrackApplication() {
             customer.district?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             String(customer.id).includes(searchTerm)
 
-        if (filterStatus === 'all') return matchesSearch
+        const matchesDistrict = districtFilter === 'all' || customer.district === districtFilter
+        const matchesCreatedBy = createdByFilter === 'all' || customer.created_by_name === createdByFilter
+
+        if (filterStatus === 'all') return matchesSearch && matchesDistrict && matchesCreatedBy
 
         const progress = calculateProgress(customer)
-        if (filterStatus === 'completed' && progress === 100) return matchesSearch
-        if (filterStatus === 'in-progress' && progress > 0 && progress < 100) return matchesSearch
-        if (filterStatus === 'pending' && progress === 0) return matchesSearch
+        if (filterStatus === 'completed' && progress === 100) return matchesSearch && matchesDistrict && matchesCreatedBy
+        if (filterStatus === 'in-progress' && progress > 0 && progress < 100) return matchesSearch && matchesDistrict && matchesCreatedBy
+        if (filterStatus === 'pending' && progress === 0) return matchesSearch && matchesDistrict && matchesCreatedBy
 
         return false
     })
@@ -276,7 +284,7 @@ function TrackApplication() {
                         <div className="grid grid-cols-4 gap-2 sm:gap-2 md:flex md:gap-2">
                             <button
                                 onClick={() => setFilterStatus('all')}
-                                className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${filterStatus === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                                className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${filterStatus === 'all' ? 'bg-slate-800 text-white ring-2 ring-slate-300' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                             >
                                 All
                             </button>
@@ -288,7 +296,7 @@ function TrackApplication() {
                             </button>
                             <button
                                 onClick={() => setFilterStatus('in-progress')}
-                                className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${filterStatus === 'in-progress' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                                className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${filterStatus === 'in-progress' ? 'bg-indigo-700 text-white ring-2 ring-indigo-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                             >
                                 Active
                             </button>
@@ -316,14 +324,42 @@ function TrackApplication() {
                             <p className="text-sm mt-2">Try adjusting your search or filters</p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-xs border-collapse">
-                                <thead>
+                        <div className="overflow-x-auto relative">
+                            <table className="w-full min-w-max text-xs border-separate border-spacing-0">
+                                <thead className="sticky top-0 z-30">
                                     <tr>
-                                        <th className="px-3 sm:px-4 py-4 text-left font-bold sticky left-0 z-10 shadow-md" style={{ backgroundColor: '#BFC6C4', color: '#30364F' }}>Customer Name</th>
-                                        <th className="px-3 sm:px-4 py-4 text-left font-bold border-l border-gray-300" style={{ backgroundColor: '#F5E7C6', color: '#0C2C55' }}>Created By</th>
+                                        <th className="px-3 sm:px-4 py-4 text-left font-bold sticky left-0 z-40 shadow-md border-r border-gray-300 bg-[#BFC6C4] text-[#30364F]">Customer Name</th>
+                                        <th className="px-3 sm:px-4 py-4 text-left font-bold border-l border-gray-300" style={{ backgroundColor: '#F5E7C6', color: '#0C2C55' }}>
+                                            <div className="flex flex-col gap-1">
+                                                <span>Created By</span>
+                                                <select
+                                                    value={createdByFilter}
+                                                    onChange={(e) => setCreatedByFilter(e.target.value)}
+                                                    className="w-full max-w-[160px] rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] text-gray-700"
+                                                >
+                                                    <option value="all">All</option>
+                                                    {uniqueCreatedBy.map(name => (
+                                                        <option key={name} value={name}>{name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </th>
                                         <th className="px-3 sm:px-4 py-4 text-left font-bold border-l border-gray-300" style={{ backgroundColor: '#FFFDE1', color: '#233D4D' }}>Mobile Number</th>
-                                        <th className="px-3 sm:px-4 py-4 text-left font-bold border-l border-gray-300" style={{ backgroundColor: '#BFC6C4', color: '#30364F' }}>District</th>
+                                        <th className="px-3 sm:px-4 py-4 text-left font-bold border-l border-gray-300" style={{ backgroundColor: '#BFC6C4', color: '#30364F' }}>
+                                            <div className="flex flex-col gap-1">
+                                                <span>District</span>
+                                                <select
+                                                    value={districtFilter}
+                                                    onChange={(e) => setDistrictFilter(e.target.value)}
+                                                    className="w-full max-w-[140px] rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] text-gray-700"
+                                                >
+                                                    <option value="all">All</option>
+                                                    {uniqueDistricts.map(d => (
+                                                        <option key={d} value={d}>{d}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </th>
                                         <th className="px-3 sm:px-4 py-4 text-center font-bold border-l border-gray-300" style={{ backgroundColor: '#F5E7C6', color: '#0F2854' }}>Progress</th>
                                         {WORK_TYPES.map((wt, idx) => (
                                             <th key={wt.key} className="px-2 sm:px-3 py-4 text-center font-bold whitespace-nowrap border-l border-gray-300"
@@ -344,9 +380,9 @@ function TrackApplication() {
                                             <tr
                                                 key={customer.id}
                                                 onClick={() => handleRowClick(customer)}
-                                                className={`border-b-2 border-gray-200 hover:bg-blue-50 hover:shadow-md cursor-pointer transition-all duration-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}
+                                                className={`border-b-2 border-gray-200 hover:bg-blue-50 hover:shadow-md cursor-pointer transition-all duration-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                                             >
-                                                <td className="px-3 sm:px-4 py-4 sticky left-0 bg-inherit z-10 shadow-sm">
+                                                <td className={`px-3 sm:px-4 py-4 sticky left-0 z-10 shadow-sm border-r border-gray-300 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
                                                     <div className="font-bold text-gray-900 whitespace-nowrap">{customer.applicant_name}</div>
                                                 </td>
                                                 <td className="px-3 sm:px-4 py-4 text-gray-800 whitespace-nowrap border-l border-gray-300 font-medium">
