@@ -413,10 +413,17 @@ function TrackApplication() {
                                                         <td key={wt.key} className="px-2 sm:px-3 py-4 text-center border-l border-gray-300">
                                                             <div className="flex flex-col items-center gap-1">
                                                                 <StatusBadge status={status} />
-                                                                {task?.created_at && (
-                                                                    <span className="text-[10px] text-gray-600">
-                                                                        Assigned on {new Date(task.created_at).toLocaleDateString('en-GB')}
-                                                                    </span>
+                                                                {task && (
+                                                                    <>
+                                                                        {task.created_at && (
+                                                                            <span className="text-[10px] text-gray-600">
+                                                                                {new Date(task.created_at).toLocaleDateString('en-GB')}
+                                                                            </span>
+                                                                        )}
+                                                                        <span className="text-[9px] text-gray-700 font-semibold bg-blue-50 px-1.5 py-0.5 rounded whitespace-nowrap">
+                                                                            {task.assigned_to_name}
+                                                                        </span>
+                                                                    </>
                                                                 )}
                                                             </div>
                                                         </td>
@@ -681,10 +688,18 @@ function TrackApplication() {
                                                     <span className="text-xs sm:text-sm font-medium text-gray-700 break-words">{wt.label}</span>
                                                     <StatusBadge status={status} />
                                                 </div>
-                                                {task?.created_at && (
-                                                    <span className="text-[9px] sm:text-[10px] text-gray-600 block">
-                                                        {new Date(task.created_at).toLocaleDateString('en-GB')}
-                                                    </span>
+                                                {task && (
+                                                    <>
+                                                        {task.created_at && (
+                                                            <span className="text-[9px] sm:text-[10px] text-gray-600 block mb-1">
+                                                                {new Date(task.created_at).toLocaleDateString('en-GB')}
+                                                            </span>
+                                                        )}
+                                                        <div className="text-[9px] sm:text-[10px] bg-blue-50 rounded px-1.5 py-1 border border-blue-200">
+                                                            <p className="font-semibold text-gray-800">{task.assigned_to_name}</p>
+                                                            <p className="text-gray-600">{task.assigned_to_role}</p>
+                                                        </div>
+                                                    </>
                                                 )}
                                             </div>
                                         )
