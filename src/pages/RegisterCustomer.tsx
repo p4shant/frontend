@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Plus, Search, X } from 'lucide-react';
 import RegisterCustomerForm from '../components/register/RegisterCustomerForm';
+import DocumentDownloadModal from '../components/DocumentDownloadModal';
 import { useAuth } from '../context/AuthContext';
 import { registeredCustomersAPI } from '../services/api';
 
@@ -17,10 +18,25 @@ function RegisterCustomer() {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+    const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+    const [filterName, setFilterName] = useState('');
+    const [filterPhone, setFilterPhone] = useState('');
+    const [filterDistrict, setFilterDistrict] = useState('');
     const { user, token } = useAuth();
 
     // Prepare session object from logged-in user
     const session = user ? { employeeId: user.id, name: user.name } : undefined;
+
+    // Filter customers based on search criteria
+    const filteredCustomers = useMemo(() => {
+        return customers.filter(customer => {
+            const nameMatch = customer.applicant_name.toLowerCase().includes(filterName.toLowerCase());
+            const phoneMatch = customer.mobile_number.toLowerCase().includes(filterPhone.toLowerCase());
+            const districtMatch = customer.district.toLowerCase().includes(filterDistrict.toLowerCase());
+            return nameMatch && phoneMatch && districtMatch;
+        });
+    }, [customers, filterName, filterPhone, filterDistrict]);
 
     useEffect(() => {
         const fetchCustomers = async () => {
@@ -85,22 +101,22 @@ function RegisterCustomer() {
         }
     };
 
-    const downloadDetails = async (id: string) => {
+    const openDocumentModal = async (id: string) => {
         try {
             if (!token) throw new Error('Missing auth token');
             const data = await registeredCustomersAPI.getById(id, token);
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `registered_customer_${id}.json`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
+            setSelectedCustomer(data);
+            setIsDocumentModalOpen(true);
         } catch (e) {
-            console.error('Download failed', e);
+            console.error('Failed to load customer details:', e);
+            setError('Failed to load customer documents');
         }
+    };
+
+    const clearFilters = () => {
+        setFilterName('');
+        setFilterPhone('');
+        setFilterDistrict('');
     };
 
     return (
@@ -115,13 +131,66 @@ function RegisterCustomer() {
             </button>
 
             {/* Table of customers */}
-            <div className="mt-4">
+            <div className="mt-6">
                 {loading ? (
                     <div className="text-sm text-muted">Loading customers…</div>
                 ) : error ? (
                     <div className="text-sm text-red-600">{error}</div>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-200">
+                    <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+                        {/* Filter Section */}
+                        <div className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-slate-200 p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Search className="w-5 h-5 text-slate-600" />
+                                <h3 className="text-sm font-semibold text-slate-700">Filter Customers</h3>
+                                {(filterName || filterPhone || filterDistrict) && (
+                                    <button
+                                        onClick={clearFilters}
+                                        className="ml-auto px-3 py-1 text-xs bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1"
+                                    >
+                                        <X size={14} /> Clear Filters
+                                    </button>
+                                )}
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div className="relative">
+                                    <label className="block text-xs font-medium text-slate-600 mb-1">Name</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Search by name..."
+                                        value={filterName}
+                                        onChange={(e) => setFilterName(e.target.value)}
+                                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </div>
+                                <div className="relative">
+                                    <label className="block text-xs font-medium text-slate-600 mb-1">Phone Number</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Search by phone..."
+                                        value={filterPhone}
+                                        onChange={(e) => setFilterPhone(e.target.value)}
+                                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </div>
+                                <div className="relative">
+                                    <label className="block text-xs font-medium text-slate-600 mb-1">District</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Search by district..."
+                                        value={filterDistrict}
+                                        onChange={(e) => setFilterDistrict(e.target.value)}
+                                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </div>
+                            </div>
+                            {(filterName || filterPhone || filterDistrict) && (
+                                <p className="text-xs text-slate-600 mt-3">
+                                    📊 Showing {filteredCustomers.length} of {customers.length} customer(s)
+                                </p>
+                            )}
+                        </div>
+
                         <table className="min-w-full divide-y divide-slate-200">
                             <thead className="bg-slate-50">
                                 <tr>
@@ -132,8 +201,8 @@ function RegisterCustomer() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 bg-white">
-                                {customers.map((c) => (
-                                    <tr key={c.id} className="hover:bg-slate-50">
+                                {filteredCustomers.map((c) => (
+                                    <tr key={c.id} className="hover:bg-slate-50 transition-colors">
                                         <td className="px-4 py-2 text-sm text-slate-900">{c.applicant_name}</td>
                                         <td className="px-4 py-2 text-sm text-slate-700">{c.mobile_number}</td>
                                         <td className="px-4 py-2 text-sm text-slate-700">{c.district}</td>
@@ -142,20 +211,22 @@ function RegisterCustomer() {
                                                 <button
                                                     type="button"
                                                     onClick={() => openEdit(String(c.id))}
-                                                    className="px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700"
+                                                    className="px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 transition-colors"
                                                 >Open</button>
                                                 <button
                                                     type="button"
-                                                    onClick={() => downloadDetails(String(c.id))}
-                                                    className="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-800 text-xs font-semibold hover:bg-slate-300"
+                                                    onClick={() => openDocumentModal(String(c.id))}
+                                                    className="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-800 text-xs font-semibold hover:bg-slate-300 transition-colors"
                                                 >Download</button>
                                             </div>
                                         </td>
                                     </tr>
                                 ))}
-                                {customers.length === 0 && (
+                                {filteredCustomers.length === 0 && (
                                     <tr>
-                                        <td className="px-4 py-6 text-center text-sm text-muted" colSpan={4}>No customers found.</td>
+                                        <td className="px-4 py-6 text-center text-sm text-muted" colSpan={4}>
+                                            {customers.length === 0 ? 'No customers found.' : 'No customers match your filters.'}
+                                        </td>
                                     </tr>
                                 )}
                             </tbody>
@@ -199,6 +270,18 @@ function RegisterCustomer() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Document Download Modal */}
+            {selectedCustomer && (
+                <DocumentDownloadModal
+                    isOpen={isDocumentModalOpen}
+                    onClose={() => {
+                        setIsDocumentModalOpen(false);
+                        setSelectedCustomer(null);
+                    }}
+                    customer={selectedCustomer}
+                />
             )}
         </div>
     );
