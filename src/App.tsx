@@ -8,6 +8,7 @@ import Profile from './pages/Profile';
 import TrackApplication from './pages/TrackApplication';
 import MonitorAttendance from './pages/MonitorAttendance';
 import TrackPayment from './pages/TrackPayment';
+import AdminStats from './pages/AdminStats';
 import Login from './pages/Login';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
@@ -84,6 +85,16 @@ function App() {
           <ProtectedRoute>
             <AppLayout>
               <TrackPayment />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-stats"
+        element={
+          <ProtectedRoute requiredRoles={['Master Admin']}>
+            <AppLayout>
+              <AdminStats />
             </AppLayout>
           </ProtectedRoute>
         }
