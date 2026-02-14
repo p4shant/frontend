@@ -148,7 +148,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
     const completedTasks = getTasksByStatus('completed');
 
     // Format work type for display
-    const formatWorkType = (workType: string) => {
+    const formatWorkType = (workType: string | undefined) => {
+        if (!workType) return '';
         return workType
             .split('_')
             .map(word => word.charAt(0).toUpperCase() + word.slice(1))
