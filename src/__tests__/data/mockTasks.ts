@@ -39,9 +39,9 @@ export interface RegisteredCustomerData {
     aadhaar_back_url?: string;
     pan_card_url?: string;
     electric_bill_url?: string;
-    smart_meter_doc_url?: string;
+    ceiling_paper_photo_url?: string;
     cancel_cheque_url?: string;
-    bank_details_doc_url?: string;
+    site_image_gps_url?: string;
     cot_death_certificate_url?: string;
     cot_house_papers_url?: string;
     cot_passport_photo_url?: string;

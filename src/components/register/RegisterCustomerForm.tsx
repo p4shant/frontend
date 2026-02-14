@@ -131,9 +131,9 @@ export default function RegisterCustomerForm({
         aadhaar_back: null,
         pan_card: null,
         electric_bill: null,
-        smart_meter_doc: null,
+        ceiling_paper_photo: null,
         cancel_cheque: null,
-        bank_details_doc: null,
+        site_image_gps: null,
     })
 
     const [cotFiles, setCotFiles] = useState<{
@@ -174,6 +174,7 @@ export default function RegisterCustomerForm({
 
     const [previews, setPreviews] = useState<Record<string, string | null>>({})
     const [blurStatus, setBlurStatus] = useState<Record<string, boolean>>({})
+    const [creatorInfo, setCreatorInfo] = useState<{ name: string; role?: string; phone?: string } | null>(null)
 
     // Auto-set payment mode to Finance when finance is required
     useEffect(() => {
@@ -238,19 +239,30 @@ export default function RegisterCustomerForm({
                 }))
 
                 // Populate previews from existing document URLs
+                const API_ORIGIN = import.meta.env.VITE_API_ORIGIN;
                 const existingPreviews: Record<string, string> = {}
-                if (data.aadhaar_front_url) existingPreviews.aadhaar_front = `http://localhost:4000${data.aadhaar_front_url}`
-                if (data.aadhaar_back_url) existingPreviews.aadhaar_back = `http://localhost:4000${data.aadhaar_back_url}`
-                if (data.pan_card_url) existingPreviews.pan_card = `http://localhost:4000${data.pan_card_url}`
-                if (data.electric_bill_url) existingPreviews.electric_bill = `http://localhost:4000${data.electric_bill_url}`
-                if (data.bank_passbook_url) existingPreviews.bank_passbook = `http://localhost:4000${data.bank_passbook_url}`
-                if (data.other_document_url) existingPreviews.other_document = `http://localhost:4000${data.other_document_url}`
-                if (data.building_photo_url) existingPreviews.building_photo = `http://localhost:4000${data.building_photo_url}`
-                if (data.meter_room_photo_url) existingPreviews.meter_room_photo = `http://localhost:4000${data.meter_room_photo_url}`
-                if (data.selfie_url) existingPreviews.selfie = `http://localhost:4000${data.selfie_url}`
+                if (data.aadhaar_front_url) existingPreviews.aadhaar_front = `${API_ORIGIN}${data.aadhaar_front_url}`
+                if (data.aadhaar_back_url) existingPreviews.aadhaar_back = `${API_ORIGIN}${data.aadhaar_back_url}`
+                if (data.pan_card_url) existingPreviews.pan_card = `${API_ORIGIN}${data.pan_card_url}`
+                if (data.electric_bill_url) existingPreviews.electric_bill = `${API_ORIGIN}${data.electric_bill_url}`
+                if (data.ceiling_paper_photo_url) existingPreviews.ceiling_paper_photo = `${API_ORIGIN}${data.ceiling_paper_photo_url}`
+                if (data.site_image_gps_url) existingPreviews.site_image_gps = `${API_ORIGIN}${data.site_image_gps_url}`
+                if (data.other_document_url) existingPreviews.other_document = `${API_ORIGIN}${data.other_document_url}`
+                if (data.building_photo_url) existingPreviews.building_photo = `${API_ORIGIN}${data.building_photo_url}`
+                if (data.meter_room_photo_url) existingPreviews.meter_room_photo = `${API_ORIGIN}${data.meter_room_photo_url}`
+                if (data.selfie_url) existingPreviews.selfie = `${API_ORIGIN}${data.selfie_url}`
 
                 if (Object.keys(existingPreviews).length > 0) {
                     setPreviews(existingPreviews)
+                }
+
+                // Set creator info for edit mode
+                if (data.created_by_name) {
+                    setCreatorInfo({
+                        name: data.created_by_name,
+                        role: data.created_by_role,
+                        phone: data.created_by_phone
+                    })
                 }
             } catch (err) {
                 console.error('Prefill error', err)
@@ -643,9 +655,9 @@ export default function RegisterCustomerForm({
                 'aadhaar_back': 'aadhaar_back_url',
                 'pan_card': 'pan_card_url',
                 'electric_bill': 'electric_bill_url',
-                'smart_meter_doc': 'smart_meter_doc_url',
+                'ceiling_paper_photo': 'ceiling_paper_photo_url',
                 'cancel_cheque': 'cancel_cheque_url',
-                'bank_details_doc': 'bank_details_doc_url',
+                'site_image_gps': 'site_image_gps_url',
                 'cot_death_certificate': 'cot_death_certificate_url',
                 'cot_house_papers': 'cot_house_papers_url',
                 'cot_passport_photo': 'cot_passport_photo_url',
@@ -809,13 +821,46 @@ export default function RegisterCustomerForm({
                 <section className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-slate-200">
                     <h3 className="text-base md:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 md:gap-3">
                         <span className="w-7 h-7 md:w-8 md:h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">1</span>
-                        Sales Executive
+                        Sales Executive {isEditMode && creatorInfo && <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded font-semibold ml-auto">(Created by)</span>}
                     </h3>
-                    <input
-                        value={session?.name || ''}
-                        disabled
-                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 bg-slate-50 text-slate-600 text-sm"
-                    />
+                    {isEditMode && creatorInfo ? (
+                        <div className="space-y-3 bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-600 mb-1">Name</label>
+                                <input
+                                    value={creatorInfo.name || ''}
+                                    disabled
+                                    className="w-full border border-emerald-300 rounded-lg px-4 py-2.5 bg-white text-slate-700 text-sm"
+                                />
+                            </div>
+                            {creatorInfo.role && (
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Role</label>
+                                    <input
+                                        value={creatorInfo.role}
+                                        disabled
+                                        className="w-full border border-emerald-300 rounded-lg px-4 py-2.5 bg-white text-slate-700 text-sm"
+                                    />
+                                </div>
+                            )}
+                            {creatorInfo.phone && (
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Phone Number</label>
+                                    <input
+                                        value={creatorInfo.phone}
+                                        disabled
+                                        className="w-full border border-emerald-300 rounded-lg px-4 py-2.5 bg-white text-slate-700 text-sm"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <input
+                            value={session?.name || ''}
+                            disabled
+                            className="w-full border border-slate-300 rounded-lg px-4 py-2.5 bg-slate-50 text-slate-600 text-sm"
+                        />
+                    )}
                 </section>
 
                 {/* Applicant Details */}
@@ -849,14 +894,15 @@ export default function RegisterCustomerForm({
                             />
                         </div>
                         <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Email ID</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Email ID <span className="text-red-500">*</span></label>
                             <input
                                 type="email"
                                 name="email_id"
                                 value={form.email_id}
                                 onChange={onChange}
                                 className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="customer@gmail.com (optional)"
+                                placeholder="customer@gmail.com"
+                                required
                             />
                         </div>
                     </div>
@@ -959,7 +1005,7 @@ export default function RegisterCustomerForm({
                         <CameraCapture name="pan_card" label="PAN Card" />
                         <CameraCapture name="electric_bill" label="Electricity Bill" />
                         <CameraCapture name="cancel_cheque" label="Cancel Cheque / Passbook" />
-                        <CameraCapture name="bank_details_doc" label="Bank Details Document" />
+                        <CameraCapture name="site_image_gps" label="Site Image with GPS Geo Location" />
                     </div>
                 </section>
 
@@ -1072,7 +1118,7 @@ export default function RegisterCustomerForm({
                         {form.meter_type === 'Smart Meter' && (
                             <div className="md:col-span-2">
                                 <div className="border-t border-slate-200 pt-4 mt-2">
-                                    <CameraCapture name="smart_meter_doc" label="Smart Meter Photo *" />
+                                    <CameraCapture name="ceiling_paper_photo" label="Ceiling Paper Photo *" />
                                 </div>
                             </div>
                         )}

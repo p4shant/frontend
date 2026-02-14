@@ -162,6 +162,39 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                         </div>
                     </div>
 
+                    {/* Created By - Application Creator Information */}
+                    {customerData.created_by_info && (
+                        <div className="bg-emerald/5 border border-emerald/20 rounded-lg p-3">
+                            <p className="text-xs font-semibold text-muted uppercase mb-3">Application Created By</p>
+                            <div className="space-y-2">
+                                {/* Creator Name */}
+                                <div className="flex items-start gap-2">
+                                    <User size={16} className="text-emerald flex-shrink-0 mt-0.5" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs text-muted/70">Name</p>
+                                        <p className="text-sm font-bold text-text break-words">{customerData.created_by_info.name || 'N/A'}</p>
+                                    </div>
+                                </div>
+                                {/* Creator Role */}
+                                <div className="flex items-start gap-2">
+                                    <User size={16} className="text-emerald flex-shrink-0 mt-0.5" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs text-muted/70">Role</p>
+                                        <p className="text-sm font-bold text-text break-words">{customerData.created_by_info.role || 'N/A'}</p>
+                                    </div>
+                                </div>
+                                {/* Creator Phone */}
+                                <div className="flex items-start gap-2">
+                                    <Phone size={16} className="text-emerald flex-shrink-0 mt-0.5" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs text-muted/70">Contact</p>
+                                        <p className="text-sm font-bold text-text">{customerData.created_by_info.phone_number || 'N/A'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Dynamic Work Type Details */}
                     {renderWorkTypeDetails()}
 
