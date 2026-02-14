@@ -477,6 +477,26 @@ export const transactionLogsAPI = {
             throw error;
         }
     },
+
+    async getPaymentTracking(token: string) {
+        try {
+            const response = await fetch(`${API_BASE}/transaction-logs/payment-tracking`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch payment tracking');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching payment tracking:', error);
+            throw error;
+        }
+    },
 };
 
 // ============================================================================

@@ -7,6 +7,7 @@ import MarkAttendance from './pages/MarkAttendance';
 import Profile from './pages/Profile';
 import TrackApplication from './pages/TrackApplication';
 import MonitorAttendance from './pages/MonitorAttendance';
+import TrackPayment from './pages/TrackPayment';
 import Login from './pages/Login';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
@@ -73,6 +74,16 @@ function App() {
           <ProtectedRoute>
             <AppLayout>
               <MonitorAttendance />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/track-payment"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <TrackPayment />
             </AppLayout>
           </ProtectedRoute>
         }
