@@ -824,6 +824,81 @@ export const registeredCustomersAPI = {
     },
 };
 
+// ============================================================================
+// STATS API (Master Admin only)
+// ============================================================================
+export const statsAPI = {
+    async getOverview(token: string) {
+        const res = await fetch(`${API_BASE}/stats/overview`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } });
+        if (!res.ok) throw new Error('Failed to fetch overview stats');
+        return await res.json();
+    },
+    async getInstallationsByDistrict(token: string) {
+        const res = await fetch(`${API_BASE}/stats/installations-by-district`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } });
+        if (!res.ok) throw new Error('Failed');
+        return await res.json();
+    },
+    async getEmployeesByDistrict(token: string) {
+        const res = await fetch(`${API_BASE}/stats/employees-by-district`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } });
+        if (!res.ok) throw new Error('Failed');
+        return await res.json();
+    },
+    async getFinanceCases(token: string) {
+        const res = await fetch(`${API_BASE}/stats/finance-cases`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } });
+        if (!res.ok) throw new Error('Failed');
+        return await res.json();
+    },
+    async getSalesExecutiveStats(token: string, filters?: { year?: number; month?: number; district?: string }) {
+        const params = new URLSearchParams();
+        if (filters?.year) params.append('year', String(filters.year));
+        if (filters?.month) params.append('month', String(filters.month));
+        if (filters?.district) params.append('district', filters.district);
+        const res = await fetch(`${API_BASE}/stats/sales-executive?${params}`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } });
+        if (!res.ok) throw new Error('Failed');
+        return await res.json();
+    },
+    async getMonthlyTrend(token: string, year?: number) {
+        const p = year ? `?year=${year}` : '';
+        const res = await fetch(`${API_BASE}/stats/monthly-trend${p}`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } });
+        if (!res.ok) throw new Error('Failed');
+        return await res.json();
+    },
+    async getTaskPipeline(token: string) {
+        const res = await fetch(`${API_BASE}/stats/task-pipeline`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } });
+        if (!res.ok) throw new Error('Failed');
+        return await res.json();
+    },
+    async getAttendanceSummary(token: string, filters?: { month?: number; year?: number }) {
+        const params = new URLSearchParams();
+        if (filters?.month) params.append('month', String(filters.month));
+        if (filters?.year) params.append('year', String(filters.year));
+        const res = await fetch(`${API_BASE}/stats/attendance-summary?${params}`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } });
+        if (!res.ok) throw new Error('Failed');
+        return await res.json();
+    },
+    async getPlantSizeDistribution(token: string) {
+        const res = await fetch(`${API_BASE}/stats/plant-size-distribution`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } });
+        if (!res.ok) throw new Error('Failed');
+        return await res.json();
+    },
+    async getPaymentCollectionTrend(token: string, year?: number) {
+        const p = year ? `?year=${year}` : '';
+        const res = await fetch(`${API_BASE}/stats/payment-collection-trend${p}`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } });
+        if (!res.ok) throw new Error('Failed');
+        return await res.json();
+    },
+    async getSpecialRequirements(token: string) {
+        const res = await fetch(`${API_BASE}/stats/special-requirements`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } });
+        if (!res.ok) throw new Error('Failed');
+        return await res.json();
+    },
+    async getRecentActivity(token: string) {
+        const res = await fetch(`${API_BASE}/stats/recent-activity`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } });
+        if (!res.ok) throw new Error('Failed');
+        return await res.json();
+    },
+};
+
 export default {
     authAPI,
     tasksAPI,
@@ -833,4 +908,5 @@ export default {
     employeesAPI,
     transactionLogsAPI,
     plantInstallationsAPI,
+    statsAPI,
 };

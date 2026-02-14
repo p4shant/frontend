@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { CalendarCheck, LayoutDashboard, PanelsTopLeft, UserRound, Eye, FileText, UserPlus, Wallet } from 'lucide-react';
+import { CalendarCheck, LayoutDashboard, PanelsTopLeft, UserRound, Eye, FileText, UserPlus, Wallet, BarChart3 } from 'lucide-react';
 import kamnLogo from '../assets/kaman-logo.png';
 import { useAuth } from '../context/AuthContext';
 
@@ -14,6 +14,7 @@ const MASTER_ADMIN_ITEMS = [
     { label: 'Monitor Attendance', to: '/monitor-attendance', icon: <Eye size={18} /> },
     { label: 'Track Application', to: '/track-application', icon: <FileText size={18} /> },
     { label: 'Track Payment', to: '/track-payment', icon: <Wallet size={18} /> },
+    { label: 'Admin Dashboard', to: '/admin-stats', icon: <BarChart3 size={18} /> },
 ];
 
 const MONITOR_ATTENDANCE_ITEM = { label: 'Monitor Attendance', to: '/monitor-attendance', icon: <Eye size={18} /> };
