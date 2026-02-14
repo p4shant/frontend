@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { CalendarCheck, LayoutDashboard, PanelsTopLeft, Plus, UserRound, UserPlus } from 'lucide-react';
+import { CalendarCheck, LayoutDashboard, PanelsTopLeft, Plus, UserRound, UserPlus, Wallet } from 'lucide-react';
 import kamnLogo from '../assets/kaman-logo.png';
 import { useAuth } from '../context/AuthContext';
 
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
 
 const ADMIN_NAV_ITEMS = [
     { label: 'Register Employee', to: '/register-employee', icon: <UserPlus size={18} />, adminOnly: true },
+    { label: 'Track Payment', to: '/track-payment', icon: <Wallet size={18} />, adminOnly: true },
 ];
 
 interface SidebarState {

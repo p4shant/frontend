@@ -37,6 +37,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'pending' | 'in-progress' | 'completed'>('pending');
     const [loading, setLoading] = useState(true);
+    const [selectedWorkType, setSelectedWorkType] = useState<string>('all');
 
     // Fetch tasks on mount or when user changes
     useEffect(() => {
@@ -61,7 +62,21 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
         fetchTasks();
     }, [user, token, showToast]);
 
-    const getTasksByStatus = (status: Task['status']) => allTasks.filter(task => task.status === status);
+    // Get unique work types from all tasks
+    const uniqueWorkTypes = React.useMemo(() => {
+        const workTypes = allTasks.map(task => task.work_type).filter(Boolean);
+        return Array.from(new Set(workTypes)).sort();
+    }, [allTasks]);
+
+    // Filter tasks by selected work type
+    const filteredTasks = React.useMemo(() => {
+        if (selectedWorkType === 'all') {
+            return allTasks;
+        }
+        return allTasks.filter(task => task.work_type === selectedWorkType);
+    }, [allTasks, selectedWorkType]);
+
+    const getTasksByStatus = (status: Task['status']) => filteredTasks.filter(task => task.status === status);
 
     const handleTaskClick = (taskId: string) => {
         const task = allTasks.find(t => t.id === taskId);
@@ -132,6 +147,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
     const inProgressTasks = getTasksByStatus('in-progress');
     const completedTasks = getTasksByStatus('completed');
 
+    // Format work type for display
+    const formatWorkType = (workType: string) => {
+        return workType
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    };
+
     // Loading state
     if (loading) {
         return (
@@ -146,71 +169,32 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
 
     // Desktop view - 3 columns (lg and up)
     const DesktopView = () => (
-        <div className="hidden lg:grid grid-cols-3 gap-4 flex-1 overflow-hidden">
-            <KanbanColumn
-                title="Pending"
-                status="pending"
-                tasks={pendingTasks.map((t, index) => ({
-                    id: t.id,
-                    taskId: t.taskId,
-                    customerName: t.customerName,
-                    workTitle: t.workTitle,
-                    work: t.work,
-                    assignedRole: t.assignedRole,
-                    status: t.status,
-                    assignedOn: t.assignedOn,
-                    taskNumber: index + 1,
-                    onClick: () => handleTaskClick(t.id),
-                }))}
-                onTaskClick={handleTaskClick}
-                onStatusChange={handleStatusChange}
-                statusColors={STATUS_CONFIG}
-            />
-            <KanbanColumn
-                title="In Progress"
-                status="in-progress"
-                tasks={inProgressTasks.map((t, index) => ({
-                    id: t.id,
-                    taskId: t.taskId,
-                    customerName: t.customerName,
-                    workTitle: t.workTitle,
-                    work: t.work,
-                    assignedRole: t.assignedRole,
-                    status: t.status,
-                    assignedOn: t.assignedOn,
-                    taskNumber: index + 1,
-                    onClick: () => handleTaskClick(t.id),
-                }))}
-                onTaskClick={handleTaskClick}
-                onStatusChange={handleStatusChange}
-                statusColors={STATUS_CONFIG}
-            />
-            <KanbanColumn
-                title="Completed"
-                status="completed"
-                tasks={completedTasks.map((t, index) => ({
-                    id: t.id,
-                    taskId: t.taskId,
-                    customerName: t.customerName,
-                    workTitle: t.workTitle,
-                    work: t.work,
-                    assignedRole: t.assignedRole,
-                    status: t.status,
-                    assignedOn: t.assignedOn,
-                    taskNumber: index + 1,
-                    onClick: () => handleTaskClick(t.id),
-                }))}
-                onTaskClick={handleTaskClick}
-                onStatusChange={handleStatusChange}
-                statusColors={STATUS_CONFIG}
-            />
-        </div>
-    );
+        <div className="hidden lg:flex lg:flex-col flex-1 overflow-hidden gap-3">
+            {/* Filter Dropdown */}
+            <div className="flex items-center gap-3 px-1">
+                <label htmlFor="work-type-filter" className="text-sm font-medium text-text-primary whitespace-nowrap">
+                    Filter by Task:
+                </label>
+                <select
+                    id="work-type-filter"
+                    value={selectedWorkType}
+                    onChange={(e) => setSelectedWorkType(e.target.value)}
+                    className="flex-1 max-w-xs px-3 py-2 text-sm border border-border rounded-lg bg-panel text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                    <option value="all">All Tasks ({allTasks.length})</option>
+                    {uniqueWorkTypes.map(workType => {
+                        const count = allTasks.filter(t => t.work_type === workType).length;
+                        return (
+                            <option key={workType} value={workType}>
+                                {formatWorkType(workType)} ({count})
+                            </option>
+                        );
+                    })}
+                </select>
+            </div>
 
-    // Tablet view - 2 columns visible, 3rd scrollable (md to lg)
-    const TabletView = () => (
-        <div className="hidden md:flex lg:hidden overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 flex-1 overflow-y-hidden">
-            <div className="min-w-[48%] snap-start flex-shrink-0">
+            {/* Kanban Columns */}
+            <div className="grid grid-cols-3 gap-4 flex-1 overflow-hidden">
                 <KanbanColumn
                     title="Pending"
                     status="pending"
@@ -230,8 +214,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
                     onStatusChange={handleStatusChange}
                     statusColors={STATUS_CONFIG}
                 />
-            </div>
-            <div className="min-w-[48%] snap-start flex-shrink-0">
                 <KanbanColumn
                     title="In Progress"
                     status="in-progress"
@@ -251,8 +233,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
                     onStatusChange={handleStatusChange}
                     statusColors={STATUS_CONFIG}
                 />
-            </div>
-            <div className="min-w-[48%] snap-start flex-shrink-0">
                 <KanbanColumn
                     title="Completed"
                     status="completed"
@@ -272,6 +252,101 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
                     onStatusChange={handleStatusChange}
                     statusColors={STATUS_CONFIG}
                 />
+            </div>
+        </div>
+    );
+
+    // Tablet view - 2 columns visible, 3rd scrollable (md to lg)
+    const TabletView = () => (
+        <div className="hidden md:flex lg:hidden flex-col flex-1 overflow-hidden gap-3">
+            {/* Filter Dropdown */}
+            <div className="flex items-center gap-3 px-1">
+                <label htmlFor="work-type-filter-tablet" className="text-sm font-medium text-text-primary whitespace-nowrap">
+                    Filter:
+                </label>
+                <select
+                    id="work-type-filter-tablet"
+                    value={selectedWorkType}
+                    onChange={(e) => setSelectedWorkType(e.target.value)}
+                    className="flex-1 max-w-sm px-3 py-2 text-sm border border-border rounded-lg bg-panel text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                    <option value="all">All Tasks ({allTasks.length})</option>
+                    {uniqueWorkTypes.map(workType => {
+                        const count = allTasks.filter(t => t.work_type === workType).length;
+                        return (
+                            <option key={workType} value={workType}>
+                                {formatWorkType(workType)} ({count})
+                            </option>
+                        );
+                    })}
+                </select>
+            </div>
+
+            {/* Kanban Columns */}
+            <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 flex-1 overflow-y-hidden">
+                <div className="min-w-[48%] snap-start flex-shrink-0">
+                    <KanbanColumn
+                        title="Pending"
+                        status="pending"
+                        tasks={pendingTasks.map((t, index) => ({
+                            id: t.id,
+                            taskId: t.taskId,
+                            customerName: t.customerName,
+                            workTitle: t.workTitle,
+                            work: t.work,
+                            assignedRole: t.assignedRole,
+                            status: t.status,
+                            assignedOn: t.assignedOn,
+                            taskNumber: index + 1,
+                            onClick: () => handleTaskClick(t.id),
+                        }))}
+                        onTaskClick={handleTaskClick}
+                        onStatusChange={handleStatusChange}
+                        statusColors={STATUS_CONFIG}
+                    />
+                </div>
+                <div className="min-w-[48%] snap-start flex-shrink-0">
+                    <KanbanColumn
+                        title="In Progress"
+                        status="in-progress"
+                        tasks={inProgressTasks.map((t, index) => ({
+                            id: t.id,
+                            taskId: t.taskId,
+                            customerName: t.customerName,
+                            workTitle: t.workTitle,
+                            work: t.work,
+                            assignedRole: t.assignedRole,
+                            status: t.status,
+                            assignedOn: t.assignedOn,
+                            taskNumber: index + 1,
+                            onClick: () => handleTaskClick(t.id),
+                        }))}
+                        onTaskClick={handleTaskClick}
+                        onStatusChange={handleStatusChange}
+                        statusColors={STATUS_CONFIG}
+                    />
+                </div>
+                <div className="min-w-[48%] snap-start flex-shrink-0">
+                    <KanbanColumn
+                        title="Completed"
+                        status="completed"
+                        tasks={completedTasks.map((t, index) => ({
+                            id: t.id,
+                            taskId: t.taskId,
+                            customerName: t.customerName,
+                            workTitle: t.workTitle,
+                            work: t.work,
+                            assignedRole: t.assignedRole,
+                            status: t.status,
+                            assignedOn: t.assignedOn,
+                            taskNumber: index + 1,
+                            onClick: () => handleTaskClick(t.id),
+                        }))}
+                        onTaskClick={handleTaskClick}
+                        onStatusChange={handleStatusChange}
+                        statusColors={STATUS_CONFIG}
+                    />
+                </div>
             </div>
         </div>
     );
@@ -329,6 +404,29 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
 
         return (
             <div className="md:hidden flex flex-col w-full overflow-hidden flex-1">
+                {/* Filter Dropdown - Mobile */}
+                <div className="flex items-center gap-2 px-2 py-2 bg-transparent flex-shrink-0">
+                    <label htmlFor="work-type-filter-mobile" className="text-xs font-medium text-text-primary whitespace-nowrap">
+                        Filter:
+                    </label>
+                    <select
+                        id="work-type-filter-mobile"
+                        value={selectedWorkType}
+                        onChange={(e) => setSelectedWorkType(e.target.value)}
+                        className="flex-1 px-2 py-1.5 text-xs border border-border rounded-lg bg-panel text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                        <option value="all">All Tasks ({allTasks.length})</option>
+                        {uniqueWorkTypes.map(workType => {
+                            const count = allTasks.filter(t => t.work_type === workType).length;
+                            return (
+                                <option key={workType} value={workType}>
+                                    {formatWorkType(workType)} ({count})
+                                </option>
+                            );
+                        })}
+                    </select>
+                </div>
+
                 {/* Tab Navigation */}
                 <div className="flex gap-1 px-0 py-2 bg-transparent flex-shrink-0">
                     <button
