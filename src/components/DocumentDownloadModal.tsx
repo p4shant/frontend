@@ -94,9 +94,9 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
 
         // Bank & Financial Documents
         const bankDocs: DocumentItem[] = [
-            { name: 'Smart Meter Document', url: getDocField('smart_meter_doc_url') as string | null, category: 'Financial', type: 'document' },
+            { name: 'Ceiling Paper Photo', url: getDocField('ceiling_paper_photo_url') as string | null, category: 'Financial', type: 'image' },
             { name: 'Cancel Cheque / Passbook', url: getDocField('cancel_cheque_url') as string | null, category: 'Financial', type: 'image' },
-            { name: 'Bank Details Document', url: getDocField('bank_details_doc_url') as string | null, category: 'Financial', type: 'document' },
+            { name: 'Site Image with GPS Geo Location', url: getDocField('site_image_gps_url') as string | null, category: 'Financial', type: 'document' },
         ];
         categories.push({
             name: 'Bank & Financial',
