@@ -37,7 +37,7 @@ interface AttendanceRecord {
 
 function MonitorAttendance() {
     const { user, token } = useAuth()
-    const API_BASE = import.meta.env.VITE_API_BASE || 'https://srv1304976.hstgr.cloud/api'
+    const API_BASE = import.meta.env.VITE_API_BASE
 
     /**
      * TIMEZONE HANDLING STRATEGY:
