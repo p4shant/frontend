@@ -3,6 +3,20 @@ import { AlertCircle, Edit2, X, Upload } from 'lucide-react';
 import RegisterCustomerForm from '../register/RegisterCustomerForm';
 import { transactionLogsAPI, additionalDocumentsAPI } from '../../services/api';
 
+const getAdditionalDocUrl = (customer: any, key: string): string => {
+    return customer?.additional_documents?.[key] || customer?.[key] || '';
+};
+
+const getFileTypeFromUrl = (url: string) => {
+    if (!url) return 'unknown';
+    const ext = url.split('.').pop()?.toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext || '')) return 'image';
+    if (ext === 'pdf') return 'pdf';
+    return 'document';
+};
+
+const API_BASE = import.meta.env.VITE_API_BASE;
+
 interface WorkTypeDetailsProps {
     task: any;
     customer: any;
@@ -282,6 +296,9 @@ export const FinanceRegistration: React.FC<WorkTypeDetailsProps> = ({ task: _tas
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [message, setMessage] = React.useState('');
 
+    const existingQuotationUrl = getAdditionalDocUrl(customer, 'finance_quotation_document');
+    const existingApprovalUrl = getAdditionalDocUrl(customer, 'finance_digital_approval');
+
     const handleQuotationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -348,6 +365,64 @@ export const FinanceRegistration: React.FC<WorkTypeDetailsProps> = ({ task: _tas
             <h3 className="text-sm font-bold text-text mb-4">Finance Documents Upload</h3>
 
             <div className="space-y-4">
+                {(existingQuotationUrl || existingApprovalUrl) && (
+                    <div className="bg-white/60 rounded-lg p-3 border border-blue/10">
+                        <p className="text-xs font-semibold text-muted uppercase mb-2">Already Uploaded</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {existingQuotationUrl && (
+                                <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-slate-200">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <span className="text-lg">{getFileTypeFromUrl(existingQuotationUrl) === 'image' ? '🖼️' : '📄'}</span>
+                                        <span className="text-xs font-medium text-slate-700 truncate">Finance Quotation</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <a
+                                            href={existingQuotationUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-xs text-blue-600 hover:text-blue-700"
+                                        >
+                                            Preview
+                                        </a>
+                                        <a
+                                            href={existingQuotationUrl}
+                                            download
+                                            className="text-xs text-green-600 hover:text-green-700"
+                                        >
+                                            Download
+                                        </a>
+                                    </div>
+                                </div>
+                            )}
+                            {existingApprovalUrl && (
+                                <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-slate-200">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <span className="text-lg">{getFileTypeFromUrl(existingApprovalUrl) === 'image' ? '🖼️' : '📄'}</span>
+                                        <span className="text-xs font-medium text-slate-700 truncate">Digital Approval</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <a
+                                            href={existingApprovalUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-xs text-blue-600 hover:text-blue-700"
+                                        >
+                                            Preview
+                                        </a>
+                                        <a
+                                            href={existingApprovalUrl}
+                                            download
+                                            className="text-xs text-green-600 hover:text-green-700"
+                                        >
+                                            Download
+                                        </a>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* Submit Quotation */}
                 <div>
                     <label className="block text-xs font-semibold text-muted uppercase mb-2">
@@ -440,6 +515,11 @@ export const RegistrationComplete: React.FC<WorkTypeDetailsProps> = ({ task: _ta
     const [previewUrl, setPreviewUrl] = React.useState<string>('');
     const [previewTitle, setPreviewTitle] = React.useState<string>('');
 
+    const existingApplicationFormUrl = getAdditionalDocUrl(customer, 'application_form');
+    const existingFeasibilityFormUrl = getAdditionalDocUrl(customer, 'feasibility_form');
+    const existingEtokenDocumentUrl = getAdditionalDocUrl(customer, 'etoken_document');
+    const existingNetMeteringDocumentUrl = getAdditionalDocUrl(customer, 'net_metering_document');
+
     const handleFileChange = (
         file: File,
         setFile: (file: File | null) => void,
@@ -522,6 +602,10 @@ export const RegistrationComplete: React.FC<WorkTypeDetailsProps> = ({ task: _ta
         { label: 'COT Family Registration', url: customer?.cot_family_registration_url },
         { label: 'COT Live Aadhaar 1', url: customer?.cot_live_aadhaar_1_url },
         { label: 'COT Live Aadhaar 2', url: customer?.cot_live_aadhaar_2_url },
+        { label: 'Application Form', url: existingApplicationFormUrl },
+        { label: 'Feasibility Form', url: existingFeasibilityFormUrl },
+        { label: 'E-Token Document', url: existingEtokenDocumentUrl },
+        { label: 'Net Metering Document', url: existingNetMeteringDocumentUrl },
     ].filter(doc => doc.url);
 
     // Parse aadhaar photos URLs if available
@@ -796,7 +880,7 @@ export const PlantInstallation: React.FC<WorkTypeDetailsProps> = ({ task: _task,
                 const token = localStorage.getItem('auth_token');
 
                 // Fetch Technicians
-                const techResponse = await fetch('https://srv1304976.hstgr.cloud/api/employees?role=Technician', {
+                const techResponse = await fetch(`${API_BASE}/employees?role=Technician`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const techData = await techResponse.json();
@@ -805,7 +889,7 @@ export const PlantInstallation: React.FC<WorkTypeDetailsProps> = ({ task: _task,
                 }
 
                 // Fetch Technical Assistants
-                const assistantResponse = await fetch('https://srv1304976.hstgr.cloud/api/employees?role=Technical Assistant', {
+                const assistantResponse = await fetch(`${API_BASE}/employees?role=Technical Assistant`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const assistantData = await assistantResponse.json();
@@ -928,7 +1012,7 @@ export const PlantInstallation: React.FC<WorkTypeDetailsProps> = ({ task: _task,
 
             const assistantIds = technicalAssistants.map(a => a.employeeId);
 
-            const response = await fetch('https://srv1304976.hstgr.cloud/api/plant-installation-details', {
+            const response = await fetch(`${API_BASE}/plant-installation-details`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1252,6 +1336,7 @@ export const NameCorrectionRequest: React.FC<WorkTypeDetailsProps> = ({ task: _t
 
 // CreateHardCopyindentCreationTask
 export const createHardCopyindentCreationTask: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
+    const existingIndentUrl = getAdditionalDocUrl(customer, 'indent_document');
     const [indentDocumentFile, setIndentDocumentFile] = React.useState<File | null>(null);
     const [indentDocumentPreview, setIndentDocumentPreview] = React.useState<string>('');
     const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -1290,7 +1375,7 @@ export const createHardCopyindentCreationTask: React.FC<WorkTypeDetailsProps> = 
             const formData = new FormData();
             formData.append('indent_document', indentDocumentFile);
 
-            const response = await fetch(`https://srv1304976.hstgr.cloud/api/additional-documents/${customer.id}/indent`, {
+            const response = await fetch(`${API_BASE}/additional-documents/${customer.id}/indent`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1318,6 +1403,35 @@ export const createHardCopyindentCreationTask: React.FC<WorkTypeDetailsProps> = 
             <h3 className="text-sm font-bold text-text mb-4">Hard Copy Indent Creation</h3>
 
             <div className="space-y-4">
+                {existingIndentUrl && (
+                    <div className="bg-white/60 rounded-lg p-3 border border-indigo/10">
+                        <p className="text-xs font-semibold text-muted uppercase mb-2">Already Uploaded</p>
+                        <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-slate-200">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-lg">{getFileTypeFromUrl(existingIndentUrl) === 'image' ? '🖼️' : '📄'}</span>
+                                <span className="text-xs font-medium text-slate-700 truncate">Indent Document</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <a
+                                    href={existingIndentUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-blue-600 hover:text-blue-700"
+                                >
+                                    Preview
+                                </a>
+                                <a
+                                    href={existingIndentUrl}
+                                    download
+                                    className="text-xs text-green-600 hover:text-green-700"
+                                >
+                                    Download
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Indent Document Upload */}
                 <div>
                     <label className="block text-xs font-semibold text-muted uppercase mb-2">
@@ -1402,6 +1516,7 @@ export const SubsidyApplication: React.FC<WorkTypeDetailsProps> = ({ task: _task
 
 // Generate Payment Bill
 export const BillGeneration: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
+    const existingPaybillUrl = getAdditionalDocUrl(customer, 'paybill_document');
     const [paybillDocumentFile, setPaybillDocumentFile] = React.useState<File | null>(null);
     const [paybillDocumentPreview, setPaybillDocumentPreview] = React.useState<string>('');
     const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -1440,7 +1555,7 @@ export const BillGeneration: React.FC<WorkTypeDetailsProps> = ({ task: _task, cu
             const formData = new FormData();
             formData.append('paybill_document', paybillDocumentFile);
 
-            const response = await fetch(`https://srv1304976.hstgr.cloud/api/additional-documents/${customer.id}/paybill`, {
+            const response = await fetch(`${API_BASE}/additional-documents/${customer.id}/paybill`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1468,6 +1583,35 @@ export const BillGeneration: React.FC<WorkTypeDetailsProps> = ({ task: _task, cu
             <h3 className="text-sm font-bold text-text mb-4">Bill Generation - Upload Generated Bill</h3>
 
             <div className="space-y-4">
+                {existingPaybillUrl && (
+                    <div className="bg-white/60 rounded-lg p-3 border border-lime/10">
+                        <p className="text-xs font-semibold text-muted uppercase mb-2">Already Uploaded</p>
+                        <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-slate-200">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-lg">{getFileTypeFromUrl(existingPaybillUrl) === 'image' ? '🖼️' : '📄'}</span>
+                                <span className="text-xs font-medium text-slate-700 truncate">Generated Bill Document</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <a
+                                    href={existingPaybillUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-blue-600 hover:text-blue-700"
+                                >
+                                    Preview
+                                </a>
+                                <a
+                                    href={existingPaybillUrl}
+                                    download
+                                    className="text-xs text-green-600 hover:text-green-700"
+                                >
+                                    Download
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Paybill Document Upload */}
                 <div>
                     <label className="block text-xs font-semibold text-muted uppercase mb-2">
@@ -1956,8 +2100,8 @@ export const WarrantyDocument: React.FC<WorkTypeDetailsProps> = ({ task: _task, 
 
 // Upload DCR Document
 export const CDRCreation: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
-    const existingWarrantyUrl = customer?.warranty_card_document || customer?.additional_documents?.warranty_card_document;
-    const [warrantyFile, setWarrantyFile] = React.useState<File | null>(null);
+    const existingDcrUrl = getAdditionalDocUrl(customer, 'dcr_document');
+    const [dcrFile, setDcrFile] = React.useState<File | null>(null);
     const [filePreview, setFilePreview] = React.useState<string>('');
     const [message, setMessage] = React.useState('');
     const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -1976,7 +2120,7 @@ export const CDRCreation: React.FC<WorkTypeDetailsProps> = ({ task: _task, custo
         const file = e.target.files?.[0];
         setMessage('');
         if (file) {
-            setWarrantyFile(file);
+            setDcrFile(file);
             if (file.type.startsWith('image/')) {
                 const reader = new FileReader();
                 reader.onloadend = () => setFilePreview(reader.result as string);
@@ -1988,8 +2132,8 @@ export const CDRCreation: React.FC<WorkTypeDetailsProps> = ({ task: _task, custo
     };
 
     const handleSubmit = async () => {
-        if (!warrantyFile) {
-            setMessage('Warranty card document is required');
+        if (!dcrFile) {
+            setMessage('DCR document is required');
             return;
         }
 
@@ -2007,27 +2151,27 @@ export const CDRCreation: React.FC<WorkTypeDetailsProps> = ({ task: _task, custo
         setIsSubmitting(true);
         setMessage('');
         try {
-            const result = await additionalDocumentsAPI.uploadWarrantyDocument(customer.id, warrantyFile, token);
-            const uploadedUrl = result?.data?.warranty_card_document || existingWarrantyUrl || '';
+            const result = await additionalDocumentsAPI.uploadDcrDocument(customer.id, dcrFile, token);
+            const uploadedUrl = result?.data?.dcr_document || existingDcrUrl || '';
             if (uploadedUrl) {
                 setPreviewUrl(uploadedUrl);
-                setPreviewTitle('Warranty Card Document');
+                setPreviewTitle('DCR Document');
             }
-            setMessage('Warranty document uploaded successfully');
-            setWarrantyFile(null);
+            setMessage('DCR document uploaded successfully');
+            setDcrFile(null);
             setFilePreview('');
             setTimeout(() => window.location.reload(), 1200);
         } catch (error: any) {
-            setMessage(error.message || 'Failed to upload warranty document');
+            setMessage(error.message || 'Failed to upload DCR document');
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const openExisting = () => {
-        if (existingWarrantyUrl) {
-            setPreviewUrl(existingWarrantyUrl);
-            setPreviewTitle('Warranty Card Document');
+        if (existingDcrUrl) {
+            setPreviewUrl(existingDcrUrl);
+            setPreviewTitle('DCR Document');
         }
     };
 
@@ -2038,21 +2182,21 @@ export const CDRCreation: React.FC<WorkTypeDetailsProps> = ({ task: _task, custo
 
     return (
         <div className="max-h-[400px] overflow-y-auto bg-purple/5 border border-purple/20 rounded-lg p-4 space-y-4">
-            <h3 className="text-sm font-bold text-text mb-2">Warranty Card Upload</h3>
-            <p className="text-xs text-muted mb-2">SFDC Admin must upload the warranty card to complete this task.</p>
+            <h3 className="text-sm font-bold text-text mb-2">DCR Document Upload</h3>
+            <p className="text-xs text-muted mb-2">SFDC Admin must upload the DCR document to complete this task.</p>
 
-            {existingWarrantyUrl && (
+            {existingDcrUrl && (
                 <div className="bg-white/60 border border-purple/10 rounded-lg p-3 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-lg">{getFileType(existingWarrantyUrl) === 'image' ? '🖼️' : '📄'}</span>
+                        <span className="text-lg">{getFileType(existingDcrUrl) === 'image' ? '🖼️' : '📄'}</span>
                         <div className="min-w-0">
-                            <p className="text-xs font-semibold text-text truncate">Existing warranty document</p>
-                            <p className="text-[11px] text-muted truncate">{existingWarrantyUrl.split('/').pop()}</p>
+                            <p className="text-xs font-semibold text-text truncate">Existing DCR document</p>
+                            <p className="text-[11px] text-muted truncate">{existingDcrUrl.split('/').pop()}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
                         <a
-                            href={existingWarrantyUrl}
+                            href={existingDcrUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs font-semibold text-purple-700 hover:text-purple-800"
@@ -2072,7 +2216,7 @@ export const CDRCreation: React.FC<WorkTypeDetailsProps> = ({ task: _task, custo
             <div className="space-y-3">
                 <div>
                     <label className="block text-xs font-semibold text-muted uppercase mb-2">
-                        Warranty Card Document *
+                        DCR Document *
                     </label>
                     <input
                         type="file"
@@ -2080,15 +2224,15 @@ export const CDRCreation: React.FC<WorkTypeDetailsProps> = ({ task: _task, custo
                         onChange={handleFileChange}
                         className="w-full border border-purple/30 rounded-lg px-3 py-2 text-sm"
                     />
-                    {warrantyFile && (
+                    {dcrFile && (
                         <div className="mt-2 flex items-center gap-3">
                             {filePreview ? (
                                 <div className="overflow-hidden rounded-lg border border-purple/20">
-                                    <img src={filePreview} alt="Warranty preview" className="h-20 w-20 object-cover" />
+                                    <img src={filePreview} alt="DCR preview" className="h-20 w-20 object-cover" />
                                 </div>
                             ) : (
                                 <p className="text-xs text-muted flex items-center gap-1">
-                                    <span>📄</span> {warrantyFile.name}
+                                    <span>📄</span> {dcrFile.name}
                                 </p>
                             )}
                         </div>
@@ -2103,11 +2247,11 @@ export const CDRCreation: React.FC<WorkTypeDetailsProps> = ({ task: _task, custo
 
                 <button
                     onClick={handleSubmit}
-                    disabled={isSubmitting || !warrantyFile}
+                    disabled={isSubmitting || !dcrFile}
                     className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center"
                 >
                     <Upload size={16} />
-                    {isSubmitting ? 'Uploading...' : 'Submit Warranty Document'}
+                    {isSubmitting ? 'Uploading...' : 'Submit DCR Document'}
                 </button>
             </div>
 

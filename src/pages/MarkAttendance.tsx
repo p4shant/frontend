@@ -23,6 +23,7 @@ type Location = {
 
 const MarkAttendance = () => {
     const { token } = useAuth();
+    const API_ORIGIN = import.meta.env.VITE_API_ORIGIN || (import.meta.env.VITE_API_BASE?.replace('/api', '') ?? '');
     const [todayStatus, setTodayStatus] = useState<TodayStatus | null>(null);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
@@ -290,12 +291,11 @@ const MarkAttendance = () => {
                                             {todayStatus.punch_in_image_url && (
                                                 <div className="flex-shrink-0">
                                                     <img
-                                                        src={`${import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://srv1304976.hstgr.cloud'}${todayStatus.punch_in_image_url}`}
+                                                        src={`${API_ORIGIN}${todayStatus.punch_in_image_url}`}
                                                         alt="Punch In"
                                                         className="w-20 h-20 object-cover rounded-lg border-2 border-blue/30 cursor-pointer hover:opacity-80 transition"
                                                         onClick={() => {
-                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://srv1304976.hstgr.cloud'
-                                                            setPreviewImage(`${API_BASE}${todayStatus.punch_in_image_url}`)
+                                                            setPreviewImage(`${API_ORIGIN}${todayStatus.punch_in_image_url}`)
                                                             setPreviewTitle('Punch In Photo')
                                                         }}
                                                     />
@@ -316,8 +316,7 @@ const MarkAttendance = () => {
                                                 {todayStatus.punch_in_image_url && (
                                                     <button
                                                         onClick={() => {
-                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://srv1304976.hstgr.cloud'
-                                                            setPreviewImage(`${API_BASE}${todayStatus.punch_in_image_url}`)
+                                                            setPreviewImage(`${API_ORIGIN}${todayStatus.punch_in_image_url}`)
                                                             setPreviewTitle('Punch In Photo')
                                                         }}
                                                         className="mt-2 px-3 py-1 text-xs bg-blue text-white rounded hover:bg-blue/90 transition-colors font-semibold"
@@ -336,12 +335,11 @@ const MarkAttendance = () => {
                                             {todayStatus.punch_out_image_url && (
                                                 <div className="flex-shrink-0">
                                                     <img
-                                                        src={`${import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://srv1304976.hstgr.cloud'}${todayStatus.punch_out_image_url}`}
+                                                        src={`${API_ORIGIN}${todayStatus.punch_out_image_url}`}
                                                         alt="Punch Out"
                                                         className="w-20 h-20 object-cover rounded-lg border-2 border-purple/30 cursor-pointer hover:opacity-80 transition"
                                                         onClick={() => {
-                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://srv1304976.hstgr.cloud'
-                                                            setPreviewImage(`${API_BASE}${todayStatus.punch_out_image_url}`)
+                                                            setPreviewImage(`${API_ORIGIN}${todayStatus.punch_out_image_url}`)
                                                             setPreviewTitle('Punch Out Photo')
                                                         }}
                                                     />
@@ -362,8 +360,7 @@ const MarkAttendance = () => {
                                                 {todayStatus.punch_out_image_url && (
                                                     <button
                                                         onClick={() => {
-                                                            const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'https://srv1304976.hstgr.cloud'
-                                                            setPreviewImage(`${API_BASE}${todayStatus.punch_out_image_url}`)
+                                                            setPreviewImage(`${API_ORIGIN}${todayStatus.punch_out_image_url}`)
                                                             setPreviewTitle('Punch Out Photo')
                                                         }}
                                                         className="mt-2 px-3 py-1 text-xs bg-blue text-white rounded hover:bg-purple/90 transition-colors font-bold"

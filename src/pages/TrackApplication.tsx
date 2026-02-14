@@ -71,7 +71,7 @@ interface Customer {
 
 function TrackApplication() {
     const { token } = useAuth()
-    const API_BASE = import.meta.env.VITE_API_BASE || 'https://srv1304976.hstgr.cloud/api'
+    const API_BASE = import.meta.env.VITE_API_BASE
 
     const [customers, setCustomers] = useState<Customer[]>([])
     const [loading, setLoading] = useState(true)

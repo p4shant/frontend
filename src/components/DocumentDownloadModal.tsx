@@ -30,16 +30,61 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
     const [previewTitle, setPreviewTitle] = useState<string>('');
     const [isDownloading, setIsDownloading] = useState(false);
 
+    const getDocField = (key: string): unknown => {
+        const rootValue = (customer as any)?.[key];
+        if (rootValue) return rootValue;
+        return (customer as any)?.additional_documents?.[key] ?? null;
+    };
+
+    const normalizeUrls = (value: unknown): string[] => {
+        if (!value) return [];
+        if (Array.isArray(value)) {
+            return value.map(String).map(v => v.trim()).filter(Boolean);
+        }
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (!trimmed) return [];
+            if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+                try {
+                    const parsed = JSON.parse(trimmed);
+                    if (Array.isArray(parsed)) {
+                        return parsed.map(String).map(v => v.trim()).filter(Boolean);
+                    }
+                } catch {
+                    // fall through to delimiter parsing
+                }
+            }
+            return trimmed.split(',').map(v => v.trim()).filter(Boolean);
+        }
+        return [];
+    };
+
+    const buildDocItems = (baseName: string, raw: unknown, category: string, type: DocumentItem['type']): DocumentItem[] => {
+        const urls = normalizeUrls(raw);
+        if (urls.length === 0) {
+            return [{ name: baseName, url: null, category, type }];
+        }
+        if (urls.length === 1) {
+            return [{ name: baseName, url: urls[0], category, type }];
+        }
+        return urls.map((url, index) => ({
+            name: `${baseName} ${index + 1}`,
+            url,
+            category,
+            type
+        }));
+    };
+
     // Categorize documents
     const documentCategories = useMemo<CategoryGroup[]>(() => {
         const categories: CategoryGroup[] = [];
 
         // KYC Documents
         const kycDocs: DocumentItem[] = [
-            { name: 'Aadhaar Front', url: customer?.aadhaar_front_url, category: 'KYC', type: 'image' },
-            { name: 'Aadhaar Back', url: customer?.aadhaar_back_url, category: 'KYC', type: 'image' },
-            { name: 'PAN Card', url: customer?.pan_card_url, category: 'KYC', type: 'image' },
-            { name: 'Electric Bill', url: customer?.electric_bill_url, category: 'KYC', type: 'image' },
+            { name: 'Aadhaar Front', url: getDocField('aadhaar_front_url') as string | null, category: 'KYC', type: 'image' },
+            { name: 'Aadhaar Back', url: getDocField('aadhaar_back_url') as string | null, category: 'KYC', type: 'image' },
+            { name: 'PAN Card', url: getDocField('pan_card_url') as string | null, category: 'KYC', type: 'image' },
+            { name: 'Electric Bill', url: getDocField('electric_bill_url') as string | null, category: 'KYC', type: 'image' },
         ];
         categories.push({
             name: 'KYC & Personal Documents',
@@ -49,9 +94,9 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
 
         // Bank & Financial Documents
         const bankDocs: DocumentItem[] = [
-            { name: 'Smart Meter Document', url: customer?.smart_meter_doc_url, category: 'Financial', type: 'document' },
-            { name: 'Cancel Cheque / Passbook', url: customer?.cancel_cheque_url, category: 'Financial', type: 'image' },
-            { name: 'Bank Details Document', url: customer?.bank_details_doc_url, category: 'Financial', type: 'document' },
+            { name: 'Smart Meter Document', url: getDocField('smart_meter_doc_url') as string | null, category: 'Financial', type: 'document' },
+            { name: 'Cancel Cheque / Passbook', url: getDocField('cancel_cheque_url') as string | null, category: 'Financial', type: 'image' },
+            { name: 'Bank Details Document', url: getDocField('bank_details_doc_url') as string | null, category: 'Financial', type: 'document' },
         ];
         categories.push({
             name: 'Bank & Financial',
@@ -61,14 +106,14 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
 
         // COT Documents
         const cotDocs: DocumentItem[] = [
-            { name: 'COT Documents (General)', url: customer?.cot_documents, category: 'COT', type: 'document' },
-            { name: 'COT Death Certificate', url: customer?.cot_death_certificate_url, category: 'COT', type: 'document' },
-            { name: 'COT House Papers', url: customer?.cot_house_papers_url, category: 'COT', type: 'document' },
-            { name: 'COT Passport Photo', url: customer?.cot_passport_photo_url, category: 'COT', type: 'image' },
-            { name: 'COT Family Registration', url: customer?.cot_family_registration_url, category: 'COT', type: 'document' },
-            { name: 'COT Aadhaar Photos', url: customer?.cot_aadhaar_photos_urls, category: 'COT', type: 'image' },
-            { name: 'COT Live Aadhaar 1', url: customer?.cot_live_aadhaar_1_url, category: 'COT', type: 'image' },
-            { name: 'COT Live Aadhaar 2', url: customer?.cot_live_aadhaar_2_url, category: 'COT', type: 'image' },
+            { name: 'COT Documents (General)', url: getDocField('cot_documents') as string | null, category: 'COT', type: 'document' },
+            { name: 'COT Death Certificate', url: getDocField('cot_death_certificate_url') as string | null, category: 'COT', type: 'document' },
+            { name: 'COT House Papers', url: getDocField('cot_house_papers_url') as string | null, category: 'COT', type: 'document' },
+            { name: 'COT Passport Photo', url: getDocField('cot_passport_photo_url') as string | null, category: 'COT', type: 'image' },
+            { name: 'COT Family Registration', url: getDocField('cot_family_registration_url') as string | null, category: 'COT', type: 'document' },
+            ...buildDocItems('COT Aadhaar Photos', getDocField('cot_aadhaar_photos_urls'), 'COT', 'image'),
+            { name: 'COT Live Aadhaar 1', url: getDocField('cot_live_aadhaar_1_url') as string | null, category: 'COT', type: 'image' },
+            { name: 'COT Live Aadhaar 2', url: getDocField('cot_live_aadhaar_2_url') as string | null, category: 'COT', type: 'image' },
         ];
         categories.push({
             name: 'COT Documents',
@@ -78,8 +123,8 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
 
         // Application & Feasibility Documents
         const appDocs: DocumentItem[] = [
-            { name: 'Application Form', url: customer?.application_form, category: 'Application', type: 'document' },
-            { name: 'Feasibility Form', url: customer?.feasibility_form, category: 'Application', type: 'document' },
+            { name: 'Application Form', url: getDocField('application_form') as string | null, category: 'Application', type: 'document' },
+            { name: 'Feasibility Form', url: getDocField('feasibility_form') as string | null, category: 'Application', type: 'document' },
         ];
         categories.push({
             name: 'Application & Feasibility',
@@ -89,8 +134,8 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
 
         // Regulatory & Approval Documents
         const regDocs: DocumentItem[] = [
-            { name: 'E-Token Document', url: customer?.etoken_document, category: 'Regulatory', type: 'document' },
-            { name: 'Net Metering Document', url: customer?.net_metering_document, category: 'Regulatory', type: 'document' },
+            { name: 'E-Token Document', url: getDocField('etoken_document') as string | null, category: 'Regulatory', type: 'document' },
+            { name: 'Net Metering Document', url: getDocField('net_metering_document') as string | null, category: 'Regulatory', type: 'document' },
         ];
         categories.push({
             name: 'Regulatory & Net Metering',
@@ -100,8 +145,8 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
 
         // Finance Documents
         const financeDocs: DocumentItem[] = [
-            { name: 'Finance Quotation', url: customer?.finance_quotation_document, category: 'Finance', type: 'document' },
-            { name: 'Finance Digital Approval', url: customer?.finance_digital_approval, category: 'Finance', type: 'document' },
+            { name: 'Finance Quotation', url: getDocField('finance_quotation_document') as string | null, category: 'Finance', type: 'document' },
+            { name: 'Finance Digital Approval', url: getDocField('finance_digital_approval') as string | null, category: 'Finance', type: 'document' },
         ];
         categories.push({
             name: 'Finance Documents',
@@ -111,9 +156,9 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
 
         // Certification & Installation Documents
         const certDocs: DocumentItem[] = [
-            { name: 'UBI Sanction Certificate', url: customer?.ubi_sanction_certificate_document, category: 'Certification', type: 'document' },
-            { name: 'Indent Document', url: customer?.indent_document, category: 'Certification', type: 'document' },
-            { name: 'Warranty Card', url: customer?.warranty_card_document, category: 'Certification', type: 'document' },
+            { name: 'UBI Sanction Certificate', url: getDocField('ubi_sanction_certificate_document') as string | null, category: 'Certification', type: 'document' },
+            { name: 'Indent Document', url: getDocField('indent_document') as string | null, category: 'Certification', type: 'document' },
+            { name: 'Warranty Card', url: getDocField('warranty_card_document') as string | null, category: 'Certification', type: 'document' },
         ];
         categories.push({
             name: 'Certification & Warranty',
@@ -123,9 +168,9 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
 
         // Installation Site & Equipment Images
         const imageDocs: DocumentItem[] = [
-            { name: 'Solar Panels Images', url: customer?.solar_panels_images_url, category: 'Images', type: 'image' },
-            { name: 'Inverter Image', url: customer?.inverter_image_url, category: 'Images', type: 'image' },
-            { name: 'Logger Image', url: customer?.logger_image_url, category: 'Images', type: 'image' },
+            ...buildDocItems('Solar Panels Images', getDocField('solar_panels_images_url'), 'Images', 'image'),
+            ...buildDocItems('Inverter Image', getDocField('inverter_image_url'), 'Images', 'image'),
+            ...buildDocItems('Logger Image', getDocField('logger_image_url'), 'Images', 'image'),
         ];
         categories.push({
             name: 'Installation Site & Equipment',
@@ -135,9 +180,9 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
 
         // Commissioning & Compliance Documents
         const commissionDocs: DocumentItem[] = [
-            { name: 'Pay Bill Document', url: customer?.paybill_document, category: 'Commissioning', type: 'document' },
-            { name: 'DCR Document', url: customer?.dcr_document, category: 'Commissioning', type: 'document' },
-            { name: 'Commissioning Document', url: customer?.commissioning_document, category: 'Commissioning', type: 'document' },
+            { name: 'Pay Bill Document', url: getDocField('paybill_document') as string | null, category: 'Commissioning', type: 'document' },
+            { name: 'DCR Document', url: getDocField('dcr_document') as string | null, category: 'Commissioning', type: 'document' },
+            { name: 'Commissioning Document', url: getDocField('commissioning_document') as string | null, category: 'Commissioning', type: 'document' },
         ];
         categories.push({
             name: 'Commissioning & Compliance',
