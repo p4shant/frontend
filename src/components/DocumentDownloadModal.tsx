@@ -170,7 +170,8 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
         const imageDocs: DocumentItem[] = [
             ...buildDocItems('Solar Panels Images', getDocField('solar_panels_images_url'), 'Images', 'image'),
             ...buildDocItems('Inverter Image', getDocField('inverter_image_url'), 'Images', 'image'),
-            ...buildDocItems('Logger Image', getDocField('logger_image_url'), 'Images', 'image'),
+            ...buildDocItems('Applicant with Panel Image', getDocField('applicant_with_panel_image_url'), 'Images', 'image'),
+            ...buildDocItems('Applicant with Invertor Image', getDocField('applicant_with_invertor_image_url'), 'Images', 'image'),
         ];
         categories.push({
             name: 'Installation Site & Equipment',

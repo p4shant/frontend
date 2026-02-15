@@ -1448,7 +1448,7 @@ export default function RegisterCustomerForm({
                                     type="button"
                                     onClick={() => setForm(f => ({ ...f, special_finance_required: 'Yes' }))}
                                     className={`py-2.5 px-4 rounded-lg font-medium text-sm transition-all ${form.special_finance_required === 'Yes'
-                                        ? 'bg-blue-600 text-white shadow-md'
+                                        ? 'bg-blue text-white shadow-md'
                                         : 'bg-slate-100 text-slate-600 border border-slate-300 hover:bg-slate-200'
                                         }`}
                                 >
