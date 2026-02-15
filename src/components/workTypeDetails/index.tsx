@@ -615,8 +615,6 @@ export const RegistrationComplete: React.FC<WorkTypeDetailsProps> = ({ task: _ta
 
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [message, setMessage] = React.useState('');
-    const [previewUrl, setPreviewUrl] = React.useState<string>('');
-    const [previewTitle, setPreviewTitle] = React.useState<string>('');
 
     const existingApplicationFormUrl = getAdditionalDocUrl(customer, 'application_form');
     const existingFeasibilityFormUrl = getAdditionalDocUrl(customer, 'feasibility_form');
@@ -671,16 +669,6 @@ export const RegistrationComplete: React.FC<WorkTypeDetailsProps> = ({ task: _ta
         } finally {
             setIsSubmitting(false);
         }
-    };
-
-    const handlePreview = (url: string, title: string) => {
-        setPreviewUrl(getFullFileUrl(url));
-        setPreviewTitle(title);
-    };
-
-    const closePreview = () => {
-        setPreviewUrl('');
-        setPreviewTitle('');
     };
 
     const handleDownload = async (url: string, filename: string) => {
@@ -954,59 +942,6 @@ export const RegistrationComplete: React.FC<WorkTypeDetailsProps> = ({ task: _ta
                     </button>
                 </div>
             </div>
-
-            {/* Preview Modal */}
-            {previewUrl && (
-                <div
-                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
-                    onClick={closePreview}
-                >
-                    <div
-                        className="relative bg-white rounded-xl shadow-2xl max-w-4xl max-h-[90vh] overflow-hidden"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* Modal Header */}
-                        <div className="bg-blue-500 px-4 py-3 flex items-center justify-between">
-                            <h3 className="text-white font-semibold text-sm">{previewTitle}</h3>
-                            <button
-                                onClick={closePreview}
-                                className="p-1 hover:bg-white/20 rounded-lg transition-colors text-white"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        {/* Modal Content */}
-                        <div className="p-4 max-h-[80vh] overflow-auto">
-                            {getFileType(previewUrl) === 'image' ? (
-                                <img
-                                    src={previewUrl}
-                                    alt={previewTitle}
-                                    className="max-w-full h-auto rounded-lg"
-                                />
-                            ) : getFileType(previewUrl) === 'pdf' ? (
-                                <iframe
-                                    src={previewUrl}
-                                    className="w-full h-[70vh] rounded-lg"
-                                    title={previewTitle}
-                                />
-                            ) : (
-                                <div className="text-center py-8">
-                                    <p className="text-muted mb-4">Cannot preview this file type</p>
-                                    <a
-                                        href={previewUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                                    >
-                                        Open in New Tab
-                                    </a>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
