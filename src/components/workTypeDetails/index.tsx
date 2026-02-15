@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, Edit2, X, Upload } from 'lucide-react';
+import { AlertCircle, Edit2, X, Upload, Check } from 'lucide-react';
 import RegisterCustomerForm from '../register/RegisterCustomerForm';
 import { transactionLogsAPI, additionalDocumentsAPI } from '../../services/api';
 
@@ -69,7 +69,7 @@ export const CustomerDataGathering: React.FC<WorkTypeDetailsProps> = ({ task, cu
                 <div className="fixed inset-0 bg-text/40 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 overflow-y-auto">
                     <div className="bg-panel rounded-xl shadow-2xl w-full max-w-2xl my-8">
                         {/* Modal Header */}
-                        <div className="bg-gradient-to-r from-indigo to-indigo/80 border-b border-indigo/20 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+                        <div className="bg-blue px-6 py-4 flex items-center justify-between sticky top-0 z-10">
                             <h2 className="text-xl font-bold text-white">Edit Application Details</h2>
                             <button
                                 onClick={handleCloseForm}
@@ -1334,8 +1334,8 @@ export const NameCorrectionRequest: React.FC<WorkTypeDetailsProps> = ({ task: _t
     );
 };
 
-// CreateHardCopyindentCreationTask
-export const createHardCopyindentCreationTask: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
+// Hard Copy Indent Creation Task
+export const CreateHardCopyIndentCreation: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
     const existingIndentUrl = getAdditionalDocUrl(customer, 'indent_document');
     const [indentDocumentFile, setIndentDocumentFile] = React.useState<File | null>(null);
     const [indentDocumentPreview, setIndentDocumentPreview] = React.useState<string>('');
@@ -1652,7 +1652,7 @@ export const BillGeneration: React.FC<WorkTypeDetailsProps> = ({ task: _task, cu
                 <button
                     onClick={handleSubmit}
                     disabled={isSubmitting || !paybillDocumentFile}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-lime-600 text-white rounded-lg font-semibold hover:bg-lime-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-lime text-white rounded-lg font-semibold hover:bg-lime-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center"
                 >
                     <Upload size={16} />
                     {isSubmitting ? 'Uploading...' : 'Submit Bill Document'}
@@ -1662,6 +1662,7 @@ export const BillGeneration: React.FC<WorkTypeDetailsProps> = ({ task: _task, cu
     );
 };
 
+// Payment Approval 
 export const PaymentApproval: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
     const [previewUrl, setPreviewUrl] = React.useState<string>('');
     const [previewTitle, setPreviewTitle] = React.useState<string>('');
@@ -2047,7 +2048,7 @@ export const WarrantyDocument: React.FC<WorkTypeDetailsProps> = ({ task: _task, 
                 <button
                     onClick={handleSubmit}
                     disabled={isSubmitting || !warrantyFile}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-purple text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center"
                 >
                     <Upload size={16} />
                     {isSubmitting ? 'Uploading...' : 'Submit Warranty Document'}
@@ -2248,7 +2249,7 @@ export const CDRCreation: React.FC<WorkTypeDetailsProps> = ({ task: _task, custo
                 <button
                     onClick={handleSubmit}
                     disabled={isSubmitting || !dcrFile}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-purple text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center"
                 >
                     <Upload size={16} />
                     {isSubmitting ? 'Uploading...' : 'Submit DCR Document'}
@@ -2291,6 +2292,839 @@ export const CDRCreation: React.FC<WorkTypeDetailsProps> = ({ task: _task, custo
                                     </a>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+
+// Photo Capture Component for take_installed_item_photos work type
+export const PhotoCapture: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
+    // ============================================
+    // STATE MANAGEMENT - Image Upload State
+    // ============================================
+
+    // Solar Panel Images (Multiple)
+    const [solarPanelImages, setSolarPanelImages] = React.useState<Array<{ file: File; preview: string; isSubmitted: boolean }>>([]);
+    const [solarPanelIsSubmitting, setSolarPanelIsSubmitting] = React.useState(false);
+
+    // Applicant with Panel Image (Single)
+    const [applicantPanelImage, setApplicantPanelImage] = React.useState<File | null>(null);
+    const [applicantPanelPreview, setApplicantPanelPreview] = React.useState<string>('');
+    const [applicantPanelIsSubmitted, setApplicantPanelIsSubmitted] = React.useState(false);
+    const [applicantPanelIsSubmitting, setApplicantPanelIsSubmitting] = React.useState(false);
+
+    // Invertor Image (Single)
+    const [invertorImage, setInvertorImage] = React.useState<File | null>(null);
+    const [invertorPreview, setInvertorPreview] = React.useState<string>('');
+    const [invertorIsSubmitted, setInvertorIsSubmitted] = React.useState(false);
+    const [invertorIsSubmitting, setInvertorIsSubmitting] = React.useState(false);
+
+    // Applicant with Invertor Image (Single)
+    const [applicantInvertorImage, setApplicantInvertorImage] = React.useState<File | null>(null);
+    const [applicantInvertorPreview, setApplicantInvertorPreview] = React.useState<string>('');
+    const [applicantInvertorIsSubmitted, setApplicantInvertorIsSubmitted] = React.useState(false);
+    const [applicantInvertorIsSubmitting, setApplicantInvertorIsSubmitting] = React.useState(false);
+
+    // UI Messages
+    const [message, setMessage] = React.useState('');
+    const [messageType, setMessageType] = React.useState<'success' | 'error'>('success');
+
+    // ============================================
+    // UTILITY FUNCTIONS
+    // ============================================
+
+    /**
+     * Show message to user
+     */
+    const showMessage = (msg: string, type: 'success' | 'error' = 'success') => {
+        setMessage(msg);
+        setMessageType(type);
+        setTimeout(() => setMessage(''), 4000);
+    };
+
+    /**
+     * File to preview conversion
+     */
+    const fileToPreview = (file: File): Promise<string> => {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+        });
+    };
+
+    /**
+     * Upload file to API
+     */
+    const uploadImageToAPI = async (
+        imageFile: File,
+        endpoint: string,
+        fieldName: string
+    ): Promise<boolean> => {
+        try {
+            const token = localStorage.getItem('auth_token') || '';
+            if (!token) {
+                showMessage('Authentication required. Please login again.', 'error');
+                return false;
+            }
+
+            const formData = new FormData();
+            formData.append(fieldName, imageFile);
+
+            const response = await fetch(
+                `${API_BASE}/additional-documents/${customer?.id}/${endpoint}`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: formData,
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`Failed to upload image: ${response.statusText}`);
+            }
+
+            return true;
+        } catch (error: any) {
+            showMessage(error.message || 'Upload failed', 'error');
+            return false;
+        }
+    };
+
+    // ============================================
+    // LOAD EXISTING IMAGES
+    // ============================================
+
+    React.useEffect(() => {
+        const solarPanelsUrl = getAdditionalDocUrl(customer, 'solar_panels_images_url');
+        const applicantPanelUrl = getAdditionalDocUrl(customer, 'applicant_with_panel_image_url');
+        const invertorUrl = getAdditionalDocUrl(customer, 'inverter_image_url');
+        const applicantInvertorUrl = getAdditionalDocUrl(customer, 'applicant_with_invertor_image_url');
+
+        // Load Solar Panel Images (array)
+        if (solarPanelsUrl) {
+            try {
+                const urls = JSON.parse(solarPanelsUrl);
+                if (Array.isArray(urls)) {
+                    setSolarPanelImages(urls.map((url: string) => ({
+                        file: new File([], url),
+                        preview: url,
+                        isSubmitted: true,
+                    })));
+                }
+            } catch {
+                if (solarPanelsUrl) {
+                    setSolarPanelImages([{
+                        file: new File([], solarPanelsUrl),
+                        preview: solarPanelsUrl,
+                        isSubmitted: true,
+                    }]);
+                }
+            }
+        }
+
+        // Load Applicant with Panel Image
+        if (applicantPanelUrl) {
+            setApplicantPanelPreview(applicantPanelUrl);
+            setApplicantPanelIsSubmitted(true);
+        }
+
+        // Load Invertor Image
+        if (invertorUrl) {
+            setInvertorPreview(invertorUrl);
+            setInvertorIsSubmitted(true);
+        }
+
+        // Load Applicant with Invertor Image
+        if (applicantInvertorUrl) {
+            setApplicantInvertorPreview(applicantInvertorUrl);
+            setApplicantInvertorIsSubmitted(true);
+        }
+    }, [customer]);
+
+    // ============================================
+    // HANDLE FILE SELECTION - Solar Panels (Multiple)
+    // ============================================
+
+    const handleSolarPanelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files) return;
+
+        Array.from(files).forEach(async (file) => {
+            if (!file.type.startsWith('image/')) {
+                showMessage('Only image files are allowed', 'error');
+                return;
+            }
+
+            try {
+                const preview = await fileToPreview(file);
+                setSolarPanelImages((prev) => [
+                    ...prev,
+                    { file, preview, isSubmitted: false },
+                ]);
+            } catch (error) {
+                showMessage('Failed to process image', 'error');
+            }
+        });
+
+        e.target.value = '';
+    };
+
+    // ============================================
+    // HANDLE FILE SELECTION - Single Images
+    // ============================================
+
+    const handleSingleImageChange = async (
+        file: File | undefined,
+        setImage: (file: File) => void,
+        setPreview: (preview: string) => void
+    ) => {
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            showMessage('Only image files are allowed', 'error');
+            return;
+        }
+
+        try {
+            const preview = await fileToPreview(file);
+            setImage(file);
+            setPreview(preview);
+        } catch (error) {
+            showMessage('Failed to process image', 'error');
+        }
+    };
+
+    const handleApplicantPanelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        handleSingleImageChange(e.target.files?.[0], setApplicantPanelImage, setApplicantPanelPreview);
+        e.target.value = '';
+    };
+
+    const handleInvertorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        handleSingleImageChange(e.target.files?.[0], setInvertorImage, setInvertorPreview);
+        e.target.value = '';
+    };
+
+    const handleApplicantInvertorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        handleSingleImageChange(e.target.files?.[0], setApplicantInvertorImage, setApplicantInvertorPreview);
+        e.target.value = '';
+    };
+
+    // ============================================
+    // HANDLE FILE REMOVAL
+    // ============================================
+
+    const removeSolarPanelImage = (index: number) => {
+        setSolarPanelImages((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const removeSingleImage = (
+        setImage: (file: null) => void,
+        setPreview: (preview: string) => void,
+        setIsSubmitted: (submitted: boolean) => void
+    ) => {
+        setImage(null);
+        setPreview('');
+        setIsSubmitted(false);
+    };
+
+    // ============================================
+    // HANDLE SUBMISSIONS - Individual
+    // ============================================
+
+    const submitSolarPanelImages = async () => {
+        const newImages = solarPanelImages.filter((img) => !img.isSubmitted);
+
+        if (newImages.length === 0) {
+            showMessage('No new images to upload', 'error');
+            return;
+        }
+
+        setSolarPanelIsSubmitting(true);
+
+        try {
+            const allSuccess = await Promise.all(
+                newImages.map((img) =>
+                    uploadImageToAPI(img.file, 'upload-solar-panels', 'solar_panels_images')
+                )
+            );
+
+            if (allSuccess.every((success) => success)) {
+                setSolarPanelImages((prev) =>
+                    prev.map((img) => ({ ...img, isSubmitted: true }))
+                );
+                showMessage('✓ Solar panel images uploaded successfully', 'success');
+            }
+        } finally {
+            setSolarPanelIsSubmitting(false);
+        }
+    };
+
+    const submitApplicantPanelImage = async () => {
+        if (!applicantPanelImage) {
+            showMessage('Please select an image first', 'error');
+            return;
+        }
+
+        setApplicantPanelIsSubmitting(true);
+
+        try {
+            const success = await uploadImageToAPI(
+                applicantPanelImage,
+                'upload-applicant-panel',
+                'applicant_with_panel_image'
+            );
+
+            if (success) {
+                setApplicantPanelIsSubmitted(true);
+                showMessage('✓ Applicant with panel image uploaded successfully', 'success');
+            }
+        } finally {
+            setApplicantPanelIsSubmitting(false);
+        }
+    };
+
+    const submitInvertorImage = async () => {
+        if (!invertorImage) {
+            showMessage('Please select an image first', 'error');
+            return;
+        }
+
+        setInvertorIsSubmitting(true);
+
+        try {
+            const success = await uploadImageToAPI(
+                invertorImage,
+                'upload-invertor',
+                'invertor_image'
+            );
+
+            if (success) {
+                setInvertorIsSubmitted(true);
+                showMessage('✓ Invertor image uploaded successfully', 'success');
+            }
+        } finally {
+            setInvertorIsSubmitting(false);
+        }
+    };
+
+    const submitApplicantInvertorImage = async () => {
+        if (!applicantInvertorImage) {
+            showMessage('Please select an image first', 'error');
+            return;
+        }
+
+        setApplicantInvertorIsSubmitting(true);
+
+        try {
+            const success = await uploadImageToAPI(
+                applicantInvertorImage,
+                'upload-applicant-invertor',
+                'applicant_with_invertor_image'
+            );
+
+            if (success) {
+                setApplicantInvertorIsSubmitted(true);
+                showMessage('✓ Applicant with invertor image uploaded successfully', 'success');
+            }
+        } finally {
+            setApplicantInvertorIsSubmitting(false);
+        }
+    };
+
+    // ============================================
+    // RENDER INDIVIDUAL IMAGE CARD
+    // ============================================
+
+    const ImageCard = ({
+        title,
+        preview,
+        isSubmitted,
+        isSubmitting,
+        onFileChange,
+        onRemove,
+        onSubmit,
+        isSingleImage = true,
+        imageCount = 1,
+    }: {
+        title: string;
+        preview: string;
+        isSubmitted: boolean;
+        isSubmitting: boolean;
+        onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+        onRemove?: () => void;
+        onSubmit: () => void;
+        isSingleImage?: boolean;
+        imageCount?: number;
+    }) => {
+        return (
+            <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h3 className="font-semibold text-gray-800">{title}</h3>
+                        {!isSingleImage && (
+                            <p className="text-xs text-gray-500 mt-1">{imageCount} image(s) selected</p>
+                        )}
+                    </div>
+                    {isSubmitted && (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold border border-green-300">
+                            <Check size={16} />
+                            Uploaded
+                        </span>
+                    )}
+                </div>
+
+                {/* Image Preview */}
+                {preview && (
+                    <div className="relative group rounded-lg overflow-hidden bg-gray-100 h-40">
+                        <img
+                            src={preview}
+                            alt={title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition flex items-center justify-center">
+                            <span className="text-white opacity-0 group-hover:opacity-100 text-xs font-semibold transition">
+                                {imageCount} image{imageCount !== 1 ? 's' : ''}
+                            </span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Upload Area */}
+                {!isSubmitted && (
+                    <label className="cursor-pointer block">
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={onFileChange}
+                            multiple={!isSingleImage}
+                            disabled={isSubmitting}
+                            className="hidden"
+                        />
+                        <div className="border-2 border-dashed border-blue-300 rounded-lg p-4 text-center hover:bg-blue-50 hover:border-blue-400 transition-all">
+                            <Upload size={24} className="mx-auto text-blue-500 mb-2" />
+                            <p className="text-sm text-blue-600 font-medium">
+                                {isSingleImage ? 'Click to select image' : 'Click to add images'}
+                            </p>
+                            <p className="text-xs text-blue-500 mt-1">Supported: JPG, PNG, GIF, WebP</p>
+                        </div>
+                    </label>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                    {!isSubmitted && preview && onRemove && (
+                        <button
+                            onClick={onRemove}
+                            disabled={isSubmitting}
+                            className="flex-1 px-3 py-2 text-xs bg-red-100 text-red-700 border border-red-300 rounded-lg hover:bg-red-200 font-semibold transition disabled:opacity-50"
+                        >
+                            Clear
+                        </button>
+                    )}
+                    {!isSubmitted && preview && (
+                        <button
+                            onClick={onSubmit}
+                            disabled={isSubmitting}
+                            className="flex-1 px-3 py-2 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                            {isSubmitting ? 'Uploading...' : 'Upload'}
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    // ============================================
+    // RENDER
+    // ============================================
+
+    const allImagesSubmitted =
+        solarPanelImages.length > 0 &&
+        solarPanelImages.every((img) => img.isSubmitted) &&
+        applicantPanelIsSubmitted &&
+        invertorIsSubmitted &&
+        applicantInvertorIsSubmitted;
+
+    return (
+        <div className="max-h-[700px] overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 space-y-4">
+            {/* Header */}
+            <div className="bg-white rounded-lg p-4 border border-blue-200 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-lg font-bold text-blue-900">Photo Capture Progress</h2>
+                    {allImagesSubmitted && (
+                        <span className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold border border-green-300">
+                            <Check size={16} />
+                            Complete
+                        </span>
+                    )}
+                </div>
+                <p className="text-xs text-gray-600">Upload photos for each equipment category individually</p>
+            </div>
+
+            {/* Messages */}
+            {message && (
+                <div
+                    className={`p-4 rounded-lg text-sm font-medium border-l-4 ${messageType === 'success'
+                        ? 'bg-green-50 text-green-700 border-green-400'
+                        : 'bg-red-50 text-red-700 border-red-400'
+                        }`}
+                >
+                    {message}
+                </div>
+            )}
+
+            {/* Image Upload Cards */}
+            <div className="space-y-3">
+                {/* 1. Solar Panel Images */}
+                <ImageCard
+                    title="1. Solar Panel Images"
+                    preview={solarPanelImages[0]?.preview || ''}
+                    isSubmitted={solarPanelImages.length > 0 && solarPanelImages.every((img) => img.isSubmitted)}
+                    isSubmitting={solarPanelIsSubmitting}
+                    onFileChange={handleSolarPanelChange}
+                    onRemove={() => solarPanelImages.length > 0 && removeSolarPanelImage(0)}
+                    onSubmit={submitSolarPanelImages}
+                    isSingleImage={false}
+                    imageCount={solarPanelImages.length}
+                />
+
+                {/* 2. Applicant with Panel Image */}
+                <ImageCard
+                    title="2. Applicant with Solar Panel Image"
+                    preview={applicantPanelPreview}
+                    isSubmitted={applicantPanelIsSubmitted}
+                    isSubmitting={applicantPanelIsSubmitting}
+                    onFileChange={handleApplicantPanelChange}
+                    onRemove={() => removeSingleImage(setApplicantPanelImage, setApplicantPanelPreview, setApplicantPanelIsSubmitted)}
+                    onSubmit={submitApplicantPanelImage}
+                    isSingleImage={true}
+                />
+
+                {/* 3. Invertor Image */}
+                <ImageCard
+                    title="3. Invertor Image"
+                    preview={invertorPreview}
+                    isSubmitted={invertorIsSubmitted}
+                    isSubmitting={invertorIsSubmitting}
+                    onFileChange={handleInvertorChange}
+                    onRemove={() => removeSingleImage(setInvertorImage, setInvertorPreview, setInvertorIsSubmitted)}
+                    onSubmit={submitInvertorImage}
+                    isSingleImage={true}
+                />
+
+                {/* 4. Applicant with Invertor Image */}
+                <ImageCard
+                    title="4. Applicant with Invertor Image"
+                    preview={applicantInvertorPreview}
+                    isSubmitted={applicantInvertorIsSubmitted}
+                    isSubmitting={applicantInvertorIsSubmitting}
+                    onFileChange={handleApplicantInvertorChange}
+                    onRemove={() => removeSingleImage(setApplicantInvertorImage, setApplicantInvertorPreview, setApplicantInvertorIsSubmitted)}
+                    onSubmit={submitApplicantInvertorImage}
+                    isSingleImage={true}
+                />
+            </div>
+
+            {/* Completion Message */}
+            {allImagesSubmitted && (
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-300 rounded-lg p-4 text-center">
+                    <p className="text-green-700 font-semibold flex items-center justify-center gap-2">
+                        <Check size={20} className="text-green-600" />
+                        All images uploaded successfully! Task complete.
+                    </p>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// Serial Number Upload Component - View and Download Installed Item Images
+export const SerialNumberUpload: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
+    const [previewUrl, setPreviewUrl] = React.useState<string>('');
+    const [previewTitle, setPreviewTitle] = React.useState<string>('');
+
+    // Get existing image URLs
+    const solarPanelsImagesUrl = getAdditionalDocUrl(customer, 'solar_panels_images_url');
+    const invertorImageUrl = getAdditionalDocUrl(customer, 'inverter_image_url');
+    const applicantWithPanelImageUrl = getAdditionalDocUrl(customer, 'applicant_with_panel_image_url');
+    const applicantWithInvertorImageUrl = getAdditionalDocUrl(customer, 'applicant_with_invertor_image_url');
+
+    // Parse solar panel images array
+    const solarPanelsImages = React.useMemo(() => {
+        try {
+            if (solarPanelsImagesUrl) {
+                const parsed = JSON.parse(solarPanelsImagesUrl);
+                return Array.isArray(parsed) ? parsed : [];
+            }
+            return [];
+        } catch {
+            return [];
+        }
+    }, [solarPanelsImagesUrl]);
+
+    const handlePreview = (url: string, title: string) => {
+        setPreviewUrl(url);
+        setPreviewTitle(title);
+    };
+
+    const closePreview = () => {
+        setPreviewUrl('');
+        setPreviewTitle('');
+    };
+
+    const handleDownload = (url: string, fileName: string) => {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName || 'image';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const getFileType = (url: string) => {
+        if (!url) return 'unknown';
+        const ext = url.split('.').pop()?.toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext || '')) return 'image';
+        if (ext === 'pdf') return 'pdf';
+        return 'document';
+    };
+
+    const getFileNameFromUrl = (url: string) => {
+        return url.split('/').pop() || 'image';
+    };
+
+    return (
+        <div className="max-h-[700px] overflow-y-auto bg-gradient-to-br from-cyan-50 to-blue-50 border border-cyan-200 rounded-xl p-4 space-y-4">
+            <div className="bg-white rounded-lg p-4 border border-cyan-200 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-bold text-cyan-900">Installed Item Images</h2>
+                    <span className="inline-flex items-center gap-2 px-3 py-1 bg-cyan-100 text-cyan-700 rounded-full text-sm font-semibold border border-cyan-300">
+                        <Check size={16} />
+                        Ready to View
+                    </span>
+                </div>
+                <p className="text-sm text-gray-600">View and download all uploaded equipment images for serial number verification</p>
+            </div>
+
+            {/* Solar Panel Images */}
+            {solarPanelsImages.length > 0 && (
+                <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-gray-700">1. Solar Panel Images ({solarPanelsImages.length})</h3>
+                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">✓ Submitted</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {solarPanelsImages.map((imageUrl: string, idx: number) => (
+                            <div key={idx} className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+                                <div className="relative group overflow-hidden rounded-lg bg-gray-100 h-32">
+                                    <img
+                                        src={imageUrl}
+                                        alt={`Solar Panel ${idx + 1}`}
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform cursor-pointer"
+                                        onClick={() => handlePreview(imageUrl, `Solar Panel Image ${idx + 1}`)}
+                                    />
+                                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                        <span className="text-white text-xs font-semibold">Click to Preview</span>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => handlePreview(imageUrl, `Solar Panel Image ${idx + 1}`)}
+                                        className="flex-1 px-2 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-semibold"
+                                    >
+                                        Preview
+                                    </button>
+                                    <button
+                                        onClick={() => handleDownload(imageUrl, `solar_panel_${idx + 1}_${getFileNameFromUrl(imageUrl)}`)}
+                                        className="flex-1 px-2 py-1.5 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-semibold"
+                                    >
+                                        Download
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Invertor Image */}
+            {invertorImageUrl && (
+                <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-gray-700">2. Invertor Image</h3>
+                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">✓ Submitted</span>
+                    </div>
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+                        <div className="relative group overflow-hidden rounded-lg bg-gray-100 h-40">
+                            <img
+                                src={invertorImageUrl}
+                                alt="Invertor Image"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform cursor-pointer"
+                                onClick={() => handlePreview(invertorImageUrl, 'Invertor Image')}
+                            />
+                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                <span className="text-white text-xs font-semibold">Click to Preview</span>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => handlePreview(invertorImageUrl, 'Invertor Image')}
+                                className="flex-1 px-3 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-semibold"
+                            >
+                                Preview
+                            </button>
+                            <button
+                                onClick={() => handleDownload(invertorImageUrl, `invertor_image_${getFileNameFromUrl(invertorImageUrl)}`)}
+                                className="flex-1 px-3 py-2 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-semibold"
+                            >
+                                Download
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Applicant with Panel Image */}
+            {applicantWithPanelImageUrl && (
+                <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-gray-700">3. Applicant with Solar Panel Image</h3>
+                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">✓ Submitted</span>
+                    </div>
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+                        <div className="relative group overflow-hidden rounded-lg bg-gray-100 h-40">
+                            <img
+                                src={applicantWithPanelImageUrl}
+                                alt="Applicant with Panel"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform cursor-pointer"
+                                onClick={() => handlePreview(applicantWithPanelImageUrl, 'Applicant with Solar Panel Image')}
+                            />
+                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                <span className="text-white text-xs font-semibold">Click to Preview</span>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => handlePreview(applicantWithPanelImageUrl, 'Applicant with Solar Panel Image')}
+                                className="flex-1 px-3 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-semibold"
+                            >
+                                Preview
+                            </button>
+                            <button
+                                onClick={() => handleDownload(applicantWithPanelImageUrl, `applicant_with_panel_${getFileNameFromUrl(applicantWithPanelImageUrl)}`)}
+                                className="flex-1 px-3 py-2 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-semibold"
+                            >
+                                Download
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Applicant with Invertor Image */}
+            {applicantWithInvertorImageUrl && (
+                <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-gray-700">4. Applicant with Invertor Image</h3>
+                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">✓ Submitted</span>
+                    </div>
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+                        <div className="relative group overflow-hidden rounded-lg bg-gray-100 h-40">
+                            <img
+                                src={applicantWithInvertorImageUrl}
+                                alt="Applicant with Invertor"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform cursor-pointer"
+                                onClick={() => handlePreview(applicantWithInvertorImageUrl, 'Applicant with Invertor Image')}
+                            />
+                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                <span className="text-white text-xs font-semibold">Click to Preview</span>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => handlePreview(applicantWithInvertorImageUrl, 'Applicant with Invertor Image')}
+                                className="flex-1 px-3 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-semibold"
+                            >
+                                Preview
+                            </button>
+                            <button
+                                onClick={() => handleDownload(applicantWithInvertorImageUrl, `applicant_with_invertor_${getFileNameFromUrl(applicantWithInvertorImageUrl)}`)}
+                                className="flex-1 px-3 py-2 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-semibold"
+                            >
+                                Download
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* No Images Message */}
+            {!solarPanelsImages.length && !invertorImageUrl && !applicantWithPanelImageUrl && !applicantWithInvertorImageUrl && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                    <p className="text-yellow-700 font-semibold">No images uploaded yet. Please wait for the upload process to complete.</p>
+                </div>
+            )}
+
+            {/* Preview Modal */}
+            {previewUrl && (
+                <div
+                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+                    onClick={closePreview}
+                >
+                    <div
+                        className="relative bg-white rounded-xl shadow-2xl max-w-4xl max-h-[90vh] overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-3 flex items-center justify-between">
+                            <h3 className="text-white font-semibold text-sm">{previewTitle}</h3>
+                            <button
+                                onClick={closePreview}
+                                className="p-1 hover:bg-white/20 rounded-lg transition-colors text-white"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="p-4 max-h-[80vh] overflow-auto flex items-center justify-center bg-gray-100">
+                            {getFileType(previewUrl) === 'image' ? (
+                                <img
+                                    src={previewUrl}
+                                    alt={previewTitle}
+                                    className="max-w-full h-auto rounded-lg shadow-lg"
+                                />
+                            ) : (
+                                <div className="text-center py-8">
+                                    <p className="text-gray-600 mb-4">Cannot preview this file type</p>
+                                    <button
+                                        onClick={() => handleDownload(previewUrl, getFileNameFromUrl(previewUrl))}
+                                        className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                    >
+                                        Download
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-200">
+                            <p className="text-xs text-gray-600">{getFileNameFromUrl(previewUrl)}</p>
+                            <button
+                                onClick={() => handleDownload(previewUrl, getFileNameFromUrl(previewUrl))}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold"
+                            >
+                                Download Image
+                            </button>
                         </div>
                     </div>
                 </div>
