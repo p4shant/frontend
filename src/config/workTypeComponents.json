@@ -114,6 +114,11 @@
             "component": "CDRCreation",
             "label": "CDR Creation",
             "icon": "FileText"
+        },
+        "approval_of_plant_installation": {
+            "component": "PlantInstallationApproval",
+            "label": "Plant Installation Approval",
+            "icon": "CheckCircle"
         }
     }
 }

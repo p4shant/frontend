@@ -1160,6 +1160,30 @@ export const PlantInstallation: React.FC<WorkTypeDetailsProps> = ({ task: _task,
                 </div>
             </div>
 
+            {/* Building/Structure Details */}
+            <div className="bg-white rounded-xl p-3 sm:p-4 border border-purple-100 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                        <span className="text-purple-600 font-bold text-xs sm:text-sm">🏢</span>
+                    </div>
+                    <p className="text-[10px] sm:text-xs font-bold text-purple-900 uppercase tracking-wide">Building/Structure Details</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 text-sm">
+                    <div className="bg-purple-50 rounded-lg p-2 sm:p-2.5">
+                        <p className="text-[10px] sm:text-xs text-purple-600 font-semibold mb-1">Floor Number</p>
+                        <p className="font-semibold text-gray-800 text-xs sm:text-sm">{customer?.building_floor_number || '-'}</p>
+                    </div>
+                    <div className="bg-purple-50 rounded-lg p-2 sm:p-2.5">
+                        <p className="text-[10px] sm:text-xs text-purple-600 font-semibold mb-1">Structure Type</p>
+                        <p className="font-semibold text-gray-800 text-xs sm:text-sm">{customer?.structure_type || '-'}</p>
+                    </div>
+                    <div className="bg-purple-50 rounded-lg p-2 sm:p-2.5">
+                        <p className="text-[10px] sm:text-xs text-purple-600 font-semibold mb-1">Free Shadow Area</p>
+                        <p className="font-semibold text-gray-800 text-xs sm:text-sm">{customer?.free_shadow_area || '-'}</p>
+                    </div>
+                </div>
+            </div>
+
             {/* Installation Form */}
             {!isFormOpen ? (
                 <button
@@ -2968,13 +2992,36 @@ export const SerialNumberUpload: React.FC<WorkTypeDetailsProps> = ({ task: _task
         setPreviewTitle('');
     };
 
-    const handleDownload = (url: string, fileName: string) => {
-        const link = document.createElement('a');
-        link.href = getFullFileUrl(url);
-        link.download = fileName || 'image';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const handleDownload = async (url: string, fileName: string) => {
+        try {
+            const fullUrl = getFullFileUrl(url);
+            const safeName = fileName || 'image';
+            const downloadUrl = `${API_BASE}/download?url=${encodeURIComponent(fullUrl)}&name=${encodeURIComponent(safeName)}`;
+            const token = localStorage.getItem('auth_token') || '';
+
+            const response = await fetch(downloadUrl, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to download file: ${response.status}`);
+            }
+
+            const blob = await response.blob();
+            const objectUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = safeName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(objectUrl);
+        } catch (error) {
+            console.error('Download failed:', error);
+            window.open(getFullFileUrl(url), '_blank');
+        }
     };
 
     const getFileType = (url: string) => {
@@ -3216,6 +3263,30 @@ export const SerialNumberUpload: React.FC<WorkTypeDetailsProps> = ({ task: _task
                     </div>
                 </div>
             )}
+        </div>
+    );
+};
+
+
+export const PlantInstallationApproval: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
+    return (
+        <div className="flex items-start gap-3 bg-teal/5 border border-teal/20 rounded-lg p-3">
+            <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-muted uppercase mb-2">Plant Installation Details</p>
+                <div className="space-y-2 text-sm">
+                    <p><span className="font-semibold">Solar Plant Type:</span> {customer?.solar_plant_type || '-'}</p>
+                    <p><span className="font-semibold">Solar System Type:</span> {customer?.solar_system_type || '-'}</p>
+                    <p><span className="font-semibold">Plant Size (kW):</span> {customer?.plant_size_kw || '-'}</p>
+                    <p><span className="font-semibold">Plant Price:</span> {customer?.plant_price || '-'}</p>
+                    <p><span className="font-semibold">Payment Mode:</span> {customer?.payment_mode || '-'}</p>
+                </div>
+                <p className="text-xs font-semibold text-muted uppercase mb-2 mt-4">Building/Structure Details</p>
+                <div className="space-y-2 text-sm">
+                    <p><span className="font-semibold">Building Floor Number:</span> {customer?.building_floor_number || '-'}</p>
+                    <p><span className="font-semibold">Structure Type:</span> {customer?.structure_type || '-'}</p>
+                    <p><span className="font-semibold">Free Shadow Area (sq.m):</span> {customer?.free_shadow_area || '-'}</p>
+                </div>
+            </div>
         </div>
     );
 };
