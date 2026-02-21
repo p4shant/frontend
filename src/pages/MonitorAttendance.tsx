@@ -110,7 +110,7 @@ function MonitorAttendance() {
                     })
                 } else {
                     // Fallback calculation
-                    const presentCount = records.filter(r => r.status === 'present' || r.status === 'late').length
+                    const presentCount = records.filter(r => r.status === 'present' || r.status === 'late' || r.status === 'forgot_to_punch_out').length
                     const lateCount = records.filter(r => r.status === 'late').length
                     const absentCount = records.filter(r => r.status === 'absent').length
                     const forgotCount = records.filter(r => r.status === 'forgot_to_punch_out').length
