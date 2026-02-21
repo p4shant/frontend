@@ -673,12 +673,22 @@ export const RegistrationComplete: React.FC<WorkTypeDetailsProps> = ({ task: _ta
 
     const handleDownload = async (url: string, filename: string) => {
         try {
-            const fullUrl = getFullFileUrl(url);
+            // Build the download URL — append ?download=true to force Content-Disposition: attachment from backend
+            let fullUrl = getFullFileUrl(url);
 
-            // Try to fetch the file
+            // Extract the /uploads/... path from the full URL to rebuild it via our own backend
+            const uploadsMatch = fullUrl.match(/\/uploads\/.+/);
+            if (uploadsMatch) {
+                // Route through our own backend origin with ?download=true to force attachment headers
+                const apiOrigin = import.meta.env.VITE_API_ORIGIN || 'http://localhost:3000';
+                const uploadPath = uploadsMatch[0].split('?')[0]; // clean path without query params
+                fullUrl = `${apiOrigin}${uploadPath}?download=true`;
+            }
+
+            console.log('Downloading from:', fullUrl);
+
             const response = await fetch(fullUrl, {
                 method: 'GET',
-                mode: 'cors',
                 cache: 'no-cache',
             });
 
@@ -686,39 +696,22 @@ export const RegistrationComplete: React.FC<WorkTypeDetailsProps> = ({ task: _ta
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            // Get the blob with the content type from the response
             const blob = await response.blob();
 
             // Ensure filename has an extension
             let finalFilename = filename;
-            if (!filename.includes('.')) {
-                const contentType = response.headers.get('content-type') || blob.type;
-                let extension = 'bin';
-
-                // Extract extension from content type
-                if (contentType.includes('image/jpeg') || contentType.includes('image/jpg')) {
-                    extension = 'jpg';
-                } else if (contentType.includes('image/png')) {
-                    extension = 'png';
-                } else if (contentType.includes('image/gif')) {
-                    extension = 'gif';
-                } else if (contentType.includes('image/webp')) {
-                    extension = 'webp';
-                } else if (contentType.includes('application/pdf')) {
-                    extension = 'pdf';
-                } else {
-                    const ext = contentType.split('/')[1]?.split(';')[0];
-                    if (ext) extension = ext;
+            if (!finalFilename.includes('.')) {
+                const urlPath = url.split('?')[0];
+                const urlExt = urlPath.split('.').pop()?.toLowerCase();
+                if (urlExt && urlExt.length <= 5) {
+                    finalFilename = `${filename}.${urlExt}`;
                 }
-
-                finalFilename = `${filename}.${extension}`;
             }
 
-            // Create a new blob with explicit MIME type to ensure proper handling
-            const properBlob = new Blob([blob], { type: blob.type || 'application/octet-stream' });
-            const blobUrl = window.URL.createObjectURL(properBlob);
+            // Force octet-stream MIME to guarantee download behavior
+            const downloadBlob = new Blob([blob], { type: 'application/octet-stream' });
+            const blobUrl = window.URL.createObjectURL(downloadBlob);
 
-            // Create temporary link and trigger download
             const link = document.createElement('a');
             link.href = blobUrl;
             link.download = finalFilename;
@@ -726,23 +719,15 @@ export const RegistrationComplete: React.FC<WorkTypeDetailsProps> = ({ task: _ta
             document.body.appendChild(link);
             link.click();
 
-            // Cleanup
             setTimeout(() => {
                 document.body.removeChild(link);
                 window.URL.revokeObjectURL(blobUrl);
-            }, 150);
+            }, 200);
         } catch (error) {
             console.error('Download failed:', error);
-            // Fallback: direct download via anchor tag
+            // Last resort fallback — open in new tab (at least user can right-click > Save As)
             const fullUrl = getFullFileUrl(url);
-            const link = document.createElement('a');
-            link.href = fullUrl;
-            link.download = filename;
-            link.target = '_blank';
-            link.rel = 'noopener noreferrer';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            window.open(fullUrl, '_blank');
         }
     };
 
@@ -2844,7 +2829,7 @@ export const PhotoCapture: React.FC<WorkTypeDetailsProps> = ({ task: _task, cust
                         <button
                             onClick={onSubmit}
                             disabled={isSubmitting}
-                            className="flex-1 px-3 py-2 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            className="flex-1 px-3 py-2 text-xs bg-blue text-white rounded-lg hover:bg-blue-700 font-semibold transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {isSubmitting ? 'Uploading...' : 'Upload'}
                         </button>
