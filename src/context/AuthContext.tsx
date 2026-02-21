@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { authAPI } from '../services/api';
+import { authAPI, employeesAPI } from '../services/api';
 
 export type Employee = {
     id: string;
@@ -63,6 +63,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // Persist to localStorage
             localStorage.setItem('auth_token', newToken);
             localStorage.setItem('auth_user', JSON.stringify(employee));
+
+            // Fetch and store employees list after successful login
+            try {
+                const employeesList = await employeesAPI.list(newToken);
+                if (employeesList?.data && Array.isArray(employeesList.data)) {
+                    // Extract only name, phone_number, and employee_role from each employee
+                    const simplifiedEmployees = employeesList.data.map((emp: any) => ({
+                        name: emp.name,
+                        phone_number: emp.phone_number,
+                        employee_role: emp.employee_role,
+                    }));
+                    localStorage.setItem('employees_list', JSON.stringify(simplifiedEmployees));
+                }
+            } catch (empErr) {
+                console.error('Error fetching employees list:', empErr);
+                // Non-critical error, don't throw
+            }
         } catch (err) {
             const message = err instanceof Error ? err.message : 'An error occurred during login';
             setError(message);
@@ -78,6 +95,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setError(null);
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
+        localStorage.removeItem('employees_list');
     };
 
     const value: AuthContextType = {

@@ -38,6 +38,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
     const [activeTab, setActiveTab] = useState<'pending' | 'in-progress' | 'completed'>('pending');
     const [loading, setLoading] = useState(true);
     const [selectedWorkType, setSelectedWorkType] = useState<string>('all');
+    const [selectedCustomerName, setSelectedCustomerName] = useState<string>('all');
 
     // Fetch tasks on mount or when user changes
     useEffect(() => {
@@ -68,13 +69,23 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
         return Array.from(new Set(workTypes)).sort();
     }, [allTasks]);
 
+    // Get unique customer names from all tasks
+    const uniqueCustomerNames = React.useMemo(() => {
+        const names = allTasks.map(task => task.customerName).filter(Boolean) as string[];
+        return Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
+    }, [allTasks]);
+
     // Filter tasks by selected work type
     const filteredTasks = React.useMemo(() => {
-        if (selectedWorkType === 'all') {
-            return allTasks;
+        let result = allTasks;
+        if (selectedWorkType !== 'all') {
+            result = result.filter(task => task.work_type === selectedWorkType);
         }
-        return allTasks.filter(task => task.work_type === selectedWorkType);
-    }, [allTasks, selectedWorkType]);
+        if (selectedCustomerName !== 'all') {
+            result = result.filter(task => task.customerName === selectedCustomerName);
+        }
+        return result;
+    }, [allTasks, selectedWorkType, selectedCustomerName]);
 
     const getTasksByStatus = (status: Task['status']) => filteredTasks.filter(task => task.status === status);
 
@@ -171,8 +182,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
     // Desktop view - 3 columns (lg and up)
     const DesktopView = () => (
         <div className="hidden lg:flex lg:flex-col flex-1 overflow-hidden gap-3">
-            {/* Filter Dropdown */}
-            <div className="flex items-center gap-3 px-1">
+            {/* Filter Dropdowns */}
+            <div className="flex flex-wrap items-center gap-3 px-1">
                 <label htmlFor="work-type-filter" className="text-sm font-medium text-text-primary whitespace-nowrap">
                     Filter by Task:
                 </label>
@@ -192,6 +203,22 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
                         );
                     })}
                 </select>
+                <label htmlFor="customer-filter" className="text-sm font-medium text-text-primary whitespace-nowrap">
+                    Filter by Customer:
+                </label>
+                <select
+                    id="customer-filter"
+                    value={selectedCustomerName}
+                    onChange={(e) => setSelectedCustomerName(e.target.value)}
+                    className="flex-1 max-w-xs px-3 py-2 text-sm border border-border rounded-lg bg-panel text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                    <option value="all">All Customers ({uniqueCustomerNames.length})</option>
+                    {uniqueCustomerNames.map((name) => (
+                        <option key={name} value={name}>
+                            {name}
+                        </option>
+                    ))}
+                </select>
             </div>
 
             {/* Kanban Columns */}
@@ -208,6 +235,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
                         assignedRole: t.assignedRole,
                         status: t.status,
                         assignedOn: t.assignedOn,
+                        registeredCustomerId: (t as any).registered_customer_id ?? (t as any).registeredCustomerId,
+                        work_type: t.work_type,
                         taskNumber: index + 1,
                         onClick: () => handleTaskClick(t.id),
                     }))}
@@ -227,6 +256,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
                         assignedRole: t.assignedRole,
                         status: t.status,
                         assignedOn: t.assignedOn,
+                        registeredCustomerId: (t as any).registered_customer_id ?? (t as any).registeredCustomerId,
+                        work_type: t.work_type,
                         taskNumber: index + 1,
                         onClick: () => handleTaskClick(t.id),
                     }))}
@@ -246,6 +277,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
                         assignedRole: t.assignedRole,
                         status: t.status,
                         assignedOn: t.assignedOn,
+                        registeredCustomerId: (t as any).registered_customer_id ?? (t as any).registeredCustomerId,
+                        work_type: t.work_type,
                         taskNumber: index + 1,
                         onClick: () => handleTaskClick(t.id),
                     }))}
@@ -260,8 +293,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
     // Tablet view - 2 columns visible, 3rd scrollable (md to lg)
     const TabletView = () => (
         <div className="hidden md:flex lg:hidden flex-col flex-1 overflow-hidden gap-3">
-            {/* Filter Dropdown */}
-            <div className="flex items-center gap-3 px-1">
+            {/* Filter Dropdowns */}
+            <div className="flex flex-wrap items-center gap-3 px-1">
                 <label htmlFor="work-type-filter-tablet" className="text-sm font-medium text-text-primary whitespace-nowrap">
                     Filter:
                 </label>
@@ -281,6 +314,22 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
                         );
                     })}
                 </select>
+                <label htmlFor="customer-filter-tablet" className="text-sm font-medium text-text-primary whitespace-nowrap">
+                    Customer:
+                </label>
+                <select
+                    id="customer-filter-tablet"
+                    value={selectedCustomerName}
+                    onChange={(e) => setSelectedCustomerName(e.target.value)}
+                    className="flex-1 max-w-sm px-3 py-2 text-sm border border-border rounded-lg bg-panel text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                    <option value="all">All Customers ({uniqueCustomerNames.length})</option>
+                    {uniqueCustomerNames.map((name) => (
+                        <option key={name} value={name}>
+                            {name}
+                        </option>
+                    ))}
+                </select>
             </div>
 
             {/* Kanban Columns */}
@@ -298,6 +347,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
                             assignedRole: t.assignedRole,
                             status: t.status,
                             assignedOn: t.assignedOn,
+                            registeredCustomerId: (t as any).registered_customer_id ?? (t as any).registeredCustomerId,
+                            work_type: t.work_type,
                             taskNumber: index + 1,
                             onClick: () => handleTaskClick(t.id),
                         }))}
@@ -319,6 +370,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
                             assignedRole: t.assignedRole,
                             status: t.status,
                             assignedOn: t.assignedOn,
+                            registeredCustomerId: (t as any).registered_customer_id ?? (t as any).registeredCustomerId,
+                            work_type: t.work_type,
                             taskNumber: index + 1,
                             onClick: () => handleTaskClick(t.id),
                         }))}
@@ -340,6 +393,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
                             assignedRole: t.assignedRole,
                             status: t.status,
                             assignedOn: t.assignedOn,
+                            registeredCustomerId: (t as any).registered_customer_id ?? (t as any).registeredCustomerId,
+                            work_type: t.work_type,
                             taskNumber: index + 1,
                             onClick: () => handleTaskClick(t.id),
                         }))}
@@ -405,8 +460,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
 
         return (
             <div className="md:hidden flex flex-col w-full overflow-hidden flex-1">
-                {/* Filter Dropdown - Mobile */}
-                <div className="flex items-center gap-2 px-2 py-2 bg-transparent flex-shrink-0">
+                {/* Filter Dropdowns - Mobile */}
+                <div className="flex flex-col gap-2 px-2 py-2 bg-transparent flex-shrink-0">
                     <label htmlFor="work-type-filter-mobile" className="text-xs font-medium text-text-primary whitespace-nowrap">
                         Filter:
                     </label>
@@ -425,6 +480,22 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
                                 </option>
                             );
                         })}
+                    </select>
+                    <label htmlFor="customer-filter-mobile" className="text-xs font-medium text-text-primary whitespace-nowrap">
+                        Customer:
+                    </label>
+                    <select
+                        id="customer-filter-mobile"
+                        value={selectedCustomerName}
+                        onChange={(e) => setSelectedCustomerName(e.target.value)}
+                        className="flex-1 px-2 py-1.5 text-xs border border-border rounded-lg bg-panel text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                        <option value="all">All Customers ({uniqueCustomerNames.length})</option>
+                        {uniqueCustomerNames.map((name) => (
+                            <option key={name} value={name}>
+                                {name}
+                            </option>
+                        ))}
                     </select>
                 </div>
 
@@ -495,6 +566,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
                                 assignedRole: t.assignedRole,
                                 status: t.status,
                                 assignedOn: t.assignedOn,
+                                registeredCustomerId: (t as any).registered_customer_id ?? (t as any).registeredCustomerId,
+                                work_type: t.work_type,
                                 taskNumber: index + 1,
                                 onClick: () => handleTaskClick(t.id),
                             }))}
@@ -518,6 +591,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
                                 assignedRole: t.assignedRole,
                                 status: t.status,
                                 assignedOn: t.assignedOn,
+                                registeredCustomerId: (t as any).registered_customer_id ?? (t as any).registeredCustomerId,
+                                work_type: t.work_type,
                                 taskNumber: index + 1,
                                 onClick: () => handleTaskClick(t.id),
                             }))}
@@ -539,6 +614,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks: initialTasks = 
                                 workTitle: t.workTitle,
                                 work: t.work,
                                 assignedRole: t.assignedRole,
+                                registeredCustomerId: (t as any).registered_customer_id ?? (t as any).registeredCustomerId,
+                                work_type: t.work_type,
                                 status: t.status,
                                 assignedOn: t.assignedOn,
                                 taskNumber: index + 1,

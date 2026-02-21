@@ -9,6 +9,7 @@ import TrackApplication from './pages/TrackApplication';
 import MonitorAttendance from './pages/MonitorAttendance';
 import TrackPayment from './pages/TrackPayment';
 import AdminStats from './pages/AdminStats';
+import TaskApproval from './pages/TaskApproval';
 import Login from './pages/Login';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
@@ -95,6 +96,16 @@ function App() {
           <ProtectedRoute requiredRoles={['Master Admin']}>
             <AppLayout>
               <AdminStats />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/task-approval"
+        element={
+          <ProtectedRoute requiredRoles={['Master Admin']}>
+            <AppLayout>
+              <TaskApproval />
             </AppLayout>
           </ProtectedRoute>
         }

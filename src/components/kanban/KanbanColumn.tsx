@@ -66,6 +66,8 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
                         <TaskCard
                             key={task.id}
                             {...task}
+                            registeredCustomerId={task.registeredCustomerId}
+                            work_type={task.work_type}
                             onClick={() => onTaskClick(task.id)}
                             onStatusChange={onStatusChange}
                         />

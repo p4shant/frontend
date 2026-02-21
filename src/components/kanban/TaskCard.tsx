@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Check, MoreVertical } from 'lucide-react';
+import { Check, MoreVertical, Edit2 } from 'lucide-react';
 import type { Task } from '../../__tests__/data/mockTasks';
 import { getNextAllowedStatuses } from '../../utils/statusValidation';
+import { AssignTaskModal } from './AssignTaskModal';
 
 export interface TaskCardProps {
     id: string;
@@ -12,6 +13,8 @@ export interface TaskCardProps {
     assignedRole: string;
     status: Task['status'];
     assignedOn: string;
+    registeredCustomerId?: number;
+    work_type?: string;
     onClick: () => void;
     onStatusChange?: (taskId: string, newStatus: Task['status']) => void;
     taskNumber?: number;
@@ -32,11 +35,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     assignedRole: _assignedRole,
     status,
     assignedOn,
+    work_type,
+    registeredCustomerId,
     onClick,
     onStatusChange,
     taskNumber: _taskNumber,
 }) => {
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
     // Get allowed next statuses for current task status
     const allowedNextStatuses = useMemo(() => {
@@ -70,13 +76,25 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         setIsStatusDropdownOpen(!isStatusDropdownOpen);
     };
 
+    const handleEditClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsAssignModalOpen(true);
+    };
+
+    const handleModalSuccess = () => {
+        setIsAssignModalOpen(false);
+        // Could trigger a refresh here if needed
+        onClick?.();
+    };
+
     return (
-        <div
-            onClick={onClick}
-            className="bg-panel border border-blue/12 rounded-xl p-3 md:p-3.5 shadow-sm hover:shadow-md hover:border-blue/25 transition-all duration-200 cursor-pointer group active:scale-[0.98]"
-        >
-            {/* Task Number and Role Badge */}
-            {/* <div className="flex items-start justify-between gap-2 mb-2">
+        <>
+            <div
+                onClick={onClick}
+                className="bg-panel border border-blue/12 rounded-xl p-3 md:p-3.5 shadow-sm hover:shadow-md hover:border-blue/25 transition-all duration-200 cursor-pointer group active:scale-[0.98]"
+            >
+                {/* Task Number and Role Badge */}
+                {/* <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
                     {taskNumber !== undefined && (
                         <span className="flex items-center justify-center w-6 h-6 bg-brand/10 text-brand font-bold text-xs rounded-full">
@@ -89,52 +107,76 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                 </div>
             </div> */}
 
-            {/* Work Description */}
-            <div className="mb-2">
-                <p className="text-[10px] text-muted font-semibold uppercase mb-1">Work</p>
-                <h4 className="text-xs md:text-sm font-semibold text-text break-words group-hover:text-blue-dark transition-colors">
-                    {work || workTitle}
-                </h4>
-            </div>
-
-            {/* Assigned Date and Action Icon */}
-            <div className="flex items-center justify-between gap-2 pt-2 border-t border-blue/8">
-                <div className="flex-1">
-                    <p className="text-[10px] md:text-[11px] font-semibold text-muted">
-                        Assigned: {formatDate(assignedOn)}
-                    </p>
+                {/* Work Description */}
+                <div className="mb-2">
+                    <p className="text-[10px] text-muted font-semibold uppercase mb-1">Work</p>
+                    <h4 className="text-xs md:text-sm font-semibold text-text break-words group-hover:text-blue-dark transition-colors">
+                        {work || workTitle}
+                    </h4>
                 </div>
 
-                <div className="relative flex-shrink-0">
-                    <button
-                        onClick={handleStatusDropdownClick}
-                        className="p-1.5 hover:bg-text/10 rounded-lg transition-colors text-muted hover:text-text"
-                        title="Change status"
-                    >
-                        <MoreVertical size={14} className="md:w-4 md:h-4" />
-                    </button>
+                {/* Assigned Date and Action Icons */}
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-blue/8">
+                    <div className="flex-1">
+                        <p className="text-[10px] md:text-[11px] font-semibold text-muted">
+                            Assigned: {formatDate(assignedOn)}
+                        </p>
+                    </div>
 
-                    {/* Status Dropdown Menu */}
-                    {isStatusDropdownOpen && availableStatusOptions.length > 0 && (
-                        <div
-                            className="absolute top-full right-0 mt-1 bg-panel border border-blue/20 rounded-lg shadow-lg z-50 overflow-hidden min-w-[140px]"
-                            onClick={(e) => e.stopPropagation()}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                        {/* Edit/Assign Button */}
+                        <button
+                            onClick={handleEditClick}
+                            className="p-1.5 hover:bg-text/10 rounded-lg transition-colors text-muted hover:text-text"
+                            title="Assign task to someone"
                         >
-                            {availableStatusOptions.map((option) => (
-                                <button
-                                    key={option.value}
-                                    onClick={() => handleStatusChange(option.value)}
-                                    disabled={option.value === status}
-                                    className={`w-full px-2 py-1.5 text-[10px] md:text-[11px] font-medium text-left transition-colors flex items-center justify-between ${option.bgColor} ${option.color} border-b border-blue/12 last:border-b-0 disabled:opacity-50 disabled:cursor-not-allowed`}
+                            <Edit2 size={14} className="md:w-4 md:h-4" />
+                        </button>
+
+                        {/* Status Dropdown Button */}
+                        <div className="relative">
+                            <button
+                                onClick={handleStatusDropdownClick}
+                                className="p-1.5 hover:bg-text/10 rounded-lg transition-colors text-muted hover:text-text"
+                                title="Change status"
+                            >
+                                <MoreVertical size={14} className="md:w-4 md:h-4" />
+                            </button>
+
+                            {/* Status Dropdown Menu */}
+                            {isStatusDropdownOpen && availableStatusOptions.length > 0 && (
+                                <div
+                                    className="absolute top-full right-0 mt-1 bg-panel border border-blue/20 rounded-lg shadow-lg z-50 overflow-hidden min-w-[140px]"
+                                    onClick={(e) => e.stopPropagation()}
                                 >
-                                    <span>{option.label}</span>
-                                    {status === option.value && <Check size={12} className="flex-shrink-0" />}
-                                </button>
-                            ))}
+                                    {availableStatusOptions.map((option) => (
+                                        <button
+                                            key={option.value}
+                                            onClick={() => handleStatusChange(option.value)}
+                                            disabled={option.value === status}
+                                            className={`w-full px-2 py-1.5 text-[10px] md:text-[11px] font-medium text-left transition-colors flex items-center justify-between ${option.bgColor} ${option.color} border-b border-blue/12 last:border-b-0 disabled:opacity-50 disabled:cursor-not-allowed`}
+                                        >
+                                            <span>{option.label}</span>
+                                            {status === option.value && <Check size={12} className="flex-shrink-0" />}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
-        </div>
+
+            {/* Assign Task Modal */}
+            <AssignTaskModal
+                isOpen={isAssignModalOpen}
+                onClose={() => setIsAssignModalOpen(false)}
+                taskId={_taskId}
+                taskWork={work || workTitle}
+                work_type={work_type}
+                registeredCustomerId={registeredCustomerId}
+                onSuccess={handleModalSuccess}
+            />
+        </>
     );
 };

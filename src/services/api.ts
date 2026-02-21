@@ -62,6 +62,7 @@ type Task = {
     applicationType?: string;
     requiredActions?: string[];
     registered_customer_data?: any;
+    registered_customer_id?: number;
     assigned_to_name?: string;
 };
 
@@ -90,6 +91,7 @@ function transformTask(task: any): Task {
         district: customerData.district || 'Unknown',
         applicationType: customerData.solar_system_type || task.work_type || 'General',
         requiredActions: [],
+        registered_customer_id: task.registered_customer_id,
         registered_customer_data: task.registered_customer_data,
     };
 }
@@ -198,6 +200,32 @@ export const tasksAPI = {
         } catch (error) {
             console.error('Error fetching tasks:', error);
             return { data: [], pagination: null };
+        }
+    },
+
+    async createReassignTask(data: any, token: string) {
+        try {
+            const response = await fetch(`${API_BASE}/tasks/reassign`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to create reassignment task');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error creating reassignment task:', error);
+            return {
+                success: false,
+                message: error instanceof Error ? error.message : 'Failed to create reassignment task'
+            };
         }
     },
 };

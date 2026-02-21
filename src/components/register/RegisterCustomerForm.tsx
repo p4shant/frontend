@@ -58,6 +58,7 @@ export default function RegisterCustomerForm({
     const [msg, setMsg] = useState('')
     const [locationLoading, setLocationLoading] = useState(false)
     const [prefillLoading, setPrefillLoading] = useState(false)
+    const [manualGps, setManualGps] = useState(false)
 
     const isEditMode = Boolean(applicationId) || Boolean(preFilledData)
 
@@ -173,7 +174,6 @@ export default function RegisterCustomerForm({
     })
 
     const [previews, setPreviews] = useState<Record<string, string | null>>({})
-    const [blurStatus, setBlurStatus] = useState<Record<string, boolean>>({})
     const [creatorInfo, setCreatorInfo] = useState<{ name: string; role?: string; phone?: string } | null>(null)
 
     // Auto-set payment mode to Finance when finance is required
@@ -375,59 +375,11 @@ export default function RegisterCustomerForm({
         tryGetLocation(true)
     }
 
-    const checkImageBlur = async (file: File) => {
-        return new Promise<boolean>((resolve) => {
-            const img = new Image()
-            const url = URL.createObjectURL(file)
-
-            img.onload = () => {
-                const canvas = document.createElement('canvas')
-                const ctx = canvas.getContext('2d')
-                canvas.width = img.width
-                canvas.height = img.height
-                if (!ctx) {
-                    URL.revokeObjectURL(url)
-                    resolve(false)
-                    return
-                }
-                ctx.drawImage(img, 0, 0)
-
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-                const data = imageData.data
-                let edgeCount = 0
-                const threshold = 30
-
-                for (let i = 0; i < data.length; i += 16) {
-                    if (i + 4 < data.length) {
-                        const diff = Math.abs(data[i] - data[i + 4])
-                        if (diff > threshold) edgeCount++
-                    }
-                }
-
-                const blurThreshold = (canvas.width * canvas.height) / 1000
-                const isBlurry = edgeCount < blurThreshold
-
-                URL.revokeObjectURL(url)
-                resolve(isBlurry)
-            }
-
-            img.onerror = () => {
-                URL.revokeObjectURL(url)
-                resolve(false)
-            }
-
-            img.src = url
-        })
-    }
-
     const onFile = async (name: string, file: File | null) => {
         if (!file) return
-
-        const isBlurry = await checkImageBlur(file)
         const previewUrl = URL.createObjectURL(file)
 
         setPreviews((prev) => ({ ...prev, [name]: previewUrl }))
-        setBlurStatus((prev) => ({ ...prev, [name]: isBlurry }))
         setFiles((prev) => ({ ...prev, [name]: file }))
     }
 
@@ -436,7 +388,6 @@ export default function RegisterCustomerForm({
             URL.revokeObjectURL(previews[name])
         }
         setPreviews((prev) => ({ ...prev, [name]: null }))
-        setBlurStatus((prev) => ({ ...prev, [name]: false }))
         setFiles((prev) => ({ ...prev, [name]: null }))
     }
 
@@ -558,15 +509,6 @@ export default function RegisterCustomerForm({
                 window.scrollTo({ top: 0, behavior: 'smooth' })
                 return
             }
-        }
-
-        const blurryImages = Object.entries(blurStatus)
-            .filter(([name, isBlurry]) => isBlurry && files[name])
-            .map(([name]) => name as string)
-
-        if (blurryImages.length > 0) {
-            setMsg(`Please retake blurry images: ${blurryImages.join(', ').replace(/_/g, ' ')}`)
-            return
         }
 
         // Validate file sizes BEFORE uploading (max 30MB per file)
@@ -778,24 +720,15 @@ export default function RegisterCustomerForm({
                         <img
                             src={previews[name]}
                             alt={label}
-                            className={`w-full h-32 md:h-40 object-cover rounded-lg border-4 ${blurStatus[name] ? 'border-red-500' : 'border-green-500'
-                                }`}
+                            className="w-full h-32 md:h-40 object-cover rounded-lg border-4 border-green-500"
                         />
-                        {blurStatus[name] && (
-                            <div className="absolute top-0 left-0 right-0 bg-red-500 text-white text-xs font-bold px-2 py-1 text-center rounded-t-lg">
-                                ⚠️ BLURRY - RETAKE REQUIRED
-                            </div>
-                        )}
                     </div>
                     <button
                         type="button"
                         onClick={() => retakePhoto(name)}
-                        className={`w-full py-2 md:py-2.5 rounded-lg font-medium text-sm text-white ${blurStatus[name]
-                            ? 'bg-red-600 hover:bg-red-700'
-                            : 'bg-slate-600 hover:bg-slate-700'
-                            }`}
+                        className="w-full py-2 md:py-2.5 rounded-lg font-medium text-sm text-white bg-slate-600 hover:bg-slate-700"
                     >
-                        {blurStatus[name] ? '📷 Retake (Required)' : '📷 Retake'}
+                        📷 Retake
                     </button>
                 </div>
             )}
@@ -957,31 +890,73 @@ export default function RegisterCustomerForm({
                         </div>
                         <div className="md:col-span-2">
                             <label className="block text-sm font-medium text-slate-700 mb-1.5">Site Location (GPS) - Optional</label>
-                            <button
-                                type="button"
-                                onClick={getCurrentLocation}
-                                disabled={locationLoading}
-                                className="w-full py-3 px-4 bg-green-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-green-700 disabled:opacity-50 transition-colors"
-                            >
-                                {locationLoading ? (
-                                    <>
-                                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                        </svg>
-                                        Getting Location...
-                                    </>
-                                ) : (
-                                    <>
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        </svg>
-                                        Get GPS Coordinates (Optional)
-                                    </>
-                                )}
-                            </button>
+                            <div className="flex items-center gap-3 mb-3">
+                                <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                                    <input
+                                        type="checkbox"
+                                        checked={manualGps}
+                                        onChange={(e) => setManualGps(e.target.checked)}
+                                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    Add manually
+                                </label>
+                            </div>
+
+                            {!manualGps && (
+                                <button
+                                    type="button"
+                                    onClick={getCurrentLocation}
+                                    disabled={locationLoading}
+                                    className="w-full py-3 px-4 bg-green-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-green-700 disabled:opacity-50 transition-colors"
+                                >
+                                    {locationLoading ? (
+                                        <>
+                                            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                            </svg>
+                                            Getting Location...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            Get GPS Coordinates (Optional)
+                                        </>
+                                    )}
+                                </button>
+                            )}
                         </div>
+                        {manualGps && (
+                            <>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Latitude</label>
+                                    <input
+                                        name="site_latitude"
+                                        value={form.site_latitude}
+                                        onChange={onChange}
+                                        type="number"
+                                        step="0.000001"
+                                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="Enter latitude"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Longitude</label>
+                                    <input
+                                        name="site_longitude"
+                                        value={form.site_longitude}
+                                        onChange={onChange}
+                                        type="number"
+                                        step="0.000001"
+                                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="Enter longitude"
+                                    />
+                                </div>
+                            </>
+                        )}
                         {form.site_latitude && form.site_longitude && (
                             <div className="md:col-span-2 bg-green-50 border border-green-200 rounded-lg p-4">
                                 <p className="text-xs text-green-800 font-semibold mb-2">📍 GPS Coordinates Captured:</p>
