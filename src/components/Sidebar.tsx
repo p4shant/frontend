@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { CalendarCheck, LayoutDashboard, PanelsTopLeft, UserRound, Eye, FileText, UserPlus, Wallet, BarChart3, CheckSquare } from 'lucide-react';
+import { CalendarCheck, LayoutDashboard, PanelsTopLeft, UserRound, Eye, FileText, UserPlus, Wallet, BarChart3, CheckSquare, ClipboardPlus } from 'lucide-react';
 import kamnLogo from '../assets/kaman-logo.png';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,6 +15,7 @@ const MASTER_ADMIN_ITEMS = [
     { label: 'Track Application', to: '/track-application', icon: <FileText size={18} /> },
     { label: 'Track Payment', to: '/track-payment', icon: <Wallet size={18} /> },
     { label: 'Task Approval', to: '/task-approval', icon: <CheckSquare size={18} /> },
+    { label: 'Create Task', to: '/create-task', icon: <ClipboardPlus size={18} /> },
     { label: 'Admin Dashboard', to: '/admin-stats', icon: <BarChart3 size={18} /> },
 ];
 

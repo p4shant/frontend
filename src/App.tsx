@@ -10,6 +10,7 @@ import MonitorAttendance from './pages/MonitorAttendance';
 import TrackPayment from './pages/TrackPayment';
 import AdminStats from './pages/AdminStats';
 import TaskApproval from './pages/TaskApproval';
+import CreateTask from './pages/CreateTask';
 import Login from './pages/Login';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
@@ -106,6 +107,16 @@ function App() {
           <ProtectedRoute requiredRoles={['Master Admin']}>
             <AppLayout>
               <TaskApproval />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/create-task"
+        element={
+          <ProtectedRoute requiredRoles={['Master Admin']}>
+            <AppLayout>
+              <CreateTask />
             </AppLayout>
           </ProtectedRoute>
         }
