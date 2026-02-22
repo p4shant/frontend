@@ -944,6 +944,32 @@ export const PlantInstallation: React.FC<WorkTypeDetailsProps> = ({ task: _task,
     const [technicalAssistantEmployees, setTechnicalAssistantEmployees] = React.useState<Array<{ id: number, name: string }>>([]);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [message, setMessage] = React.useState('');
+    const [existingRecord, setExistingRecord] = React.useState<any>(null);
+    const [loadingRecord, setLoadingRecord] = React.useState(true);
+
+    // Fetch existing installation record on mount
+    React.useEffect(() => {
+        const fetchExistingRecord = async () => {
+            if (!customer?.id) { setLoadingRecord(false); return; }
+            try {
+                const token = localStorage.getItem('auth_token');
+                const res = await fetch(`${API_BASE}/plant-installation-details/customer/${customer.id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    // API returns an array ordered by created_at DESC — take the latest
+                    const record = Array.isArray(data) ? data[0] : (data.data?.[0] ?? null);
+                    setExistingRecord(record || null);
+                }
+            } catch (e) {
+                console.error('Error fetching installation record:', e);
+            } finally {
+                setLoadingRecord(false);
+            }
+        };
+        fetchExistingRecord();
+    }, [customer?.id]);
 
     // Fetch technician and technical assistant employees
     React.useEffect(() => {
@@ -974,6 +1000,48 @@ export const PlantInstallation: React.FC<WorkTypeDetailsProps> = ({ task: _task,
         };
         if (isFormOpen) fetchEmployees();
     }, [isFormOpen]);
+
+    // Pre-fill form whenever form opens and an existing record is available
+    React.useEffect(() => {
+        if (!isFormOpen || !existingRecord) return;
+
+        // Date: normalize to YYYY-MM-DD for the date input
+        if (existingRecord.date_of_installation) {
+            const d = new Date(existingRecord.date_of_installation);
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            setInstallationDate(`${yyyy}-${mm}-${dd}`);
+        }
+
+        // Rebuild technicians list
+        try {
+            const internal: number[] = JSON.parse(existingRecord.internal_technician || '[]');
+            const external: { name: string }[] = JSON.parse(existingRecord.external_technician || '[]');
+            const combined = [
+                ...internal.map(id => ({ type: 'internal' as const, employeeId: id })),
+                ...external.map(t => ({ type: 'external' as const, name: t.name })),
+            ];
+            if (combined.length > 0) {
+                setTechnicians(combined);
+                setNumTechnicians(combined.length);
+            }
+        } catch { /* ignore parse errors */ }
+
+        // Rebuild technical assistants list
+        try {
+            const assistantIds: number[] = JSON.parse(existingRecord.technical_assistant_ids || '[]');
+            if (assistantIds.length > 0) {
+                setTechnicalAssistants(assistantIds.map(id => ({ employeeId: id })));
+                setNumTechnicalAssistants(assistantIds.length);
+            }
+        } catch { /* ignore parse errors */ }
+
+        // Photo taker
+        if (existingRecord.photo_taker_employee_id) {
+            setPhotoTakerId(Number(existingRecord.photo_taker_employee_id));
+        }
+    }, [isFormOpen, existingRecord]);
 
     const handleNumTechniciansChange = (num: number) => {
         const newNum = Math.max(0, Math.min(10, num));
@@ -1171,12 +1239,44 @@ export const PlantInstallation: React.FC<WorkTypeDetailsProps> = ({ task: _task,
 
             {/* Installation Form */}
             {!isFormOpen ? (
-                <button
-                    onClick={() => setIsFormOpen(true)}
-                    className="w-full text-white px-4 sm:px-5 py-2.5 sm:py-3 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl font-bold hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 text-xs sm:text-sm shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-                >
-                    <span className="text-base sm:text-lg mr-2">+</span> Record Installation Details
-                </button>
+                <div className="space-y-2">
+                    {/* Submission status banner */}
+                    {!loadingRecord && (
+                        existingRecord ? (
+                            <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 sm:px-4 py-2 sm:py-2.5">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center text-white text-[10px] font-bold">✓</span>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-bold text-green-800">Installation Details Submitted</p>
+                                    {existingRecord.date_of_installation && (
+                                        <p className="text-[10px] text-green-600">
+                                            Date: {new Date(existingRecord.date_of_installation).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                        </p>
+                                    )}
+                                </div>
+                                <span className="flex-shrink-0 text-[10px] font-bold bg-green-500 text-white px-2 py-0.5 rounded-full">SUBMITTED</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 sm:px-4 py-2 sm:py-2.5">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center text-white text-[10px] font-bold">!</span>
+                                <p className="flex-1 text-xs font-semibold text-amber-800">Installation details not yet recorded</p>
+                                <span className="flex-shrink-0 text-[10px] font-bold bg-amber-400 text-gray-900 px-2 py-0.5 rounded-full">PENDING</span>
+                            </div>
+                        )
+                    )}
+
+                    <button
+                        onClick={() => setIsFormOpen(true)}
+                        className={`w-full text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold transition-all duration-200 text-xs sm:text-sm shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ${existingRecord
+                                ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
+                                : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
+                            }`}
+                    >
+                        {existingRecord
+                            ? <><span className="mr-2">✏️</span> Edit Installation Details</>
+                            : <><span className="text-base sm:text-lg mr-2">+</span> Record Installation Details</>
+                        }
+                    </button>
+                </div>
             ) : (
                 <div className="bg-white rounded-xl p-3 sm:p-5 border border-purple-200 shadow-sm space-y-3 sm:space-y-5">
                     <h4 className="text-sm sm:text-base font-bold text-purple-900 flex items-center gap-2">

@@ -6,18 +6,6 @@ interface PDFOptions {
 }
 
 /**
- * Format currency for display
- */
-function formatCurrency(value: any): string {
-    if (!value) return 'N/A';
-    return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        minimumFractionDigits: 0,
-    }).format(Number(value));
-}
-
-/**
  * Format date for display
  */
 function formatDate(dateString: string): string {
@@ -39,7 +27,9 @@ function formatTaskType(workType: string): string {
 }
 
 /**
- * Generate and download PDF with task and customer application data
+ * Generate and download PDF with task and customer application data.
+ * Uses native jsPDF drawing APIs (no html2canvas) so text never
+ * gets sliced across page boundaries.
  */
 export async function exportTaskApplicationToPDF(task: Task, options: PDFOptions = {}): Promise<void> {
     const { filename = `Application_${task.customerName.replace(/\s+/g, '_')}.pdf` } = options;
@@ -50,225 +40,183 @@ export async function exportTaskApplicationToPDF(task: Task, options: PDFOptions
     }
 
     try {
-        // Dynamically import jsPDF and html2canvas
         const { jsPDF } = await import('jspdf');
-        const html2canvas = (await import('html2canvas')).default;
 
-        // Create a temporary container with the formatted content
-        const tempContainer = document.createElement('div');
-        tempContainer.style.position = 'absolute';
-        tempContainer.style.left = '-9999px';
-        tempContainer.style.width = '210mm';
-        tempContainer.style.padding = '20px';
-        tempContainer.style.backgroundColor = '#ffffff';
-        tempContainer.style.fontFamily = 'Arial, sans-serif';
-        tempContainer.style.fontSize = '12px';
-        tempContainer.style.lineHeight = '1.6';
-
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
         const customer = task.registered_customer_data;
 
-        tempContainer.innerHTML = `
-            <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #1f2937; padding-bottom: 15px;">
-                <h1 style="margin: 0; color: #1f2937; font-size: 24px;">TATA Solar Application</h1>
-                <p style="margin: 5px 0; color: #666; font-size: 14px;">Task Reference: TASK-${task.id}</p>
-            </div>
+        // ── Layout constants ──────────────────────────────────────────────
+        const PAGE_W = 210;
+        const PAGE_H = 297;
+        const MARGIN = 14;
+        const COL_W = PAGE_W - MARGIN * 2;
+        const LABEL_W = COL_W * 0.42;
+        const VAL_W = COL_W - LABEL_W;
+        const ROW_H = 8.5;
+        const SEC_H = 13;
 
-            <!-- Task Information -->
-            <div style="background-color: #f3f4f6; padding: 15px; margin-bottom: 20px; border-radius: 5px;">
-                <h2 style="margin: 0 0 10px 0; color: #1f2937; font-size: 16px; border-bottom: 2px solid #1f2937; padding-bottom: 5px;">Task Details</h2>
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                    <tr>
-                        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Task Type:</strong></td>
-                        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${formatTaskType(task.workTitle)}</td>
-                    </tr>
-                    <tr style="background-color: white;">
-                        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Assigned To:</strong></td>
-                        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${task.assignedRole}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Assigned Date:</strong></td>
-                        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${formatDate(task.assignedOn)}</td>
-                    </tr>
-                </table>
-            </div>
+        // ── Colour palette (RGB tuples) ───────────────────────────────────
+        type RGB = [number, number, number];
+        const C_HEADER_BG: RGB = [31, 41, 55];   // #1f2937
+        const C_SEC_BG: RGB = [243, 244, 246];  // #f3f4f6
+        const C_ALT_BG: RGB = [255, 255, 255];  // white
+        const C_BORDER: RGB = [229, 231, 235];  // #e5e7eb
+        const C_DARK: RGB = [31, 41, 55];
+        const C_MID: RGB = [55, 65, 81];
+        const C_LIGHT: RGB = [107, 114, 128];
+        const C_WHITE: RGB = [255, 255, 255];
 
-            <!-- Applicant Information -->
-            <div style="background-color: #f3f4f6; padding: 15px; margin-bottom: 20px; border-radius: 5px;">
-                <h2 style="margin: 0 0 10px 0; color: #1f2937; font-size: 16px; border-bottom: 2px solid #1f2937; padding-bottom: 5px;">Applicant Information</h2>
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                    <tr>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb; vertical-align: top;"><strong>Name:</strong></td>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb; vertical-align: top;">${customer.applicant_name}</td>
-                    </tr>
-                    <tr style="background-color: white;">
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Mobile:</strong></td>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;">${customer.mobile_number}</td>
-                    </tr>
-                    <tr>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Email:</strong></td>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;">${customer.email_id || 'N/A'}</td>
-                    </tr>
-                </table>
-            </div>
+        let y = MARGIN;
 
-            <!-- Location Information -->
-            <div style="background-color: #f3f4f6; padding: 15px; margin-bottom: 20px; border-radius: 5px;">
-                <h2 style="margin: 0 0 10px 0; color: #1f2937; font-size: 16px; border-bottom: 2px solid #1f2937; padding-bottom: 5px;">Location Details</h2>
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                    <tr>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>District:</strong></td>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;">${customer.district}</td>
-                    </tr>
-                    <tr style="background-color: white;">
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Pincode:</strong></td>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;">${customer.installation_pincode}</td>
-                    </tr>
-                    <tr>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Address:</strong></td>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;">${customer.site_address || 'N/A'}</td>
-                    </tr>
-                    <tr style="background-color: white;">
-                        <td style="width: 50%; padding: 8px;"><strong>Coordinates:</strong></td>
-                        <td style="width: 50%; padding: 8px;">${customer.site_latitude}, ${customer.site_longitude}</td>
-                    </tr>
-                </table>
-            </div>
+        // ── Helpers ───────────────────────────────────────────────────────
 
-            <!-- Solar System Details -->
-            <div style="background-color: #f3f4f6; padding: 15px; margin-bottom: 20px; border-radius: 5px;">
-                <h2 style="margin: 0 0 10px 0; color: #1f2937; font-size: 16px; border-bottom: 2px solid #1f2937; padding-bottom: 5px;">Solar System Information</h2>
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                    <tr>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>System Type:</strong></td>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;">${customer.solar_system_type}</td>
-                    </tr>
-                    <tr style="background-color: white;">
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Plant Category:</strong></td>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;">${customer.plant_category}</td>
-                    </tr>
-                    <tr>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>System Capacity:</strong></td>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;">${customer.plant_size_kw} kW</td>
-                    </tr>
-                    <tr style="background-color: white;">
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Estimated Cost:</strong></td>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;">${formatCurrency(customer.plant_price)}</td>
-                    </tr>
-                    <tr>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Meter Type:</strong></td>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;">${customer.meter_type}</td>
-                    </tr>
-                </table>
-            </div>
+        /** Add a new page and reset y if remaining space < needed */
+        const guard = (needed: number) => {
+            if (y + needed > PAGE_H - MARGIN - 10) {
+                pdf.addPage();
+                y = MARGIN;
+            }
+        };
 
-            <!-- Electrical Requirements -->
-            <div style="background-color: #f3f4f6; padding: 15px; margin-bottom: 20px; border-radius: 5px;">
-                <h2 style="margin: 0 0 10px 0; color: #1f2937; font-size: 16px; border-bottom: 2px solid #1f2937; padding-bottom: 5px;">Electrical Requirements</h2>
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                    <tr>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Current Load:</strong></td>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;">${customer.current_load || 'N/A'} kW</td>
-                    </tr>
-                    <tr style="background-color: white;">
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Required Load:</strong></td>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;">${customer.required_load || 'N/A'} kW</td>
-                    </tr>
-                    <tr>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Load Enhancement Required:</strong></td>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;">${customer.load_enhancement_required}</td>
-                    </tr>
-                </table>
-            </div>
+        /** Draw a section heading with grey background + underline */
+        const section = (title: string) => {
+            guard(SEC_H + ROW_H * 2);
+            pdf.setFillColor(...C_SEC_BG);
+            pdf.rect(MARGIN, y, COL_W, SEC_H, 'F');
+            pdf.setDrawColor(...C_HEADER_BG);
+            pdf.setLineWidth(0.6);
+            pdf.line(MARGIN, y + SEC_H, MARGIN + COL_W, y + SEC_H);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(11);
+            pdf.setTextColor(...C_DARK);
+            pdf.text(title, MARGIN + 4, y + SEC_H - 3.5);
+            y += SEC_H + 1;
+        };
 
-            <!-- Payment & Finance Details -->
-            <div style="background-color: #f3f4f6; padding: 15px; margin-bottom: 20px; border-radius: 5px;">
-                <h2 style="margin: 0 0 10px 0; color: #1f2937; font-size: 16px; border-bottom: 2px solid #1f2937; padding-bottom: 5px;">Payment & Finance</h2>
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                    <tr>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Payment Mode:</strong></td>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;">${customer.payment_mode}</td>
-                    </tr>
-                    <tr style="background-color: white;">
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Advance Payment:</strong></td>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;">${customer.advance_payment_mode}</td>
-                    </tr>
-                    <tr>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Finance Required:</strong></td>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;">${customer.special_finance_required}</td>
-                    </tr>
-                </table>
-            </div>
+        /** Draw a key/value table row with alternating background */
+        const row = (label: string, value: string, alt: boolean) => {
+            // Measure wrapped value height first
+            pdf.setFontSize(9.5);
+            const lines = pdf.splitTextToSize(String(value || 'N/A'), VAL_W - 4);
+            const cellH = Math.max(ROW_H, lines.length * 5 + 3);
 
-            <!-- Additional Details -->
-            <div style="background-color: #f3f4f6; padding: 15px; margin-bottom: 20px; border-radius: 5px;">
-                <h2 style="margin: 0 0 10px 0; color: #1f2937; font-size: 16px; border-bottom: 2px solid #1f2937; padding-bottom: 5px;">Additional Details</h2>
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                    <tr>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>COT Required:</strong></td>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;">${customer.cot_required}</td>
-                    </tr>
-                    <tr style="background-color: white;">
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Name Correction:</strong></td>
-                        <td style="width: 50%; padding: 8px; border-bottom: 1px solid #e5e7eb;">${customer.name_correction_required}</td>
-                    </tr>
-                </table>
-            </div>
+            guard(cellH);
 
-            <!-- Footer -->
-            <div style="margin-top: 40px; padding-top: 15px; border-top: 2px solid #1f2937; text-align: center; font-size: 11px; color: #666;">
-                <p style="margin: 0;">Generated on ${formatDate(new Date().toISOString())}</p>
-                <p style="margin: 5px 0 0 0;">This is a digitally generated document. Please retain for your records.</p>
-            </div>
-        `;
+            if (alt) {
+                pdf.setFillColor(...C_ALT_BG);
+                pdf.rect(MARGIN, y, COL_W, cellH, 'F');
+            }
+            pdf.setDrawColor(...C_BORDER);
+            pdf.setLineWidth(0.25);
+            pdf.line(MARGIN, y + cellH, MARGIN + COL_W, y + cellH);
 
-        document.body.appendChild(tempContainer);
+            // Label
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(9.5);
+            pdf.setTextColor(...C_DARK);
+            pdf.text(label, MARGIN + 3, y + cellH / 2 + 1.5);
 
-        // Convert HTML to canvas
-        const canvas = await html2canvas(tempContainer, {
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            backgroundColor: '#ffffff',
-        });
+            // Value
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(...C_MID);
+            pdf.text(lines, MARGIN + LABEL_W + 2, y + cellH / 2 - ((lines.length - 1) * 5) / 2 + 1.5);
 
-        // Create PDF from canvas
-        const pdf = new jsPDF({
-            orientation: 'portrait',
-            unit: 'mm',
-            format: 'a4',
-        });
+            y += cellH;
+        };
 
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const canvasWidth = canvas.width;
-        const canvasHeight = canvas.height;
+        const gap = () => { y += 5; };
 
-        // Calculate proportional height
-        const imgData = canvas.toDataURL('image/png');
-        const ratio = canvasWidth / canvasHeight;
-        const imgHeight = pageWidth / ratio;
+        // ── COVER HEADER ─────────────────────────────────────────────────
+        pdf.setFillColor(...C_HEADER_BG);
+        pdf.rect(0, 0, PAGE_W, 30, 'F');
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(19);
+        pdf.setTextColor(...C_WHITE);
+        pdf.text('TATA Solar Application', PAGE_W / 2, 13, { align: 'center' });
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(10);
+        pdf.setTextColor(190, 210, 230);
+        pdf.text(`Task Reference: TASK-${task.id}`, PAGE_W / 2, 22, { align: 'center' });
+        y = 37;
 
-        // Add pages as needed
-        let heightLeft = imgHeight;
-        let position = 0;
+        // ── TASK DETAILS ─────────────────────────────────────────────────
+        section('Task Details');
+        row('Task Type:', formatTaskType(task.workTitle), false);
+        row('Assigned To:', task.assignedRole, true);
+        row('Assigned Date:', formatDate(task.assignedOn), false);
+        gap();
 
-        pdf.addImage(imgData, 'PNG', 0, position, pageWidth, imgHeight);
-        heightLeft -= pageHeight;
+        // ── APPLICANT INFORMATION ─────────────────────────────────────────
+        section('Applicant Information');
+        row('Name:', customer.applicant_name, false);
+        row('Mobile:', customer.mobile_number, true);
+        row('Email:', customer.email_id || 'N/A', false);
+        gap();
 
-        while (heightLeft > 0) {
-            position = heightLeft - imgHeight;
-            pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 0, position, pageWidth, imgHeight);
-            heightLeft -= pageHeight;
+        // ── LOCATION DETAILS ──────────────────────────────────────────────
+        section('Location Details');
+        row('District:', customer.district, false);
+        row('Pincode:', customer.installation_pincode, true);
+        row('Address:', customer.site_address || 'N/A', false);
+        row('Coordinates:', `${customer.site_latitude}, ${customer.site_longitude}`, true);
+        gap();
+
+        // ── SOLAR SYSTEM INFORMATION ──────────────────────────────────────
+        section('Solar System Information');
+        row('System Type:', customer.solar_system_type, false);
+        row('Plant Category:', customer.plant_category, true);
+        row('System Capacity:', `${customer.plant_size_kw} kW`, false);
+        row('Meter Type:', customer.meter_type, true);
+        gap();
+
+        // ── ELECTRICAL REQUIREMENTS ───────────────────────────────────────
+        section('Electrical Requirements');
+        row('Current Load:', `${customer.current_load || 'N/A'} kW`, false);
+        row('Required Load:', `${customer.required_load || 'N/A'} kW`, true);
+        row('Load Enhancement Required:', customer.load_enhancement_required, false);
+        gap();
+
+        // ── PAYMENT & FINANCE ─────────────────────────────────────────────
+        section('Payment & Finance');
+        row('Payment Mode:', customer.payment_mode, false);
+        row('Advance Payment:', customer.advance_payment_mode, true);
+        row('Finance Required:', customer.special_finance_required, false);
+        gap();
+
+        // ── ADDITIONAL DETAILS ────────────────────────────────────────────
+        section('Additional Details');
+        row('COT Required:', customer.cot_required, false);
+        row('Name Correction:', customer.name_correction_required, true);
+        gap();
+
+        // ── FOOTER + PAGE NUMBERS ─────────────────────────────────────────
+        guard(18);
+        pdf.setDrawColor(...C_HEADER_BG);
+        pdf.setLineWidth(0.5);
+        pdf.line(MARGIN, y, MARGIN + COL_W, y);
+        y += 5;
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8.5);
+        pdf.setTextColor(...C_LIGHT);
+        pdf.text(`Generated on ${formatDate(new Date().toISOString())}`, PAGE_W / 2, y, { align: 'center' });
+        y += 5;
+        pdf.text('This is a digitally generated document. Please retain for your records.', PAGE_W / 2, y, { align: 'center' });
+
+        // Stamp page numbers on every page
+        const total = pdf.getNumberOfPages();
+        for (let i = 1; i <= total; i++) {
+            pdf.setPage(i);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(8);
+            pdf.setTextColor(...C_LIGHT);
+            pdf.text(`Page ${i} of ${total}`, PAGE_W - MARGIN, PAGE_H - 7, { align: 'right' });
         }
 
-        // Download PDF
         pdf.save(filename);
 
-        // Cleanup
-        document.body.removeChild(tempContainer);
     } catch (error) {
         console.error('PDF export error:', error);
-        alert('Failed to export PDF. Please ensure jsPDF and html2canvas are installed.');
+        alert('Failed to export PDF. Please ensure jsPDF is installed.');
     }
 }
+
