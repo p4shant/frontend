@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { X, Eye, Search, Filter } from 'lucide-react'
+import { X, Search, Filter, ChevronDown, ChevronUp, CheckCircle2, Loader2, Clock, Circle, Minus, MapPin, Phone, User } from 'lucide-react'
 
 // All possible work types in order (matching backend Tasks.js)
 const WORK_TYPES = [
@@ -29,6 +29,86 @@ const WORK_TYPES = [
     { key: 'quality_assurance', label: 'Quality Assurance' },
     { key: 'submit_warranty_document', label: 'Submit Warranty' },
     { key: 'assign_qa', label: 'Assign QA' },
+]
+
+// Work types that are conditional on customer data
+const CONDITIONAL_WORK_TYPES = new Set([
+    'finance_registration',
+    'submit_finance_to_bank',
+    'cot_request',
+    'name_correction_request',
+    'load_request',
+    'collect_remaining_amount',
+])
+
+// Phase groupings for the pipeline panel (all Tailwind classes are full static strings)
+const PIPELINE_PHASES = [
+    {
+        id: 'initiation',
+        label: 'Initiation',
+        emoji: '📋',
+        numBg: 'bg-blue-500',
+        spineBg: 'bg-blue-200',
+        connectorBg: 'bg-blue-300',
+        progressFill: 'bg-blue-500',
+        countText: 'text-blue-600',
+        workTypes: ['customer_data_gathering'],
+    },
+    {
+        id: 'registration',
+        label: 'Registration & Compliance',
+        emoji: '📝',
+        numBg: 'bg-indigo-500',
+        spineBg: 'bg-indigo-200',
+        connectorBg: 'bg-indigo-300',
+        progressFill: 'bg-indigo-500',
+        countText: 'text-indigo-600',
+        workTypes: ['complete_registration', 'cot_request', 'name_correction_request', 'load_request', 'finance_registration', 'submit_finance_to_bank'],
+    },
+    {
+        id: 'electrical',
+        label: 'Indent & Metering Installation',
+        emoji: '🔌',
+        numBg: 'bg-amber-500',
+        spineBg: 'bg-amber-200',
+        connectorBg: 'bg-amber-300',
+        progressFill: 'bg-amber-500',
+        countText: 'text-amber-600',
+        workTypes: ['hard_copy_indent_creation', 'submit_indent_to_electrical_department', 'meter_installation'],
+    },
+    {
+        id: 'payment',
+        label: 'Payment & Billing',
+        emoji: '💰',
+        numBg: 'bg-green-500',
+        spineBg: 'bg-green-200',
+        connectorBg: 'bg-green-300',
+        progressFill: 'bg-green-500',
+        countText: 'text-green-600',
+        workTypes: ['collect_remaining_amount', 'approval_of_payment_collection', 'generate_bill', 'create_cdr'],
+    },
+    {
+        id: 'installation',
+        label: 'Installation & Documentation',
+        emoji: '🏗️',
+        numBg: 'bg-purple-500',
+        spineBg: 'bg-purple-200',
+        connectorBg: 'bg-purple-300',
+        progressFill: 'bg-purple-500',
+        countText: 'text-purple-600',
+        workTypes: ['approval_of_plant_installation', 'plant_installation', 'take_installed_item_photos', 'upload_installed_item_serial_number'],
+    },
+    {
+        id: 'verification',
+        label: 'Verification & Handover',
+        emoji: '✅',
+        numBg: 'bg-emerald-500',
+        spineBg: 'bg-emerald-200',
+        connectorBg: 'bg-emerald-300',
+        progressFill: 'bg-emerald-500',
+        countText: 'text-emerald-600',
+        workTypes: ['inspection', 'apply_subsidy', 'subsidy_redemption', 'assign_qa', 'quality_assurance', 'submit_warranty_document', 'document_handover'],
+    },
 ]
 
 interface Task {
@@ -81,6 +161,7 @@ function TrackApplication() {
     const [createdByFilter, setCreatedByFilter] = useState('all')
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
     const [showCustomerModal, setShowCustomerModal] = useState(false)
+    const [collapsedPhases, setCollapsedPhases] = useState<Set<string>>(new Set())
 
     useEffect(() => {
         if (token) {
@@ -205,6 +286,14 @@ function TrackApplication() {
     const handleRowClick = (customer: Customer) => {
         setSelectedCustomer(customer)
         setShowCustomerModal(true)
+        // Auto-collapse fully completed phases
+        const initialCollapsed = new Set<string>()
+        PIPELINE_PHASES.forEach(phase => {
+            const applicable = phase.workTypes.filter(wt => getTaskStatus(customer, wt) !== 'not_applicable')
+            const allDone = applicable.length > 0 && applicable.every(wt => getTaskStatus(customer, wt) === 'completed')
+            if (allDone) initialCollapsed.add(phase.id)
+        })
+        setCollapsedPhases(initialCollapsed)
     }
 
     // Centralized modal close
@@ -237,6 +326,25 @@ function TrackApplication() {
             window.removeEventListener('keydown', onKeyDown)
         }
     }, [showCustomerModal])
+
+    // Circular SVG progress ring used in the slide-over header
+    const ProgressRing = ({ progress }: { progress: number }) => {
+        const r = 22
+        const circ = 2 * Math.PI * r
+        const offset = circ * (1 - progress / 100)
+        const color = progress === 100 ? '#22c55e' : progress > 50 ? '#3b82f6' : '#f97316'
+        return (
+            <div className="relative w-14 h-14">
+                <svg width="56" height="56" viewBox="0 0 56 56" className="-rotate-90">
+                    <circle cx="28" cy="28" r={r} fill="none" stroke="#e5e7eb" strokeWidth="5" />
+                    <circle cx="28" cy="28" r={r} fill="none" stroke={color} strokeWidth="5" strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset} />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-[11px] font-bold text-gray-800">{progress}%</span>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-50 p-2 sm:p-4 md:p-6">
@@ -557,158 +665,247 @@ function TrackApplication() {
                 </div>
             </div>
 
-            {/* Customer Details Modal */}
+            {/* Customer Details Slide-Over Panel */}
             {showCustomerModal && selectedCustomer && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000] p-2 sm:p-4" onClick={closeModal}>
+                <>
+                    <style>{`
+                        @keyframes slideInRight {
+                            from { transform: translateX(100%); }
+                            to   { transform: translateX(0); }
+                        }
+                        .slide-panel { animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                    `}</style>
+
+                    {/* Backdrop */}
+                    <div className="fixed inset-0 bg-black/50 z-[1000]" onClick={closeModal} />
+
+                    {/* Slide-over panel */}
                     <div
                         role="dialog"
                         aria-modal="true"
-                        aria-labelledby="customer-details-title"
-                        className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-xl md:max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto"
-                        onClick={(e) => e.stopPropagation()}
+                        aria-labelledby="pipeline-title"
+                        className="slide-panel fixed right-0 top-0 bottom-0 w-full md:w-[65%] lg:w-[60%] bg-gray-50 z-[1001] shadow-2xl flex flex-col"
                     >
-                        <div className="bg-blue px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-10">
-                            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                                <Eye size={20} className="text-white flex-shrink-0 sm:w-6 sm:h-6" />
-                                <h3 id="customer-details-title" className="text-sm sm:text-xl font-bold bg-[#F6F0D7] text-gray-900 px-2 sm:px-3 py-1 rounded truncate">
-                                    {selectedCustomer.applicant_name}
-                                </h3>
+                        {/* ── Sticky Header ── */}
+                        <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex-shrink-0 shadow-sm">
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                                        <span className="text-xs font-bold bg-blue-600 text-white px-2 py-0.5 rounded-md">APP-{selectedCustomer.id}</span>
+                                        {calculateProgress(selectedCustomer) === 100 && (
+                                            <span className="text-xs font-bold bg-green-500 text-white px-2 py-0.5 rounded-md">✓ COMPLETED</span>
+                                        )}
+                                        {calculateProgress(selectedCustomer) > 0 && calculateProgress(selectedCustomer) < 100 && (
+                                            <span className="text-xs font-bold bg-amber-400 text-gray-900 px-2 py-0.5 rounded-md">ACTIVE</span>
+                                        )}
+                                    </div>
+                                    <h2 id="pipeline-title" className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">{selectedCustomer.applicant_name}</h2>
+                                    <div className="flex flex-wrap items-center gap-3 mt-1.5">
+                                        <span className="flex items-center gap-1 text-xs text-gray-500">
+                                            <Phone size={11} className="text-gray-400" /> {selectedCustomer.mobile_number}
+                                        </span>
+                                        <span className="flex items-center gap-1 text-xs text-gray-500">
+                                            <MapPin size={11} className="text-gray-400" /> {selectedCustomer.district}
+                                        </span>
+                                        {selectedCustomer.plant_size_kw && (
+                                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                                                {selectedCustomer.plant_size_kw} kW · {selectedCustomer.solar_system_type || 'Solar'}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                {/* Progress ring + close */}
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                    <ProgressRing progress={calculateProgress(selectedCustomer)} />
+                                    <button
+                                        onClick={closeModal}
+                                        className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-800"
+                                        aria-label="Close"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
                             </div>
-                            <button
-                                onClick={closeModal}
-                                className="text-white hover:bg-white/20 rounded-lg p-1.5 sm:p-2 transition-colors flex-shrink-0 ml-2"
-                            >
-                                <X size={20} className="sm:w-6 sm:h-6" />
-                            </button>
                         </div>
 
-                        <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
-                            {/* Top Stats Bar */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl p-3 sm:p-4">
-                                <div>
-                                    <p className="text-[10px] sm:text-xs text-blue-600 font-semibold uppercase mb-1">Application ID</p>
-                                    <p className="text-base sm:text-lg font-bold text-gray-800">APP-{selectedCustomer.id}</p>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] sm:text-xs text-blue-600 font-semibold uppercase mb-1">Progress</p>
-                                    <p className="text-base sm:text-lg font-bold text-blue-600">{calculateProgress(selectedCustomer)}%</p>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] sm:text-xs text-blue-600 font-semibold uppercase mb-1">Status</p>
-                                    <p className="text-base sm:text-lg font-bold text-green-600">{calculateProgress(selectedCustomer) === 100 ? 'DONE' : calculateProgress(selectedCustomer) > 0 ? 'ACTIVE' : 'PENDING'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] sm:text-xs text-blue-600 font-semibold uppercase mb-1">Date</p>
-                                    <p className="text-base sm:text-lg font-bold text-gray-800">{selectedCustomer.created_at ? new Date(selectedCustomer.created_at).toLocaleDateString('en-GB') : 'N/A'}</p>
-                                </div>
-                            </div>
+                        {/* ── Scrollable Pipeline Body ── */}
+                        <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-2">
+                            {PIPELINE_PHASES.map((phase, phaseIdx) => {
+                                const isCollapsed = collapsedPhases.has(phase.id)
+                                const applicable = phase.workTypes.filter(wt => getTaskStatus(selectedCustomer, wt) !== 'not_applicable')
+                                const completedCount = applicable.filter(wt => getTaskStatus(selectedCustomer, wt) === 'completed').length
+                                const hasInProgress = phase.workTypes.some(wt => getTaskStatus(selectedCustomer, wt) === 'inprogress')
+                                const allDone = applicable.length > 0 && completedCount === applicable.length
 
-                            {/* Personal Information */}
-                            <div>
-                                <h4 className="text-base sm:text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                                    <span className="text-lg sm:text-xl">👤</span> <span className="hidden sm:inline">Personal Information</span><span className="sm:hidden">Personal Info</span>
-                                </h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
-                                    <div className="bg-gray-50 rounded-lg p-2 sm:p-3">
-                                        <p className="text-[10px] sm:text-xs text-gray-600 font-medium mb-1">Name</p>
-                                        <p className="text-gray-900 font-semibold text-sm sm:text-base break-words">{selectedCustomer.applicant_name}</p>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-lg p-2 sm:p-3">
-                                        <p className="text-[10px] sm:text-xs text-gray-600 font-medium mb-1">Mobile</p>
-                                        <p className="text-gray-900 font-semibold text-sm sm:text-base">{selectedCustomer.mobile_number}</p>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-lg p-2 sm:p-3">
-                                        <p className="text-[10px] sm:text-xs text-gray-600 font-medium mb-1">Email</p>
-                                        <p className="text-gray-900 font-semibold text-sm sm:text-base break-words">{selectedCustomer.email_id || 'N/A'}</p>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-lg p-2 sm:p-3">
-                                        <p className="text-[10px] sm:text-xs text-gray-600 font-medium mb-1">Aadhaar</p>
-                                        <p className="text-gray-900 font-semibold text-sm sm:text-base">{selectedCustomer.aadhaar_number || '-'}</p>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-lg p-2 sm:p-3">
-                                        <p className="text-[10px] sm:text-xs text-gray-600 font-medium mb-1">District</p>
-                                        <p className="text-gray-900 font-semibold text-sm sm:text-base">{selectedCustomer.district}</p>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-lg p-2 sm:p-3">
-                                        <p className="text-[10px] sm:text-xs text-gray-600 font-medium mb-1">Pincode</p>
-                                        <p className="text-gray-900 font-semibold text-sm sm:text-base">{selectedCustomer.installation_pincode || 'N/A'}</p>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-lg p-2 sm:p-3 col-span-1 sm:col-span-3">
-                                        <p className="text-[10px] sm:text-xs text-gray-600 font-medium mb-1">Site Address</p>
-                                        <p className="text-gray-900 font-semibold text-sm sm:text-base break-words">{selectedCustomer.site_address || 'N/A'}</p>
-                                    </div>
-                                </div>
-                            </div>
+                                return (
+                                    <div key={phase.id}>
+                                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
 
-                            {/* Plant Details */}
-                            <div>
-                                <h4 className="text-base sm:text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                                    <span className="text-lg sm:text-xl">⚡</span> <span className="hidden sm:inline">Plant Details</span><span className="sm:hidden">Plant Info</span>
-                                </h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
-                                    <div className="bg-gray-50 rounded-lg p-2 sm:p-3">
-                                        <p className="text-[10px] sm:text-xs text-gray-600 font-medium mb-1">Solar Type</p>
-                                        <p className="text-gray-900 font-semibold text-sm sm:text-base">{selectedCustomer.solar_system_type || 'N/A'}</p>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-lg p-2 sm:p-3">
-                                        <p className="text-[10px] sm:text-xs text-gray-600 font-medium mb-1">Size</p>
-                                        <p className="text-gray-900 font-semibold text-sm sm:text-base">{selectedCustomer.plant_size_kw} kW</p>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-lg p-2 sm:p-3">
-                                        <p className="text-[10px] sm:text-xs text-gray-600 font-medium mb-1">Roof Type</p>
-                                        <p className="text-gray-900 font-semibold text-sm sm:text-base">{selectedCustomer.roof_type || '-'}</p>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-lg p-2 sm:p-3">
-                                        <p className="text-[10px] sm:text-xs text-gray-600 font-medium mb-1">Price</p>
-                                        <p className="text-gray-900 font-semibold text-sm sm:text-base">₹{selectedCustomer.plant_price?.toLocaleString()}</p>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-lg p-2 sm:p-3">
-                                        <p className="text-[10px] sm:text-xs text-gray-600 font-medium mb-1">Margin</p>
-                                        <p className="text-gray-900 font-semibold text-sm sm:text-base">₹{selectedCustomer.margin_money?.toLocaleString() || 0}</p>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-lg p-2 sm:p-3">
-                                        <p className="text-[10px] sm:text-xs text-gray-600 font-medium mb-1">Payment</p>
-                                        <p className="text-gray-900 font-semibold text-sm sm:text-base">{selectedCustomer.payment_mode || 'N/A'}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Workflow Progress */}
-                            <div>
-                                <h4 className="text-base sm:text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                                    <span className="text-lg sm:text-xl">📋</span> <span className="hidden sm:inline">Workflow Progress</span><span className="sm:hidden">Workflow</span>
-                                </h4>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                                    {WORK_TYPES.map(wt => {
-                                        const status = getTaskStatus(selectedCustomer, wt.key)
-                                        const task = selectedCustomer.tasks?.find(t => t.work_type === wt.key)
-                                        return (
-                                            <div key={wt.key} className="bg-white border border-gray-200 rounded-lg p-2 sm:p-3 hover:shadow-md transition-shadow">
-                                                <div className="flex items-center justify-between gap-1.5 mb-2">
-                                                    <span className="text-xs sm:text-sm font-medium text-gray-700 break-words">{wt.label}</span>
-                                                    <StatusBadge status={status} />
+                                            {/* Phase Header */}
+                                            <button
+                                                type="button"
+                                                className={`w-full flex items-center justify-between px-4 py-3 transition-colors text-left ${allDone ? 'bg-green-50 hover:bg-green-100'
+                                                    : hasInProgress ? 'bg-amber-50 hover:bg-amber-100'
+                                                        : 'bg-white hover:bg-gray-50'
+                                                    }`}
+                                                onClick={() => setCollapsedPhases(prev => {
+                                                    const next = new Set(prev)
+                                                    if (next.has(phase.id)) next.delete(phase.id)
+                                                    else next.add(phase.id)
+                                                    return next
+                                                })}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${phase.numBg}`}>
+                                                        {phaseIdx + 1}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-sm">{phase.emoji}</span>
+                                                        <span className="font-semibold text-gray-800 text-sm">{phase.label}</span>
+                                                        {allDone && <span className="text-[10px] font-bold bg-green-500 text-white px-1.5 py-0.5 rounded-full">ALL DONE</span>}
+                                                        {hasInProgress && !allDone && <span className="text-[10px] font-bold bg-amber-400 text-gray-900 px-1.5 py-0.5 rounded-full">ACTIVE</span>}
+                                                    </div>
                                                 </div>
-                                                {task && (
-                                                    <>
-                                                        {task.created_at && (
-                                                            <span className="text-[9px] sm:text-[10px] text-gray-600 block mb-1">
-                                                                {new Date(task.created_at).toLocaleDateString('en-GB')}
-                                                            </span>
-                                                        )}
-                                                        <div className="text-[9px] sm:text-[10px] bg-blue-50 rounded px-1.5 py-1 border border-blue-200">
-                                                            <p className="font-semibold text-gray-800">{task.assigned_to_name}</p>
-                                                            <p className="text-gray-600">{task.assigned_to_role}</p>
+                                                <div className="flex items-center gap-2 flex-shrink-0">
+                                                    <div className="hidden sm:block w-16 bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                                        <div
+                                                            className={`h-full rounded-full ${phase.progressFill}`}
+                                                            style={{ width: applicable.length > 0 ? `${Math.round((completedCount / applicable.length) * 100)}%` : '0%' }}
+                                                        />
+                                                    </div>
+                                                    <span className={`text-xs font-semibold ${phase.countText}`}>{completedCount}/{applicable.length}</span>
+                                                    {isCollapsed
+                                                        ? <ChevronDown size={15} className="text-gray-400" />
+                                                        : <ChevronUp size={15} className="text-gray-400" />
+                                                    }
+                                                </div>
+                                            </button>
+
+                                            {/* Phase Body */}
+                                            {!isCollapsed && (
+                                                <div className="px-3 pt-2 pb-4">
+                                                    <div className="relative">
+                                                        {/* Vertical spine */}
+                                                        <div className={`absolute left-[19px] top-2 bottom-0 w-0.5 ${phase.spineBg}`} />
+                                                        <div className="space-y-3">
+                                                            {phase.workTypes.map(workTypeKey => {
+                                                                const status = getTaskStatus(selectedCustomer, workTypeKey)
+                                                                const task = selectedCustomer.tasks?.find(t => t.work_type === workTypeKey)
+                                                                const wt = WORK_TYPES.find(w => w.key === workTypeKey)!
+                                                                const isConditional = CONDITIONAL_WORK_TYPES.has(workTypeKey)
+                                                                const isNA = status === 'not_applicable'
+
+                                                                const dotClass = isNA
+                                                                    ? 'bg-gray-300 border-gray-300'
+                                                                    : status === 'completed' ? 'bg-green-500 border-green-500'
+                                                                        : status === 'inprogress' ? 'bg-yellow-400 border-yellow-500 ring-2 ring-yellow-200 ring-offset-1'
+                                                                            : status === 'pending' ? 'bg-orange-400 border-orange-400'
+                                                                                : 'bg-white border-blue-400'
+
+                                                                const cardBorderL = isNA
+                                                                    ? 'border-l-gray-300'
+                                                                    : status === 'completed' ? 'border-l-green-500'
+                                                                        : status === 'inprogress' ? 'border-l-yellow-400'
+                                                                            : status === 'pending' ? 'border-l-orange-400'
+                                                                                : 'border-l-blue-400'
+
+                                                                const cardBg = isNA
+                                                                    ? 'bg-gray-50'
+                                                                    : status === 'completed' ? 'bg-green-50/60'
+                                                                        : status === 'inprogress' ? 'bg-yellow-50'
+                                                                            : status === 'pending' ? 'bg-orange-50/40'
+                                                                                : 'bg-white'
+
+                                                                const statusLabel = isNA ? 'Skipped'
+                                                                    : status === 'completed' ? 'Completed'
+                                                                        : status === 'inprogress' ? 'In Progress'
+                                                                            : status === 'pending' ? 'Pending'
+                                                                                : 'Not Started'
+
+                                                                const statusLabelColor = isNA ? 'text-gray-400'
+                                                                    : status === 'completed' ? 'text-green-600'
+                                                                        : status === 'inprogress' ? 'text-yellow-600'
+                                                                            : status === 'pending' ? 'text-orange-500'
+                                                                                : 'text-blue-500'
+
+                                                                const statusIcon = isNA
+                                                                    ? <Minus size={13} className="text-gray-400 flex-shrink-0" />
+                                                                    : status === 'completed' ? <CheckCircle2 size={13} className="text-green-500 flex-shrink-0" />
+                                                                        : status === 'inprogress' ? <Loader2 size={13} className="text-yellow-600 animate-spin flex-shrink-0" />
+                                                                            : status === 'pending' ? <Clock size={13} className="text-orange-500 flex-shrink-0" />
+                                                                                : <Circle size={13} className="text-blue-400 flex-shrink-0" />
+
+                                                                return (
+                                                                    <div key={workTypeKey} className="relative flex items-start pl-10">
+                                                                        {/* Dot on spine */}
+                                                                        <div className={`absolute left-[15px] top-4 w-[9px] h-[9px] rounded-full border-2 z-10 ${dotClass}`} />
+                                                                        {/* Connector */}
+                                                                        {isNA ? (
+                                                                            <div className="absolute left-6 top-5 w-4 border-t-2 border-dashed border-gray-300" />
+                                                                        ) : (
+                                                                            <div className={`absolute left-6 top-5 w-4 h-px ${phase.connectorBg}`} />
+                                                                        )}
+                                                                        {/* Task Card */}
+                                                                        <div
+                                                                            className={`w-full rounded-lg border border-l-4 p-2.5 sm:p-3 transition-shadow ${cardBorderL} ${cardBg} ${isNA ? 'opacity-60' : ''} ${status === 'inprogress' ? 'shadow-md' : 'shadow-sm'} hover:shadow-md`}
+                                                                            title={task?.work || wt?.label}
+                                                                        >
+                                                                            <div className="flex items-start justify-between gap-2">
+                                                                                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                                                                    {statusIcon}
+                                                                                    <span className={`font-semibold text-xs sm:text-sm text-gray-800 leading-snug ${isNA ? 'line-through' : ''}`}>
+                                                                                        {wt?.label}
+                                                                                    </span>
+                                                                                    {isConditional && !isNA && (
+                                                                                        <span className="hidden sm:inline text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 whitespace-nowrap">
+                                                                                            Conditional
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <span className={`text-[10px] font-semibold whitespace-nowrap flex-shrink-0 ${statusLabelColor}`}>
+                                                                                    {statusLabel}
+                                                                                </span>
+                                                                            </div>
+                                                                            {task && !isNA && (
+                                                                                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                                                                    <div className="flex items-center gap-1 bg-white rounded border border-gray-200 px-1.5 py-0.5">
+                                                                                        <User size={10} className="text-gray-400" />
+                                                                                        <span className="text-[11px] font-semibold text-gray-700">{task.assigned_to_name}</span>
+                                                                                        <span className="text-[10px] text-gray-400">·</span>
+                                                                                        <span className="text-[10px] text-gray-500">{task.assigned_to_role}</span>
+                                                                                    </div>
+                                                                                    {task.created_at && (
+                                                                                        <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                                                                                            {new Date(task.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
+                                                                            {isNA && (
+                                                                                <p className="text-[10px] text-gray-400 mt-1">Not applicable for this customer</p>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                )
+                                                            })}
                                                         </div>
-                                                    </>
-                                                )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Dashed connector between phases */}
+                                        {phaseIdx < PIPELINE_PHASES.length - 1 && (
+                                            <div className="flex justify-center py-0.5">
+                                                <div className="w-px h-4 border-l-2 border-dashed border-gray-300" />
                                             </div>
-                                        )
-                                    })}
-                                </div>
-                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
                         </div>
                     </div>
-                </div>
+                </>
             )}
         </div>
     )
