@@ -1,0 +1,127 @@
+[
+    {
+        "key": "customer_data_gathering",
+        "label": "Data Collection",
+        "description": "Collect all required customer information including personal details, site address, Aadhaar, PAN, electric bill, and solar plant requirements. Upload all supporting documents before proceeding."
+    },
+    {
+        "key": "complete_registration",
+        "label": "Registration",
+        "description": "Complete the official registration process for the solar application. Submit application form, feasibility form, e-token document, and net metering document to the relevant authorities."
+    },
+    {
+        "key": "finance_registration",
+        "label": "Finance Registration",
+        "description": "Register the customer's solar plant application with the finance partner. Upload the quotation document and obtain the digital approval letter from the finance company."
+    },
+    {
+        "key": "submit_finance_to_bank",
+        "label": "Submit Finance to Bank",
+        "description": "Submit all finance-related documents to the bank for processing. Ensure the quotation and approval documents are complete and accurate before submission."
+    },
+    {
+        "key": "cot_request",
+        "label": "COT Request",
+        "description": "Process the Change of Tenancy (COT) request for the customer. Gather COT-specific documents including death certificate, house papers, passport photo, family registration, and live Aadhaar copies."
+    },
+    {
+        "key": "name_correction_request",
+        "label": "Name Correction Request",
+        "description": "Process the name correction request on the electricity connection. Verify the correct name in all identity documents and submit the correction request to the electrical department."
+    },
+    {
+        "key": "load_request",
+        "label": "Load Enhancement Request",
+        "description": "Submit a request to enhance the sanctioned load on the electricity connection to meet the solar plant requirements. Coordinate with the electrical department for approval."
+    },
+    {
+        "key": "hard_copy_indent_creation",
+        "label": "Indent Creation",
+        "description": "Create the hard copy indent document listing all equipment and materials required for the solar plant installation. Upload the signed indent document for further processing."
+    },
+    {
+        "key": "submit_indent_to_electrical_department",
+        "label": "Submit Indent to Electrical Dept",
+        "description": "Submit the created indent document to the electrical department for sanctioning. Track the submission status and follow up for timely approval."
+    },
+    {
+        "key": "meter_installation",
+        "label": "Meter Installation",
+        "description": "Coordinate and oversee the installation of the net meter by the electrical department at the customer's site. Verify the meter is correctly installed and operational."
+    },
+    {
+        "key": "collect_remaining_amount",
+        "label": "Payment Collection",
+        "description": "Collect the remaining payment amount from the customer after deducting any advance payments. Issue a receipt and upload proof of payment."
+    },
+    {
+        "key": "approval_of_payment_collection",
+        "label": "Payment Approval",
+        "description": "Review and approve the payment collection record submitted by the field team. Verify the payment amount matches the outstanding balance before approval."
+    },
+    {
+        "key": "generate_bill",
+        "label": "Bill Generation",
+        "description": "Generate the final payment bill (paybill) for the customer. Upload the bill document and ensure it reflects the correct amount including all charges."
+    },
+    {
+        "key": "create_cdr",
+        "label": "Create CDR",
+        "description": "Create the Customer Data Record (CDR) in the system to document the complete transaction and installation details for billing and subsidy purposes."
+    },
+    {
+        "key": "approval_of_plant_installation",
+        "label": "Installation Approval",
+        "description": "Review and approve the plant installation request. Verify site feasibility, equipment list, and technician assignment before granting approval to proceed with installation."
+    },
+    {
+        "key": "plant_installation",
+        "label": "Plant Installation",
+        "description": "Execute the physical installation of the solar plant at the customer's site. Record installation date, assign technicians and technical assistants, and designate a photo taker for documentation."
+    },
+    {
+        "key": "take_installed_item_photos",
+        "label": "Take Installation Photos",
+        "description": "Capture clear photographs of all installed solar equipment including panels, inverter, mounting structure, and wiring. Photos must show serial number labels and installation quality."
+    },
+    {
+        "key": "upload_installed_item_serial_number",
+        "label": "Upload Serial Numbers",
+        "description": "Upload the serial numbers of all installed equipment (solar panels, inverter, mounting brackets) into the system for warranty and record-keeping purposes."
+    },
+    {
+        "key": "inspection",
+        "label": "Inspection",
+        "description": "Conduct a thorough technical inspection of the installed solar plant. Verify correct wiring, safety compliance, panel orientation, inverter configuration, and net meter connectivity."
+    },
+    {
+        "key": "apply_subsidy",
+        "label": "Apply Subsidy",
+        "description": "Submit the subsidy application to the relevant government portal (PM Surya Ghar / state scheme). Upload all required documents and track the application status."
+    },
+    {
+        "key": "subsidy_redemption",
+        "label": "Subsidy Redemption",
+        "description": "Process the redemption of the approved subsidy amount. Coordinate with the bank and government portal to ensure the subsidy is credited to the customer's account."
+    },
+    {
+        "key": "assign_qa",
+        "label": "Assign QA",
+        "description": "Assign a Quality Assurance (QA) representative to conduct a final quality check of the solar installation. Ensure the QA team member has access to all installation documents."
+    },
+    {
+        "key": "quality_assurance",
+        "label": "Quality Assurance",
+        "description": "Perform a comprehensive quality assurance check of the entire solar plant installation. Verify system performance, safety standards, documentation completeness, and customer satisfaction."
+    },
+    {
+        "key": "submit_warranty_document",
+        "label": "Submit Warranty Document",
+        "description": "Prepare and submit all warranty documents for the installed equipment to the SFDC system. Include product warranties, installation warranty, and AMC details if applicable."
+    },
+    {
+        "key": "document_handover",
+        "label": "Document Handover",
+        "description": "Hand over all original documents to the customer including registration certificate, inspection report, warranty cards, subsidy acknowledgement, and any other official paperwork."
+    }
+]
