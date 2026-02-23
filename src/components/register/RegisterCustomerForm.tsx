@@ -511,33 +511,6 @@ export default function RegisterCustomerForm({
             }
         }
 
-        // Validate file sizes BEFORE uploading (max 30MB per file)
-        const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB
-        const oversizedFiles: string[] = [];
-
-        for (const [fieldName, file] of Object.entries(files)) {
-            if (file && file.size > MAX_FILE_SIZE) {
-                oversizedFiles.push(`${fieldName.replace(/_/g, ' ')} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`);
-            }
-        }
-
-        for (const [fieldName, file] of Object.entries(cotFiles)) {
-            if (fieldName === 'aadhaar_photos' && Array.isArray(file)) {
-                (file as (File | null)[]).forEach((f, idx) => {
-                    if (f && f.size > MAX_FILE_SIZE) {
-                        oversizedFiles.push(`Aadhaar Photo ${idx + 1} (${(f.size / (1024 * 1024)).toFixed(2)}MB)`);
-                    }
-                });
-            } else if (file && !(file instanceof Array) && file.size > MAX_FILE_SIZE) {
-                oversizedFiles.push(`${fieldName.replace(/_/g, ' ')} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`);
-            }
-        }
-
-        if (oversizedFiles.length > 0) {
-            setMsg(`❌ File size exceeded! Max 10MB per file. Oversized files:\n${oversizedFiles.join('\n')}`)
-            return
-        }
-
         setLoading(true)
 
         try {
