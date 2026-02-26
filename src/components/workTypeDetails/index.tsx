@@ -123,6 +123,18 @@ export const PaymentCollection: React.FC<WorkTypeDetailsProps> = ({ task: _task,
 
     const remainingAmount = (customer?.plant_price || 0) - (customer?.transaction_information?.paid_amount || 0);
 
+    // Parse payment history from transaction_information
+    const paymentHistory = React.useMemo(() => {
+        try {
+            const details = customer?.transaction_information?.amount_submitted_details;
+            if (!details) return [];
+            const parsed = typeof details === 'string' ? JSON.parse(details) : details;
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    }, [customer?.transaction_information?.amount_submitted_details]);
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -213,7 +225,43 @@ export const PaymentCollection: React.FC<WorkTypeDetailsProps> = ({ task: _task,
                 </div>
             </div>
 
-            {/* Payment Form */}
+            {/* Payment History */}
+            {paymentHistory.length > 0 && (
+                <div className="bg-blue/5 border border-blue/20 rounded-lg p-3 flex-shrink-0">
+                    <p className="text-xs font-semibold text-muted uppercase mb-3">Payment History</p>
+                    <div className="space-y-2">
+                        {paymentHistory.map((payment: any, index: number) => {
+                            const paymentDate = new Date(payment.date).toLocaleDateString('en-IN', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                            });
+                            const paymentTime = new Date(payment.date).toLocaleTimeString('en-IN', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true
+                            });
+                            return (
+                                <div key={index} className="bg-white border border-blue/30 rounded-lg p-2.5 flex items-center justify-between hover:bg-blue/5 transition-colors">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-xs font-semibold text-blue">Payment #{index + 1}</span>
+                                            <span className="text-xs px-2 py-0.5 bg-blue/20 text-blue rounded font-semibold">
+                                                {payment.mode || 'N/A'}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-muted">{paymentDate} at {paymentTime}</p>
+                                        {payment.note && <p className="text-xs text-muted mt-1">{payment.note}</p>}
+                                    </div>
+                                    <div className="text-right ml-3">
+                                        <p className="text-sm font-bold text-green-600">₹{payment.amount?.toLocaleString() || '0'}</p>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
             {!isFormOpen ? (
                 <button
                     onClick={() => setIsFormOpen(true)}
@@ -1267,8 +1315,8 @@ export const PlantInstallation: React.FC<WorkTypeDetailsProps> = ({ task: _task,
                     <button
                         onClick={() => setIsFormOpen(true)}
                         className={`w-full text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold transition-all duration-200 text-xs sm:text-sm shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ${existingRecord
-                                ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
-                                : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
+                            ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
+                            : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
                             }`}
                     >
                         {existingRecord

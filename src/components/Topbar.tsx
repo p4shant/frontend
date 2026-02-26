@@ -1,6 +1,7 @@
 import { Menu, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import NotificationIcon from './NotificationIcon';
 
 interface Props {
     onMenuClick: () => void;
@@ -9,7 +10,7 @@ interface Props {
 }
 
 function Topbar({ onMenuClick, onCollapseClick, isCollapsed }: Props) {
-    const { user, logout } = useAuth();
+    const { user, logout, token } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -45,6 +46,9 @@ function Topbar({ onMenuClick, onCollapseClick, isCollapsed }: Props) {
                 </div>
             </div>
             <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+                {user && token && (
+                    <NotificationIcon token={token} employeeId={user.id} />
+                )}
                 {user && (
                     <div className="hidden md:flex items-center gap-3 px-3 py-2 rounded-lg bg-blue/5 border border-blue/12">
                         <div className="text-right">
