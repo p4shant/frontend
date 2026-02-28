@@ -1591,6 +1591,66 @@ export const createHardCopyindentCreationTask: React.FC<WorkTypeDetailsProps> = 
         { label: 'Ceiling Paper Photo', url: customer?.ceiling_paper_photo_url },
     ].filter(doc => doc.url);
 
+    const handleDownload = async (url: string, filename: string) => {
+        try {
+            // Build the download URL — append ?download=true to force Content-Disposition: attachment from backend
+            let fullUrl = getFullFileUrl(url);
+
+            // Extract the /uploads/... path from the full URL to rebuild it via our own backend
+            const uploadsMatch = fullUrl.match(/\/uploads\/.+/);
+            if (uploadsMatch) {
+                // Route through our own backend origin with ?download=true to force attachment headers
+                const apiOrigin = import.meta.env.VITE_API_ORIGIN || 'http://localhost:3000';
+                const uploadPath = uploadsMatch[0].split('?')[0]; // clean path without query params
+                fullUrl = `${apiOrigin}${uploadPath}?download=true`;
+            }
+
+            console.log('Downloading from:', fullUrl);
+
+            const response = await fetch(fullUrl, {
+                method: 'GET',
+                cache: 'no-cache',
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const blob = await response.blob();
+
+            // Ensure filename has an extension
+            let finalFilename = filename;
+            if (!finalFilename.includes('.')) {
+                const urlPath = url.split('?')[0];
+                const urlExt = urlPath.split('.').pop()?.toLowerCase();
+                if (urlExt && urlExt.length <= 5) {
+                    finalFilename = `${finalFilename}.${urlExt}`;
+                }
+            }
+
+            // Force octet-stream MIME to guarantee download behavior
+            const downloadBlob = new Blob([blob], { type: 'application/octet-stream' });
+            const blobUrl = window.URL.createObjectURL(downloadBlob);
+
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = finalFilename;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+
+            setTimeout(() => {
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(blobUrl);
+            }, 200);
+        } catch (error) {
+            console.error('Download failed:', error);
+            // Last resort fallback — open in new tab (at least user can right-click > Save As)
+            const fullUrl = getFullFileUrl(url);
+            window.open(fullUrl, '_blank');
+        }
+    };
+
     return (
         <div className="bg-indigo/5 border border-indigo/20 rounded-lg p-4">
             <h3 className="text-sm font-bold text-text mb-4">Hard Copy Indent Creation</h3>
@@ -1616,13 +1676,12 @@ export const createHardCopyindentCreationTask: React.FC<WorkTypeDetailsProps> = 
                                         >
                                             Preview
                                         </a>
-                                        <a
-                                            href={getFullFileUrl(doc.url)}
-                                            download
+                                        <button
+                                            onClick={() => handleDownload(doc.url, doc.label)}
                                             className="text-xs text-green-600 hover:text-green-700 font-medium"
                                         >
                                             Download
-                                        </a>
+                                        </button>
                                     </div>
                                 </div>
                             ))}
