@@ -3777,14 +3777,6 @@ export const AssignQA: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer
     const [loadingInstallationDate, setLoadingInstallationDate] = React.useState<boolean>(true);
     const [message, setMessage] = React.useState('');
 
-    const getFileType = (url: string) => {
-        if (!url) return 'unknown';
-        const ext = url.split('.').pop()?.toLowerCase();
-        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext || '')) return 'image';
-        if (ext === 'pdf') return 'pdf';
-        return 'document';
-    };
-
     React.useEffect(() => {
         const fetchInstallationDate = async () => {
             if (!customer?.id) { setLoadingInstallationDate(false); return; }
