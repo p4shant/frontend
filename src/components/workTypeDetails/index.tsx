@@ -650,6 +650,7 @@ export const FinanceRegistration: React.FC<WorkTypeDetailsProps> = ({ task: _tas
     );
 };
 
+// Registration Completion Component
 export const RegistrationComplete: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
     const [applicationFormFile, setApplicationFormFile] = React.useState<File | null>(null);
     const [feasibilityFormFile, setFeasibilityFormFile] = React.useState<File | null>(null);
@@ -3075,9 +3076,14 @@ export const PhotoCapture: React.FC<WorkTypeDetailsProps> = ({ task: _task, cust
 export const SerialNumberUpload: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
     const [previewUrl, setPreviewUrl] = React.useState<string>('');
     const [previewTitle, setPreviewTitle] = React.useState<string>('');
+    const [summaryImageFile, setSummaryImageFile] = React.useState<File | null>(null);
+    const [summaryImagePreview, setSummaryImagePreview] = React.useState<string>('');
+    const [summaryUploadMessage, setSummaryUploadMessage] = React.useState('');
+    const [summaryIsSubmitting, setSummaryIsSubmitting] = React.useState(false);
 
     // Get existing image URLs
     const solarPanelsImagesUrl = getAdditionalDocUrl(customer, 'solar_panels_images_url');
+    const solarPanelSummaryImageUrl = getAdditionalDocUrl(customer, 'solar_panel_summary_image_url');
     const invertorImageUrl = getAdditionalDocUrl(customer, 'inverter_image_url');
     const applicantWithPanelImageUrl = getAdditionalDocUrl(customer, 'applicant_with_panel_image_url');
     const applicantWithInvertorImageUrl = getAdditionalDocUrl(customer, 'applicant_with_invertor_image_url');
@@ -3103,6 +3109,69 @@ export const SerialNumberUpload: React.FC<WorkTypeDetailsProps> = ({ task: _task
     const closePreview = () => {
         setPreviewUrl('');
         setPreviewTitle('');
+    };
+
+    const handleSummaryImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        setSummaryUploadMessage('');
+        if (!file) return;
+
+        setSummaryImageFile(file);
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onloadend = () => setSummaryImagePreview(reader.result as string);
+            reader.readAsDataURL(file);
+        } else {
+            setSummaryImagePreview('');
+        }
+    };
+
+    const uploadSummaryImage = async () => {
+        if (!summaryImageFile) {
+            setSummaryUploadMessage('Please select solar panel summary image');
+            return;
+        }
+
+        if (!customer?.id) {
+            setSummaryUploadMessage('Customer ID not found');
+            return;
+        }
+
+        const token = localStorage.getItem('auth_token') || '';
+        if (!token) {
+            setSummaryUploadMessage('Authentication required. Please login again.');
+            return;
+        }
+
+        setSummaryIsSubmitting(true);
+        setSummaryUploadMessage('');
+
+        try {
+            const formData = new FormData();
+            formData.append('solar_panel_summary_image', summaryImageFile);
+
+            const response = await fetch(`${API_BASE}/additional-documents/${customer.id}/upload-solar-panel-summary`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.message || 'Failed to upload solar panel summary image');
+            }
+
+            setSummaryUploadMessage('Solar panel summary image uploaded successfully');
+            setSummaryImageFile(null);
+            setSummaryImagePreview('');
+            setTimeout(() => window.location.reload(), 1000);
+        } catch (error: any) {
+            setSummaryUploadMessage(error.message || 'Failed to upload solar panel summary image');
+        } finally {
+            setSummaryIsSubmitting(false);
+        }
     };
 
     const handleDownload = async (url: string, fileName: string) => {
@@ -3160,6 +3229,93 @@ export const SerialNumberUpload: React.FC<WorkTypeDetailsProps> = ({ task: _task
                     </span>
                 </div>
                 <p className="text-sm text-gray-600">View and download all uploaded equipment images for serial number verification</p>
+            </div>
+
+            {/* Solar Panel Summary Image - Mandatory for task completion */}
+            <div className="bg-white border border-cyan-200 rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-700">Summary Image (Required to complete task)</h3>
+                    {solarPanelSummaryImageUrl ? (
+                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">✓ Submitted</span>
+                    ) : (
+                        <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">Required</span>
+                    )}
+                </div>
+
+                {solarPanelSummaryImageUrl && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+                        <div className="relative group overflow-hidden rounded-lg bg-gray-100 h-40">
+                            <img
+                                src={solarPanelSummaryImageUrl}
+                                alt="Solar Panel Summary"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform cursor-pointer"
+                                onClick={() => handlePreview(solarPanelSummaryImageUrl, 'Solar Panel Summary Image')}
+                            />
+                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                <span className="text-white text-xs font-semibold">Click to Preview</span>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => handlePreview(solarPanelSummaryImageUrl, 'Solar Panel Summary Image')}
+                                className="flex-1 px-3 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-semibold"
+                            >
+                                Preview
+                            </button>
+                            <button
+                                onClick={() => handleDownload(solarPanelSummaryImageUrl, `solar_panel_summary_${getFileNameFromUrl(solarPanelSummaryImageUrl)}`)}
+                                className="flex-1 px-3 py-2 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-semibold"
+                            >
+                                Download
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-3 space-y-3">
+                    <label className="block text-xs font-semibold text-gray-700 uppercase">Upload Solar Panel Summary Image *</label>
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleSummaryImageChange}
+                        className="w-full border border-cyan-300 rounded-lg px-3 py-2 text-sm"
+                    />
+
+                    {summaryImageFile && (
+                        <div className="mt-2 flex items-center gap-3">
+                            {summaryImagePreview ? (
+                                <div className="overflow-hidden rounded-lg border border-cyan-200">
+                                    <img src={summaryImagePreview} alt="Solar panel summary preview" className="h-20 w-20 object-cover" />
+                                </div>
+                            ) : (
+                                <p className="text-xs text-muted flex items-center gap-1">
+                                    <span>📄</span> {summaryImageFile.name}
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {summaryUploadMessage && (
+                        <p className={`text-xs font-semibold px-3 py-2 rounded ${summaryUploadMessage.includes('successfully') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {summaryUploadMessage}
+                        </p>
+                    )}
+
+                    <button
+                        onClick={uploadSummaryImage}
+                        disabled={summaryIsSubmitting || !summaryImageFile}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-cyan-600 text-white rounded-lg font-semibold hover:bg-cyan-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <Upload size={16} />
+                        {summaryIsSubmitting ? 'Uploading...' : 'Upload Summary Image'}
+                    </button>
+
+                    {!solarPanelSummaryImageUrl && (
+                        <p className="text-xs text-red-600 font-semibold">
+                            Task cannot be moved to completed until this summary image is uploaded.
+                        </p>
+                    )}
+                </div>
             </div>
 
             {/* Solar Panel Images */}
@@ -3315,7 +3471,7 @@ export const SerialNumberUpload: React.FC<WorkTypeDetailsProps> = ({ task: _task
             )}
 
             {/* No Images Message */}
-            {!solarPanelsImages.length && !invertorImageUrl && !applicantWithPanelImageUrl && !applicantWithInvertorImageUrl && (
+            {!solarPanelsImages.length && !solarPanelSummaryImageUrl && !invertorImageUrl && !applicantWithPanelImageUrl && !applicantWithInvertorImageUrl && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
                     <p className="text-yellow-700 font-semibold">No images uploaded yet. Please wait for the upload process to complete.</p>
                 </div>
@@ -3380,7 +3536,7 @@ export const SerialNumberUpload: React.FC<WorkTypeDetailsProps> = ({ task: _task
     );
 };
 
-
+// Plant Installation Approval Component
 export const PlantInstallationApproval: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
     return (
         <div className="flex items-start gap-3 bg-teal/5 border border-teal/20 rounded-lg p-3">
@@ -3404,7 +3560,7 @@ export const PlantInstallationApproval: React.FC<WorkTypeDetailsProps> = ({ task
     );
 };
 
-
+// Indent Submission Component
 export const IndentSubmission: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
     const existingIndentUrl = getAdditionalDocUrl(customer, 'indent_document');
     const [indentFile, setIndentFile] = React.useState<File | null>(null);
@@ -3569,6 +3725,205 @@ export const IndentSubmission: React.FC<WorkTypeDetailsProps> = ({ task: _task, 
                     {isSubmitting ? 'Uploading...' : 'Submit Indent Document'}
                 </button>
             </div>
+
+            {previewUrl && (
+                <div
+                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+                    onClick={closePreview}
+                >
+                    <div
+                        className="relative bg-white rounded-xl shadow-2xl max-w-4xl max-h-[90vh] overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 px-4 py-3 flex items-center justify-between">
+                            <h3 className="text-white font-semibold text-sm">{previewTitle}</h3>
+                            <button
+                                onClick={closePreview}
+                                className="p-1 hover:bg-white/20 rounded-lg transition-colors text-white"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-4 max-h-[80vh] overflow-auto">
+                            {getFileType(previewUrl) === 'image' ? (
+                                <img src={previewUrl} alt={previewTitle} className="max-w-full h-auto rounded-lg" />
+                            ) : getFileType(previewUrl) === 'pdf' ? (
+                                <iframe src={previewUrl} className="w-full h-[70vh] rounded-lg" title={previewTitle} />
+                            ) : (
+                                <div className="text-center py-8">
+                                    <p className="text-muted mb-4">Cannot preview this file type</p>
+                                    <a
+                                        href={previewUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                                    >
+                                        Open in New Tab
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+
+export const AssignQA: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
+    const existingFeasibilityUrl = getAdditionalDocUrl(customer, 'feasibility_form');
+    const [installationDate, setInstallationDate] = React.useState<string>('');
+    const [loadingInstallationDate, setLoadingInstallationDate] = React.useState<boolean>(true);
+    const [message, setMessage] = React.useState('');
+    const [previewUrl, setPreviewUrl] = React.useState<string>('');
+    const [previewTitle, setPreviewTitle] = React.useState<string>('');
+
+    const getFileType = (url: string) => {
+        if (!url) return 'unknown';
+        const ext = url.split('.').pop()?.toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext || '')) return 'image';
+        if (ext === 'pdf') return 'pdf';
+        return 'document';
+    };
+
+    React.useEffect(() => {
+        const fetchInstallationDate = async () => {
+            if (!customer?.id) { setLoadingInstallationDate(false); return; }
+
+            try {
+                const token = localStorage.getItem('auth_token') || '';
+                const response = await fetch(`${API_BASE}/plant-installation-details/customer/${customer.id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch installation details');
+                }
+
+                const data = await response.json();
+                const record = Array.isArray(data) ? data[0] : (data?.data?.[0] ?? null);
+                setInstallationDate(record?.date_of_installation || '');
+            } catch (error) {
+                console.error('Failed to fetch installation details:', error);
+                setInstallationDate('');
+            } finally {
+                setLoadingInstallationDate(false);
+            }
+        };
+
+        fetchInstallationDate();
+    }, [customer?.id]);
+
+    const handleDownload = async (url: string, fileName: string) => {
+        try {
+            const fullUrl = getFullFileUrl(url);
+            const safeName = fileName || 'document';
+            const downloadUrl = `${API_BASE}/download?url=${encodeURIComponent(fullUrl)}&name=${encodeURIComponent(safeName)}`;
+            const token = localStorage.getItem('auth_token') || '';
+
+            const response = await fetch(downloadUrl, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to download file: ${response.status}`);
+            }
+
+            const blob = await response.blob();
+            const objectUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = safeName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(objectUrl);
+        } catch (error: any) {
+            setMessage(error?.message || 'Download failed');
+            window.open(getFullFileUrl(url), '_blank');
+        }
+    };
+
+    const openExisting = () => {
+        if (existingFeasibilityUrl) {
+            setPreviewUrl(getFullFileUrl(existingFeasibilityUrl));
+            setPreviewTitle('Feasibility Form');
+        }
+    };
+
+    const closePreview = () => {
+        setPreviewUrl('');
+        setPreviewTitle('');
+    };
+
+    return (
+        <div className="max-h-[420px] overflow-y-auto bg-indigo/5 border border-indigo/20 rounded-lg p-4 space-y-4">
+            <h3 className="text-sm font-bold text-text mb-2">Quality Assurance Details</h3>
+            <p className="text-xs text-muted mb-2">Review feasibility form and installation date for QA task verification.</p>
+
+            <div className="bg-white/60 border border-indigo/10 rounded-lg p-3">
+                <p className="text-[11px] font-semibold text-muted uppercase mb-2">Date of Installation</p>
+                <p className="text-sm text-text font-semibold">
+                    {loadingInstallationDate
+                        ? 'Loading...'
+                        : installationDate
+                            ? new Date(installationDate).toLocaleDateString('en-IN', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                            })
+                            : 'Not available'}
+                </p>
+            </div>
+
+            {existingFeasibilityUrl ? (
+                <div className="bg-white/60 border border-indigo/10 rounded-lg p-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-lg">{getFileTypeFromUrl(existingFeasibilityUrl) === 'image' ? '🖼️' : '📄'}</span>
+                        <div className="min-w-0">
+                            <p className="text-xs font-semibold text-text truncate">Feasibility Form</p>
+                            <p className="text-[11px] text-muted truncate">{existingFeasibilityUrl.split('/').pop()}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <a
+                            href={getFullFileUrl(existingFeasibilityUrl)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-semibold text-indigo-700 hover:text-indigo-800"
+                        >
+                            Open
+                        </a>
+                        <button
+                            onClick={openExisting}
+                            className="px-3 py-1.5 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                        >
+                            Preview
+                        </button>
+                        <button
+                            onClick={() => handleDownload(existingFeasibilityUrl, `feasibility_form_${existingFeasibilityUrl.split('/').pop() || 'document'}`)}
+                            className="px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                        >
+                            Download
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
+                    <p className="text-xs font-semibold text-yellow-700">Feasibility form not uploaded yet.</p>
+                </div>
+            )}
+
+            {message && (
+                <p className={`text-xs font-semibold px-3 py-2 rounded ${message.includes('successfully') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    {message}
+                </p>
+            )}
 
             {previewUrl && (
                 <div
