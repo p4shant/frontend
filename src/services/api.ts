@@ -927,6 +927,119 @@ export const statsAPI = {
     },
 };
 
+// ============================================================================
+// NOTIFICATIONS API
+// ============================================================================
+export const notificationsAPI = {
+    async listNotifications(token: string, filters?: { is_read?: boolean; is_archived?: boolean; page?: number; limit?: number }) {
+        let url = `${API_BASE}/notifications`;
+        if (filters) {
+            const params = new URLSearchParams();
+            if (filters.is_read !== undefined) params.append('is_read', String(filters.is_read));
+            if (filters.is_archived !== undefined) params.append('is_archived', String(filters.is_archived));
+            if (filters.page) params.append('page', String(filters.page));
+            if (filters.limit) params.append('limit', String(filters.limit));
+            if (params.toString()) url += '?' + params.toString();
+        }
+
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch notifications');
+        return await response.json();
+    },
+
+    async getNotificationById(id: string, token: string) {
+        const response = await fetch(`${API_BASE}/notifications/${id}`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch notification');
+        return await response.json();
+    },
+
+    async getEmployeeNotifications(employeeId: string, token: string) {
+        const response = await fetch(`${API_BASE}/notifications/employee/${employeeId}`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch employee notifications');
+        return await response.json();
+    },
+
+    async getUnreadCount(employeeId: string, token: string) {
+        const response = await fetch(`${API_BASE}/notifications/employee/${employeeId}/unread-count`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch unread count');
+        return await response.json();
+    },
+
+    async markAsRead(id: string, token: string) {
+        const response = await fetch(`${API_BASE}/notifications/${id}/mark-as-read`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+
+        if (!response.ok) throw new Error('Failed to mark notification as read');
+        return await response.json();
+    },
+
+    async markAsUnread(id: string, token: string) {
+        const response = await fetch(`${API_BASE}/notifications/${id}/mark-as-unread`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+
+        if (!response.ok) throw new Error('Failed to mark notification as unread');
+        return await response.json();
+    },
+
+    async markAsArchived(id: string, token: string) {
+        const response = await fetch(`${API_BASE}/notifications/${id}/mark-as-archived`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+
+        if (!response.ok) throw new Error('Failed to archive notification');
+        return await response.json();
+    },
+
+    async markMultipleAsRead(notificationIds: string[], token: string) {
+        const response = await fetch(`${API_BASE}/notifications/bulk/mark-as-read`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notification_ids: notificationIds }),
+        });
+
+        if (!response.ok) throw new Error('Failed to mark notifications as read');
+        return await response.json();
+    },
+
+    async deleteNotification(id: string, token: string) {
+        const response = await fetch(`${API_BASE}/notifications/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+
+        if (!response.ok) throw new Error('Failed to delete notification');
+        return await response.json();
+    },
+
+    async sendForgotPunchOutReminder(token: string, message?: string) {
+        const response = await fetch(`${API_BASE}/notifications/send/forgot-punch-out`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: message || 'You forgot to punch out today. Please mark your punch-out time.' }),
+        });
+
+        if (!response.ok) throw new Error('Failed to send punch-out reminders');
+        return await response.json();
+    },
+};
+
 export default {
     authAPI,
     tasksAPI,
@@ -937,4 +1050,5 @@ export default {
     transactionLogsAPI,
     plantInstallationsAPI,
     statsAPI,
+    notificationsAPI,
 };
