@@ -3776,8 +3776,6 @@ export const AssignQA: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer
     const [installationDate, setInstallationDate] = React.useState<string>('');
     const [loadingInstallationDate, setLoadingInstallationDate] = React.useState<boolean>(true);
     const [message, setMessage] = React.useState('');
-    const [previewUrl, setPreviewUrl] = React.useState<string>('');
-    const [previewTitle, setPreviewTitle] = React.useState<string>('');
 
     const getFileType = (url: string) => {
         if (!url) return 'unknown';
@@ -3849,18 +3847,6 @@ export const AssignQA: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer
         }
     };
 
-    const openExisting = () => {
-        if (existingFeasibilityUrl) {
-            setPreviewUrl(getFullFileUrl(existingFeasibilityUrl));
-            setPreviewTitle('Feasibility Form');
-        }
-    };
-
-    const closePreview = () => {
-        setPreviewUrl('');
-        setPreviewTitle('');
-    };
-
     return (
         <div className="max-h-[420px] overflow-y-auto bg-indigo/5 border border-indigo/20 rounded-lg p-4 space-y-4">
             <h3 className="text-sm font-bold text-text mb-2">Quality Assurance Details</h3>
@@ -3891,20 +3877,6 @@ export const AssignQA: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <a
-                            href={getFullFileUrl(existingFeasibilityUrl)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs font-semibold text-indigo-700 hover:text-indigo-800"
-                        >
-                            Open
-                        </a>
-                        <button
-                            onClick={openExisting}
-                            className="px-3 py-1.5 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                        >
-                            Preview
-                        </button>
                         <button
                             onClick={() => handleDownload(existingFeasibilityUrl, `feasibility_form_${existingFeasibilityUrl.split('/').pop() || 'document'}`)}
                             className="px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -3925,46 +3897,6 @@ export const AssignQA: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer
                 </p>
             )}
 
-            {previewUrl && (
-                <div
-                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
-                    onClick={closePreview}
-                >
-                    <div
-                        className="relative bg-white rounded-xl shadow-2xl max-w-4xl max-h-[90vh] overflow-hidden"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 px-4 py-3 flex items-center justify-between">
-                            <h3 className="text-white font-semibold text-sm">{previewTitle}</h3>
-                            <button
-                                onClick={closePreview}
-                                className="p-1 hover:bg-white/20 rounded-lg transition-colors text-white"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="p-4 max-h-[80vh] overflow-auto">
-                            {getFileType(previewUrl) === 'image' ? (
-                                <img src={previewUrl} alt={previewTitle} className="max-w-full h-auto rounded-lg" />
-                            ) : getFileType(previewUrl) === 'pdf' ? (
-                                <iframe src={previewUrl} className="w-full h-[70vh] rounded-lg" title={previewTitle} />
-                            ) : (
-                                <div className="text-center py-8">
-                                    <p className="text-muted mb-4">Cannot preview this file type</p>
-                                    <a
-                                        href={previewUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                                    >
-                                        Open in New Tab
-                                    </a>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
