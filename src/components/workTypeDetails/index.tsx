@@ -1579,148 +1579,69 @@ export const NameCorrectionRequest: React.FC<WorkTypeDetailsProps> = ({ task: _t
 };
 
 // Hard Copy Indent Creation Task
-export const CreateHardCopyIndentCreation: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
-    const existingIndentUrl = getAdditionalDocUrl(customer, 'indent_document');
-    const [indentDocumentFile, setIndentDocumentFile] = React.useState<File | null>(null);
-    const [indentDocumentPreview, setIndentDocumentPreview] = React.useState<string>('');
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
-    const [message, setMessage] = React.useState('');
-
-    const handleIndentDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setIndentDocumentFile(file);
-            if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onloadend = () => setIndentDocumentPreview(reader.result as string);
-                reader.readAsDataURL(file);
-            } else {
-                setIndentDocumentPreview('');
-            }
-        }
-    };
-
-    const handleSubmit = async () => {
-        if (!indentDocumentFile) {
-            setMessage('Indent document is required');
-            return;
-        }
-
-        if (!customer?.id) {
-            setMessage('Customer ID not found');
-            return;
-        }
-
-        setIsSubmitting(true);
-        setMessage('');
-
-        try {
-            const token = localStorage.getItem('auth_token') || '';
-            const formData = new FormData();
-            formData.append('indent_document', indentDocumentFile);
-
-            const response = await fetch(`${API_BASE}/additional-documents/${customer.id}/indent`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: formData,
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to upload indent document');
-            }
-
-            setMessage('Indent document uploaded successfully');
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
-        } catch (error: any) {
-            setMessage(error.message || 'Failed to upload document');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
+export const createHardCopyindentCreationTask: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
+    // Document URLs to display for download
+    const availableDocuments = [
+        { label: 'Aadhaar Front', url: customer?.aadhaar_front_url },
+        { label: 'Aadhaar Back', url: customer?.aadhaar_back_url },
+        { label: 'Application Form', url: getAdditionalDocUrl(customer, 'application_form') },
+        { label: 'Feasibility Form', url: getAdditionalDocUrl(customer, 'feasibility_form') },
+        { label: 'E-Token Document', url: getAdditionalDocUrl(customer, 'etoken_document') },
+        { label: 'Net Metering Document', url: getAdditionalDocUrl(customer, 'net_metering_document') },
+        { label: 'Ceiling Paper Photo', url: customer?.ceiling_paper_photo_url },
+    ].filter(doc => doc.url);
 
     return (
-        <div className="max-h-[300px] overflow-y-auto bg-indigo/5 border border-indigo/20 rounded-lg p-4">
+        <div className="bg-indigo/5 border border-indigo/20 rounded-lg p-4">
             <h3 className="text-sm font-bold text-text mb-4">Hard Copy Indent Creation</h3>
 
             <div className="space-y-4">
-                {existingIndentUrl && (
-                    <div className="bg-white/60 rounded-lg p-3 border border-indigo/10">
-                        <p className="text-xs font-semibold text-muted uppercase mb-2">Already Uploaded</p>
-                        <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-slate-200">
-                            <div className="flex items-center gap-2 min-w-0">
-                                <span className="text-lg">{getFileTypeFromUrl(existingIndentUrl) === 'image' ? '🖼️' : '📄'}</span>
-                                <span className="text-xs font-medium text-slate-700 truncate">Indent Document</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <a
-                                    href={getFullFileUrl(existingIndentUrl)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-xs text-blue-600 hover:text-blue-700"
-                                >
-                                    Preview
-                                </a>
-                                <a
-                                    href={getFullFileUrl(existingIndentUrl)}
-                                    download
-                                    className="text-xs text-green-600 hover:text-green-700"
-                                >
-                                    Download
-                                </a>
-                            </div>
+                {/* Available Documents for Download */}
+                {availableDocuments.length > 0 ? (
+                    <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                        <p className="text-xs font-semibold text-blue-900 uppercase mb-3">Available Documents for Download</p>
+                        <div className="space-y-2">
+                            {availableDocuments.map((doc, index) => (
+                                <div key={index} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-slate-200">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <span className="text-lg">{getFileTypeFromUrl(doc.url) === 'image' ? '🖼️' : '📄'}</span>
+                                        <span className="text-xs font-medium text-slate-700 truncate">{doc.label}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <a
+                                            href={getFullFileUrl(doc.url)}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                                        >
+                                            Preview
+                                        </a>
+                                        <a
+                                            href={getFullFileUrl(doc.url)}
+                                            download
+                                            className="text-xs text-green-600 hover:text-green-700 font-medium"
+                                        >
+                                            Download
+                                        </a>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
+                    </div>
+                ) : (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <p className="text-xs text-yellow-900">
+                            <span className="font-semibold">No documents available</span> - Please ensure all required documents are uploaded first.
+                        </p>
                     </div>
                 )}
 
-                {/* Indent Document Upload */}
-                <div>
-                    <label className="block text-xs font-semibold text-muted uppercase mb-2">
-                        Indent Document *
-                    </label>
-                    <input
-                        type="file"
-                        accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
-                        onChange={handleIndentDocumentChange}
-                        className="w-full border border-indigo/30 rounded-lg px-3 py-2 text-sm"
-                    />
-                    {indentDocumentFile && (
-                        <div className="mt-2">
-                            {indentDocumentPreview ? (
-                                <div className="overflow-hidden rounded-lg">
-                                    <img src={indentDocumentPreview} alt="Indent Document Preview" className="h-24 w-24 object-cover" />
-                                </div>
-                            ) : (
-                                <p className="text-xs text-muted flex items-center gap-1">
-                                    <span>📄</span> {indentDocumentFile.name}
-                                </p>
-                            )}
-                        </div>
-                    )}
-                </div>
-
-                {/* Message */}
-                {message && (
-                    <p className={`text-xs font-semibold px-3 py-2 rounded ${message.includes('successfully')
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-red-100 text-red-700'
-                        }`}>
-                        {message}
+                {/* Info Message */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-xs text-blue-900">
+                        <span className="font-semibold">Note:</span> Use the available documents above as reference for creating the hard copy indent.
                     </p>
-                )}
-
-                {/* Submit Button */}
-                <button
-                    onClick={handleSubmit}
-                    disabled={isSubmitting || !indentDocumentFile}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center"
-                >
-                    <Upload size={16} />
-                    {isSubmitting ? 'Uploading...' : 'Submit Indent Document'}
-                </button>
+                </div>
             </div>
         </div>
     );
