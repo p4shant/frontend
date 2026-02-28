@@ -3403,3 +3403,213 @@ export const PlantInstallationApproval: React.FC<WorkTypeDetailsProps> = ({ task
         </div>
     );
 };
+
+
+export const IndentSubmission: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
+    const existingIndentUrl = getAdditionalDocUrl(customer, 'indent_document');
+    const [indentFile, setIndentFile] = React.useState<File | null>(null);
+    const [filePreview, setFilePreview] = React.useState<string>('');
+    const [message, setMessage] = React.useState('');
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [previewUrl, setPreviewUrl] = React.useState<string>('');
+    const [previewTitle, setPreviewTitle] = React.useState<string>('');
+
+    const getFileType = (url: string) => {
+        if (!url) return 'unknown';
+        const ext = url.split('.').pop()?.toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext || '')) return 'image';
+        if (ext === 'pdf') return 'pdf';
+        return 'document';
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        setMessage('');
+        if (file) {
+            setIndentFile(file);
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onloadend = () => setFilePreview(reader.result as string);
+                reader.readAsDataURL(file);
+            } else {
+                setFilePreview('');
+            }
+        }
+    };
+
+    const handleSubmit = async () => {
+        if (!indentFile) {
+            setMessage('Indent document is required');
+            return;
+        }
+
+        if (!customer?.id) {
+            setMessage('Customer ID not found');
+            return;
+        }
+
+        const token = localStorage.getItem('auth_token') || '';
+        if (!token) {
+            setMessage('Authentication required. Please login again.');
+            return;
+        }
+
+        setIsSubmitting(true);
+        setMessage('');
+        try {
+            const formData = new FormData();
+            formData.append('indent_document', indentFile);
+
+            const response = await fetch(`${API_BASE}/additional-documents/${customer.id}/indent`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to upload indent document');
+            }
+
+            setMessage('Indent document uploaded successfully');
+            setIndentFile(null);
+            setFilePreview('');
+            setTimeout(() => window.location.reload(), 1200);
+        } catch (error: any) {
+            setMessage(error.message || 'Failed to upload indent document');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const openExisting = () => {
+        if (existingIndentUrl) {
+            setPreviewUrl(getFullFileUrl(existingIndentUrl));
+            setPreviewTitle('Indent Document');
+        }
+    };
+
+    const closePreview = () => {
+        setPreviewUrl('');
+        setPreviewTitle('');
+    };
+
+    return (
+        <div className="max-h-[400px] overflow-y-auto bg-indigo/5 border border-indigo/20 rounded-lg p-4 space-y-4">
+            <h3 className="text-sm font-bold text-text mb-2">Indent Document Submission</h3>
+            <p className="text-xs text-muted mb-2">Submit the indent document to the electrical department to complete this task.</p>
+
+            {existingIndentUrl && (
+                <div className="bg-white/60 border border-indigo/10 rounded-lg p-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-lg">{getFileTypeFromUrl(existingIndentUrl) === 'image' ? '🖼️' : '📄'}</span>
+                        <div className="min-w-0">
+                            <p className="text-xs font-semibold text-text truncate">Existing indent document</p>
+                            <p className="text-[11px] text-muted truncate">{existingIndentUrl.split('/').pop()}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <a
+                            href={getFullFileUrl(existingIndentUrl)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-semibold text-indigo-700 hover:text-indigo-800"
+                        >
+                            Open
+                        </a>
+                        <button
+                            onClick={openExisting}
+                            className="px-3 py-1.5 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                        >
+                            Preview
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <div className="space-y-3">
+                <div>
+                    <label className="block text-xs font-semibold text-muted uppercase mb-2">
+                        Indent Document *
+                    </label>
+                    <input
+                        type="file"
+                        accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+                        onChange={handleFileChange}
+                        className="w-full border border-indigo/30 rounded-lg px-3 py-2 text-sm"
+                    />
+                    {indentFile && (
+                        <div className="mt-2 flex items-center gap-3">
+                            {filePreview ? (
+                                <div className="overflow-hidden rounded-lg border border-indigo/20">
+                                    <img src={filePreview} alt="Indent preview" className="h-20 w-20 object-cover" />
+                                </div>
+                            ) : (
+                                <p className="text-xs text-muted flex items-center gap-1">
+                                    <span>📄</span> {indentFile.name}
+                                </p>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {message && (
+                    <p className={`text-xs font-semibold px-3 py-2 rounded ${message.includes('successfully') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {message}
+                    </p>
+                )}
+
+                <button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || !indentFile}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center"
+                >
+                    <Upload size={16} />
+                    {isSubmitting ? 'Uploading...' : 'Submit Indent Document'}
+                </button>
+            </div>
+
+            {previewUrl && (
+                <div
+                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+                    onClick={closePreview}
+                >
+                    <div
+                        className="relative bg-white rounded-xl shadow-2xl max-w-4xl max-h-[90vh] overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 px-4 py-3 flex items-center justify-between">
+                            <h3 className="text-white font-semibold text-sm">{previewTitle}</h3>
+                            <button
+                                onClick={closePreview}
+                                className="p-1 hover:bg-white/20 rounded-lg transition-colors text-white"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-4 max-h-[80vh] overflow-auto">
+                            {getFileType(previewUrl) === 'image' ? (
+                                <img src={previewUrl} alt={previewTitle} className="max-w-full h-auto rounded-lg" />
+                            ) : getFileType(previewUrl) === 'pdf' ? (
+                                <iframe src={previewUrl} className="w-full h-[70vh] rounded-lg" title={previewTitle} />
+                            ) : (
+                                <div className="text-center py-8">
+                                    <p className="text-muted mb-4">Cannot preview this file type</p>
+                                    <a
+                                        href={previewUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                                    >
+                                        Open in New Tab
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
