@@ -35,7 +35,7 @@ export default function NotificationIcon({ token, employeeId }: NotificationIcon
     const fetchNotifications = async () => {
         try {
             setLoading(true);
-            const response = await notificationsAPI.listNotifications(token, undefined, {
+            const response = await notificationsAPI.listNotifications(token, {
                 is_archived: false,
                 limit: 10,
             });

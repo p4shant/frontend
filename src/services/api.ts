@@ -931,7 +931,7 @@ export const statsAPI = {
 // NOTIFICATIONS API
 // ============================================================================
 export const notificationsAPI = {
-    async listNotifications(token: string, employeeId?: string, filters?: { is_read?: boolean; is_archived?: boolean; page?: number; limit?: number }) {
+    async listNotifications(token: string, filters?: { is_read?: boolean; is_archived?: boolean; page?: number; limit?: number }) {
         let url = `${API_BASE}/notifications`;
         if (filters) {
             const params = new URLSearchParams();
