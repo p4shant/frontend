@@ -176,6 +176,13 @@ export default function RegisterCustomerForm({
     const [previews, setPreviews] = useState<Record<string, string | null>>({})
     const [creatorInfo, setCreatorInfo] = useState<{ name: string; role?: string; phone?: string } | null>(null)
 
+    const normalizeSelectNumericValue = (value: any): string => {
+        if (value === null || value === undefined || value === '') return ''
+        const num = Number(value)
+        if (Number.isNaN(num)) return String(value)
+        return String(num)
+    }
+
     // Auto-set payment mode to Finance when finance is required
     useEffect(() => {
         if (form.special_finance_required === 'Yes') {
@@ -208,7 +215,7 @@ export default function RegisterCustomerForm({
                     solar_plant_type: data.solar_plant_type || 'Residential',
                     solar_system_type: data.solar_system_type || 'TATA On-Grid',
                     plant_category: data.plant_category || 'Residential',
-                    plant_size_kw: data.plant_size_kw || '',
+                    plant_size_kw: normalizeSelectNumericValue(data.plant_size_kw),
                     plant_price: data.plant_price || '',
                     district: data.district || '',
                     installation_pincode: data.installation_pincode || '',

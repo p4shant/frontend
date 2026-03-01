@@ -10,6 +10,8 @@ type Customer = {
     applicant_name: string;
     mobile_number: string;
     district: string;
+    payment_mode?: string;
+    created_at?: string;
 };
 
 function RegisterCustomer() {
@@ -191,12 +193,14 @@ function RegisterCustomer() {
                             )}
                         </div>
 
-                        <table className="min-w-full divide-y divide-slate-200">
+                        <table className="min-w-full divide-y divide-slate-200 hidden md:table">
                             <thead className="bg-slate-50">
                                 <tr>
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Name</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Phone</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">District</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Payment Mode</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Created Date</th>
                                     <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700">Actions</th>
                                 </tr>
                             </thead>
@@ -206,6 +210,14 @@ function RegisterCustomer() {
                                         <td className="px-4 py-2 text-sm text-slate-900">{c.applicant_name}</td>
                                         <td className="px-4 py-2 text-sm text-slate-700">{c.mobile_number}</td>
                                         <td className="px-4 py-2 text-sm text-slate-700">{c.district}</td>
+                                        <td className="px-4 py-2 text-sm text-slate-700">{c.payment_mode || '-'}</td>
+                                        <td className="px-4 py-2 text-sm text-slate-700">
+                                            {c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN', {
+                                                year: 'numeric',
+                                                month: 'short',
+                                                day: 'numeric'
+                                            }) : '-'}
+                                        </td>
                                         <td className="px-4 py-2 text-sm text-right">
                                             <div className="inline-flex items-center gap-2">
                                                 <button
@@ -224,13 +236,72 @@ function RegisterCustomer() {
                                 ))}
                                 {filteredCustomers.length === 0 && (
                                     <tr>
-                                        <td className="px-4 py-6 text-center text-sm text-muted" colSpan={4}>
+                                        <td className="px-4 py-6 text-center text-sm text-muted" colSpan={6}>
                                             {customers.length === 0 ? 'No customers found.' : 'No customers match your filters.'}
                                         </td>
                                     </tr>
                                 )}
                             </tbody>
                         </table>
+
+                        {/* Mobile Card View */}
+                        <div className="md:hidden divide-y divide-slate-100 bg-white">
+                            {filteredCustomers.length === 0 ? (
+                                <div className="px-4 py-6 text-center text-sm text-muted">
+                                    {customers.length === 0 ? 'No customers found.' : 'No customers match your filters.'}
+                                </div>
+                            ) : (
+                                filteredCustomers.map((c) => (
+                                    <div key={c.id} className="p-4 space-y-3 hover:bg-slate-50 transition-colors">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-semibold text-slate-900 truncate">{c.applicant_name}</p>
+                                                <p className="text-sm text-slate-600">{c.mobile_number}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                                                    {c.district}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3 text-xs">
+                                            <div>
+                                                <p className="text-slate-500 font-medium">Payment Mode</p>
+                                                <p className="text-slate-900 font-semibold">{c.payment_mode || '-'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-500 font-medium">Created Date</p>
+                                                <p className="text-slate-900 font-semibold">
+                                                    {c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN', {
+                                                        year: '2-digit',
+                                                        month: 'short',
+                                                        day: 'numeric'
+                                                    }) : '-'}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-2 pt-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => openEdit(String(c.id))}
+                                                className="flex-1 px-3 py-2 rounded-lg bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 transition-colors"
+                                            >
+                                                ✏️ Open
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => openDocumentModal(String(c.id))}
+                                                className="flex-1 px-3 py-2 rounded-lg bg-slate-200 text-slate-800 text-xs font-semibold hover:bg-slate-300 transition-colors"
+                                            >
+                                                📥 Download
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
