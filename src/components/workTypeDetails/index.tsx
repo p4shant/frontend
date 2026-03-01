@@ -99,6 +99,7 @@ export const CustomerDataGathering: React.FC<WorkTypeDetailsProps> = ({ task, cu
                                     employeeId: salesExecutiveId,
                                     name: salesExecutiveName
                                 }}
+                                applicationId={customer?.id}
                                 preFilledData={customer}
                                 onSuccess={handleCloseForm}
                                 onCancel={handleCloseForm}
