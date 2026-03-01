@@ -1550,6 +1550,94 @@ export const COTRequest: React.FC<WorkTypeDetailsProps> = ({ task: _task, custom
 
 // Load Request Component
 export const LoadRequest: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
+    const electricBillUrl = customer?.electric_bill_url;
+    const [downloadError, setDownloadError] = React.useState<string>('');
+
+    const handleDownload = async (url: string, filename: string) => {
+        setDownloadError('');
+        try {
+            // Build the download URL with proper headers
+            let fullUrl = getFullFileUrl(url);
+
+            const uploadsMatch = fullUrl.match(/\/uploads\/.+/);
+            if (uploadsMatch) {
+                const apiOrigin = import.meta.env.VITE_API_ORIGIN || 'http://localhost:3000';
+                const uploadPath = uploadsMatch[0].split('?')[0];
+                fullUrl = `${apiOrigin}${uploadPath}?download=true`;
+            }
+
+            console.log('Downloading electricity bill from:', fullUrl);
+
+            const response = await fetch(fullUrl, {
+                method: 'GET',
+                cache: 'no-cache',
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
+            }
+
+            const blob = await response.blob();
+
+            // Ensure proper filename with extension
+            let finalFilename = filename;
+            if (!finalFilename.includes('.')) {
+                const urlPath = url.split('?')[0];
+                const urlExt = urlPath.split('.').pop()?.toLowerCase();
+                if (urlExt && urlExt.length <= 5) {
+                    finalFilename = `${finalFilename}.${urlExt}`;
+                }
+            }
+
+            // Force download using octet-stream
+            const downloadBlob = new Blob([blob], { type: 'application/octet-stream' });
+            const blobUrl = window.URL.createObjectURL(downloadBlob);
+
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = finalFilename;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+
+            // Cleanup
+            setTimeout(() => {
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(blobUrl);
+            }, 200);
+
+            console.log('✓ Download initiated successfully');
+        } catch (error) {
+            console.error('Primary download failed:', error);
+            setDownloadError('Trying alternative download method...');
+
+            // Fallback: Force download without opening in new tab
+            try {
+                const directUrl = getFullFileUrl(url);
+                const a = document.createElement('a');
+                a.href = directUrl;
+                a.download = filename || 'Electricity_Bill';
+                // REMOVED a.target = '_blank' - this was causing file to open instead of download
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                setTimeout(() => setDownloadError(''), 2000);
+            } catch (fallbackError) {
+                console.error('All download methods failed:', fallbackError);
+                setDownloadError('Download failed. File may be corrupted or unavailable.');
+            }
+        }
+    };
+
+    const getFileType = (url: string) => {
+        if (!url) return 'unknown';
+        const ext = url.split('.').pop()?.toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext || '')) return 'image';
+        if (ext === 'pdf') return 'pdf';
+        return 'document';
+    };
+
     return (
         <div className="flex items-start gap-3 bg-cyan/5 border border-cyan/20 rounded-lg p-3">
             <div className="flex-1 min-w-0">
@@ -1558,6 +1646,38 @@ export const LoadRequest: React.FC<WorkTypeDetailsProps> = ({ task: _task, custo
                     <p><span className="font-semibold">Load Enhancement Required:</span> {customer?.load_enhancement_required ? 'Yes' : 'No'}</p>
                     <p><span className="font-semibold">Current Load:</span> {customer?.current_load || '-'} kW</p>
                     <p><span className="font-semibold">Required Load:</span> {customer?.required_load || '-'} kW</p>
+                </div>
+
+                {/* Electricity Bill Status and Download */}
+                <div className="mt-3 pt-3 border-t border-cyan/20">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-muted uppercase">Electricity Bill</p>
+                        {electricBillUrl ? (
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full font-semibold">
+                                ✓ Uploaded
+                            </span>
+                        ) : (
+                            <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-semibold">
+                                ⚠ Not Uploaded
+                            </span>
+                        )}
+                    </div>
+
+                    {electricBillUrl ? (
+                        <>
+                            <button
+                                onClick={() => handleDownload(electricBillUrl, 'Electricity_Bill')}
+                                className="flex items-center gap-2 px-3 py-2 bg-blue text-white rounded-lg text-sm font-semibold hover:bg-cyan-700 transition-colors w-full justify-center"
+                            >
+                                <Upload size={16} /> Download Electricity Bill ({getFileType(electricBillUrl).toUpperCase()})
+                            </button>
+                            {downloadError && (
+                                <p className="text-xs text-red-600 mt-2 text-center">{downloadError}</p>
+                            )}
+                        </>
+                    ) : (
+                        <p className="text-xs text-muted italic text-center">No electricity bill uploaded for this customer</p>
+                    )}
                 </div>
             </div>
         </div>

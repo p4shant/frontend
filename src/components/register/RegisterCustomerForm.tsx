@@ -247,20 +247,91 @@ export default function RegisterCustomerForm({
 
                 // Populate previews from existing document URLs
                 const API_ORIGIN = import.meta.env.VITE_API_ORIGIN;
+                // Helper to build full URL, handling both relative paths and already-full URLs
+                const buildFullUrl = (url: string | null | undefined) => {
+                    if (!url) return null;
+                    // If URL already starts with http:// or https://, return as-is
+                    if (url.startsWith('http://') || url.startsWith('https://')) {
+                        return url;
+                    }
+                    // Otherwise, it's a relative path - prepend API origin
+                    return `${API_ORIGIN}${url}`;
+                };
+
                 const existingPreviews: Record<string, string> = {}
-                if (data.aadhaar_front_url) existingPreviews.aadhaar_front = `${API_ORIGIN}${data.aadhaar_front_url}`
-                if (data.aadhaar_back_url) existingPreviews.aadhaar_back = `${API_ORIGIN}${data.aadhaar_back_url}`
-                if (data.pan_card_url) existingPreviews.pan_card = `${API_ORIGIN}${data.pan_card_url}`
-                if (data.electric_bill_url) existingPreviews.electric_bill = `${API_ORIGIN}${data.electric_bill_url}`
-                if (data.ceiling_paper_photo_url) existingPreviews.ceiling_paper_photo = `${API_ORIGIN}${data.ceiling_paper_photo_url}`
-                if (data.site_image_gps_url) existingPreviews.site_image_gps = `${API_ORIGIN}${data.site_image_gps_url}`
-                if (data.other_document_url) existingPreviews.other_document = `${API_ORIGIN}${data.other_document_url}`
-                if (data.building_photo_url) existingPreviews.building_photo = `${API_ORIGIN}${data.building_photo_url}`
-                if (data.meter_room_photo_url) existingPreviews.meter_room_photo = `${API_ORIGIN}${data.meter_room_photo_url}`
-                if (data.selfie_url) existingPreviews.selfie = `${API_ORIGIN}${data.selfie_url}`
+                const aadhaarFrontUrl = buildFullUrl(data.aadhaar_front_url);
+                const aadhaarBackUrl = buildFullUrl(data.aadhaar_back_url);
+                const panCardUrl = buildFullUrl(data.pan_card_url);
+                const electricBillUrl = buildFullUrl(data.electric_bill_url);
+                const ceilingPaperUrl = buildFullUrl(data.ceiling_paper_photo_url);
+                const cancelChequeUrl = buildFullUrl(data.cancel_cheque_url);
+                const siteImageUrl = buildFullUrl(data.site_image_gps_url);
+                const otherDocUrl = buildFullUrl(data.other_document_url);
+                const buildingPhotoUrl = buildFullUrl(data.building_photo_url);
+                const meterRoomUrl = buildFullUrl(data.meter_room_photo_url);
+                const selfieUrl = buildFullUrl(data.selfie_url);
+
+                if (aadhaarFrontUrl) existingPreviews.aadhaar_front = aadhaarFrontUrl;
+                if (aadhaarBackUrl) existingPreviews.aadhaar_back = aadhaarBackUrl;
+                if (panCardUrl) existingPreviews.pan_card = panCardUrl;
+                if (electricBillUrl) existingPreviews.electric_bill = electricBillUrl;
+                if (ceilingPaperUrl) existingPreviews.ceiling_paper_photo = ceilingPaperUrl;
+                if (cancelChequeUrl) existingPreviews.cancel_cheque = cancelChequeUrl;
+                if (siteImageUrl) existingPreviews.site_image_gps = siteImageUrl;
+                if (otherDocUrl) existingPreviews.other_document = otherDocUrl;
+                if (buildingPhotoUrl) existingPreviews.building_photo = buildingPhotoUrl;
+                if (meterRoomUrl) existingPreviews.meter_room_photo = meterRoomUrl;
+                if (selfieUrl) existingPreviews.selfie = selfieUrl;
+
+                // Load COT documents if available
+                const existingCotPreviews: typeof cotPreviews = {
+                    death_certificate: null,
+                    house_papers: null,
+                    passport_photo: null,
+                    family_registration: null,
+                    aadhaar_photos: [],
+                    live_to_live_aadhaar_1: null,
+                    live_to_live_aadhaar_2: null
+                };
+
+                const cotDeathCertUrl = buildFullUrl(data.cot_death_certificate_url);
+                const cotHousePapersUrl = buildFullUrl(data.cot_house_papers_url);
+                const cotPassportPhotoUrl = buildFullUrl(data.cot_passport_photo_url);
+                const cotFamilyRegUrl = buildFullUrl(data.cot_family_registration_url);
+                const cotLiveAadhaar1Url = buildFullUrl(data.cot_live_aadhaar_1_url);
+                const cotLiveAadhaar2Url = buildFullUrl(data.cot_live_aadhaar_2_url);
+
+                if (cotDeathCertUrl) existingCotPreviews.death_certificate = cotDeathCertUrl;
+                if (cotHousePapersUrl) existingCotPreviews.house_papers = cotHousePapersUrl;
+                if (cotPassportPhotoUrl) existingCotPreviews.passport_photo = cotPassportPhotoUrl;
+                if (cotFamilyRegUrl) existingCotPreviews.family_registration = cotFamilyRegUrl;
+                if (cotLiveAadhaar1Url) existingCotPreviews.live_to_live_aadhaar_1 = cotLiveAadhaar1Url;
+                if (cotLiveAadhaar2Url) existingCotPreviews.live_to_live_aadhaar_2 = cotLiveAadhaar2Url;
+
+                // Handle COT aadhaar photos array
+                if (data.cot_aadhaar_photos_urls) {
+                    try {
+                        const aadhaarPhotosUrls = typeof data.cot_aadhaar_photos_urls === 'string'
+                            ? JSON.parse(data.cot_aadhaar_photos_urls)
+                            : data.cot_aadhaar_photos_urls;
+                        if (Array.isArray(aadhaarPhotosUrls)) {
+                            existingCotPreviews.aadhaar_photos = aadhaarPhotosUrls.map((url: string) => buildFullUrl(url));
+                        }
+                    } catch (err) {
+                        console.error('Error parsing COT aadhaar photos:', err);
+                    }
+                }
 
                 if (Object.keys(existingPreviews).length > 0) {
                     setPreviews(existingPreviews)
+                }
+
+                // Set COT previews if any COT documents exist
+                const hasCotPreviews = Object.values(existingCotPreviews).some(val =>
+                    Array.isArray(val) ? val.length > 0 : val !== null
+                );
+                if (hasCotPreviews) {
+                    setCotPreviews(existingCotPreviews);
                 }
 
                 // Set creator info for edit mode

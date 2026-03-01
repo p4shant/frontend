@@ -11,6 +11,8 @@ type Customer = {
     mobile_number: string;
     district: string;
     payment_mode?: string;
+    plant_price?: string;
+    margin_money?: string;
     created_at?: string;
 };
 
@@ -200,6 +202,8 @@ function RegisterCustomer() {
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Phone</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">District</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Payment Mode</th>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700">Plant Price</th>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700">Margin Money</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Created Date</th>
                                     <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700">Actions</th>
                                 </tr>
@@ -211,6 +215,12 @@ function RegisterCustomer() {
                                         <td className="px-4 py-2 text-sm text-slate-700">{c.mobile_number}</td>
                                         <td className="px-4 py-2 text-sm text-slate-700">{c.district}</td>
                                         <td className="px-4 py-2 text-sm text-slate-700">{c.payment_mode || '-'}</td>
+                                        <td className="px-4 py-2 text-sm text-slate-700 text-right font-semibold">
+                                            {c.plant_price ? `₹${parseFloat(c.plant_price).toLocaleString('en-IN')}` : '-'}
+                                        </td>
+                                        <td className="px-4 py-2 text-sm text-slate-700 text-right font-semibold">
+                                            {c.margin_money ? `₹${parseFloat(c.margin_money).toLocaleString('en-IN')}` : '-'}
+                                        </td>
                                         <td className="px-4 py-2 text-sm text-slate-700">
                                             {c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN', {
                                                 year: 'numeric',
@@ -236,7 +246,7 @@ function RegisterCustomer() {
                                 ))}
                                 {filteredCustomers.length === 0 && (
                                     <tr>
-                                        <td className="px-4 py-6 text-center text-sm text-muted" colSpan={6}>
+                                        <td className="px-4 py-6 text-center text-sm text-muted" colSpan={8}>
                                             {customers.length === 0 ? 'No customers found.' : 'No customers match your filters.'}
                                         </td>
                                     </tr>
@@ -269,6 +279,18 @@ function RegisterCustomer() {
                                             <div>
                                                 <p className="text-slate-500 font-medium">Payment Mode</p>
                                                 <p className="text-slate-900 font-semibold">{c.payment_mode || '-'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-500 font-medium">Plant Price</p>
+                                                <p className="text-slate-900 font-semibold">
+                                                    {c.plant_price ? `₹${parseFloat(c.plant_price).toLocaleString('en-IN')}` : '-'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-500 font-medium">Margin Money</p>
+                                                <p className="text-slate-900 font-semibold">
+                                                    {c.margin_money ? `₹${parseFloat(c.margin_money).toLocaleString('en-IN')}` : '-'}
+                                                </p>
                                             </div>
                                             <div>
                                                 <p className="text-slate-500 font-medium">Created Date</p>
