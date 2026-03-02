@@ -853,6 +853,140 @@ export const registeredCustomersAPI = {
 };
 
 // ============================================================================
+// UNCONFIRMED LEADS API
+// ============================================================================
+export const unconfirmedLeadsAPI = {
+    async create(data: Record<string, any>, token: string) {
+        const response = await fetch(`${API_BASE}/unconfirmed-leads`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || error.error || 'Failed to create lead');
+        }
+
+        return await response.json();
+    },
+
+    async getById(id: string, token: string) {
+        const response = await fetch(`${API_BASE}/unconfirmed-leads/${id}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch lead');
+        }
+
+        return await response.json();
+    },
+
+    async update(id: string, data: Record<string, any>, token: string) {
+        const response = await fetch(`${API_BASE}/unconfirmed-leads/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || error.error || 'Failed to update lead');
+        }
+
+        return await response.json();
+    },
+
+    async remove(id: string, token: string) {
+        const response = await fetch(`${API_BASE}/unconfirmed-leads/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to delete lead');
+        }
+
+        return await response.json();
+    },
+
+    async list(token: string, filters?: { page?: number; limit?: number; status?: string; district?: string; search?: string }) {
+        try {
+            const params = new URLSearchParams();
+            if (filters?.page) params.append('page', String(filters.page));
+            if (filters?.limit) params.append('limit', String(filters.limit));
+            if (filters?.status) params.append('status', filters.status);
+            if (filters?.district) params.append('district', filters.district);
+            if (filters?.search) params.append('search', filters.search);
+
+            const response = await fetch(`${API_BASE}/unconfirmed-leads?${params}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch leads');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching leads:', error);
+            throw error;
+        }
+    },
+
+    async getByEmployee(employeeId: string, token: string) {
+        const response = await fetch(`${API_BASE}/unconfirmed-leads/employee/${employeeId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch leads by employee');
+        }
+
+        const data = await response.json();
+        return data;
+    },
+
+    async convertToCustomer(id: string, customerId: number, token: string) {
+        const response = await fetch(`${API_BASE}/unconfirmed-leads/${id}/convert`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ customerId }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to convert lead');
+        }
+
+        return await response.json();
+    },
+};
+
+// ============================================================================
 // STATS API (Master Admin only)
 // ============================================================================
 export const statsAPI = {
@@ -1045,6 +1179,7 @@ export default {
     tasksAPI,
     customersAPI,
     registeredCustomersAPI,
+    unconfirmedLeadsAPI,
     attendanceAPI,
     employeesAPI,
     transactionLogsAPI,
