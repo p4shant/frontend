@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, Edit2, X, Upload, Check } from 'lucide-react';
+import { AlertCircle, Edit2, X, Upload, Check, FileText, Image, Download } from 'lucide-react';
 import RegisterCustomerForm from '../register/RegisterCustomerForm';
 import { transactionLogsAPI, additionalDocumentsAPI } from '../../services/api';
 
@@ -112,7 +112,6 @@ export const CustomerDataGathering: React.FC<WorkTypeDetailsProps> = ({ task, cu
     );
 };
 
-// Fallback simple display (if needed elsewhere)
 // Payment Collection Component
 export const PaymentCollection: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
     const [isFormOpen, setIsFormOpen] = React.useState(false);
@@ -1534,16 +1533,288 @@ export const PlantInstallation: React.FC<WorkTypeDetailsProps> = ({ task: _task,
 
 // COT Request Component
 export const COTRequest: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
-    return (
-        <div className="flex items-start gap-3 bg-orange/5 border border-orange/20 rounded-lg p-3">
-            <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-muted uppercase mb-2">COT Request Details</p>
-                <div className="space-y-2 text-sm">
-                    <p><span className="font-semibold">COT Required:</span> {customer?.cot_required ? 'Yes' : 'No'}</p>
-                    <p><span className="font-semibold">COT Type:</span> {customer?.cot_type || '-'}</p>
-                    <p><span className="font-semibold">Documents:</span> {customer?.cot_documents || 'Not specified'}</p>
+    const [downloadError, setDownloadError] = React.useState<string>('');
+
+    const cotRequired = customer?.cot_required;
+    const cotType = customer?.cot_type;
+
+    // Get COT document URLs
+    const cotDeathCertUrl = customer?.cot_death_certificate_url;
+    const cotHousePapersUrl = customer?.cot_house_papers_url;
+    const cotPassportPhotoUrl = customer?.cot_passport_photo_url;
+    const cotFamilyRegUrl = customer?.cot_family_registration_url;
+    const cotLiveAadhaar1Url = customer?.cot_live_aadhaar_1_url;
+    const cotLiveAadhaar2Url = customer?.cot_live_aadhaar_2_url;
+
+    // Parse COT Aadhaar photos array
+    const cotAadhaarPhotosUrls = React.useMemo(() => {
+        try {
+            if (customer?.cot_aadhaar_photos_urls) {
+                const parsed = JSON.parse(customer.cot_aadhaar_photos_urls);
+                return Array.isArray(parsed) ? parsed : [];
+            }
+            return [];
+        } catch {
+            return [];
+        }
+    }, [customer?.cot_aadhaar_photos_urls]);
+
+    // Define required documents based on COT type
+    const getRequiredDocumentsByCotType = (type: string | null | undefined) => {
+        if (!type) return [];
+
+        const lowerType = type.toLowerCase();
+
+        // Common documents required for all COT types
+        const commonDocs = [
+            { label: 'COT Passport Photo', url: cotPassportPhotoUrl, filename: 'COT_Passport_Photo.jpg' },
+            { label: 'COT Live Aadhaar 1', url: cotLiveAadhaar1Url, filename: 'COT_Live_Aadhaar_1.jpg' },
+            { label: 'COT Live Aadhaar 2', url: cotLiveAadhaar2Url, filename: 'COT_Live_Aadhaar_2.jpg' },
+        ];
+
+        // Type-specific documents
+        if (lowerType.includes('death')) {
+            return [
+                { label: 'Death Certificate', url: cotDeathCertUrl, filename: 'Death_Certificate.pdf' },
+                { label: 'COT House Papers', url: cotHousePapersUrl, filename: 'COT_House_Papers.pdf' },
+                ...commonDocs,
+            ];
+        } else if (lowerType.includes('divorce') || lowerType.includes('separation')) {
+            return [
+                { label: 'COT House Papers', url: cotHousePapersUrl, filename: 'COT_House_Papers.pdf' },
+                { label: 'COT Family Registration', url: cotFamilyRegUrl, filename: 'COT_Family_Registration.pdf' },
+                ...commonDocs,
+            ];
+        } else if (lowerType.includes('gift') || lowerType.includes('donation')) {
+            return [
+                { label: 'COT House Papers (Gift Deed)', url: cotHousePapersUrl, filename: 'Gift_Deed.pdf' },
+                { label: 'COT Family Registration', url: cotFamilyRegUrl, filename: 'COT_Family_Registration.pdf' },
+                ...commonDocs,
+            ];
+        } else if (lowerType.includes('sale') || lowerType.includes('purchase')) {
+            return [
+                { label: 'COT House Papers (Sale Deed)', url: cotHousePapersUrl, filename: 'Sale_Deed.pdf' },
+                ...commonDocs,
+            ];
+        } else if (lowerType.includes('inheritance') || lowerType.includes('will')) {
+            return [
+                { label: 'Death Certificate', url: cotDeathCertUrl, filename: 'Death_Certificate.pdf' },
+                { label: 'COT House Papers (Will/Succession)', url: cotHousePapersUrl, filename: 'Will_Document.pdf' },
+                { label: 'COT Family Registration', url: cotFamilyRegUrl, filename: 'COT_Family_Registration.pdf' },
+                ...commonDocs,
+            ];
+        } else {
+            // Default: include all possible documents
+            return [
+                { label: 'Death Certificate', url: cotDeathCertUrl, filename: 'Death_Certificate.pdf' },
+                { label: 'COT House Papers', url: cotHousePapersUrl, filename: 'COT_House_Papers.pdf' },
+                { label: 'COT Family Registration', url: cotFamilyRegUrl, filename: 'COT_Family_Registration.pdf' },
+                ...commonDocs,
+            ];
+        }
+    };
+
+    const requiredDocuments = getRequiredDocumentsByCotType(cotType);
+    const availableDocuments = requiredDocuments.filter(doc => doc.url);
+    const missingDocuments = requiredDocuments.filter(doc => !doc.url);
+
+    const handleDownload = async (url: string, filename: string) => {
+        try {
+            setDownloadError('');
+            const fullUrl = getFullFileUrl(url);
+            const token = localStorage.getItem('auth_token') || '';
+
+            const response = await fetch(fullUrl, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to download file: ${response.statusText}`);
+            }
+
+            const blob = await response.blob();
+
+            // Determine file extension from blob type or URL
+            let extension = '';
+            if (blob.type === 'application/pdf') {
+                extension = '.pdf';
+            } else if (blob.type.startsWith('image/')) {
+                const imgExt = blob.type.split('/')[1];
+                extension = `.${imgExt}`;
+            } else {
+                // Try to get extension from URL
+                const urlExt = url.split('.').pop()?.toLowerCase();
+                if (urlExt) {
+                    extension = `.${urlExt}`;
+                }
+            }
+
+            const downloadFilename = filename.includes('.') ? filename : `${filename}${extension}`;
+
+            const objectUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = downloadFilename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(objectUrl);
+        } catch (error: any) {
+            console.error('Download failed:', error);
+            setDownloadError(error?.message || 'Failed to download document');
+            // Fallback: open in new tab
+            window.open(getFullFileUrl(url), '_blank');
+        }
+    };
+
+    const getFileType = (url: string) => {
+        if (!url) return 'unknown';
+        const ext = url.split('.').pop()?.toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext || '')) return 'image';
+        if (ext === 'pdf') return 'pdf';
+        return 'document';
+    };
+
+    // If COT is not required, show info message
+    if (cotRequired !== 'Yes') {
+        return (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                    <AlertCircle size={24} className="text-gray-400 flex-shrink-0" />
+                    <div>
+                        <p className="text-sm font-semibold text-gray-700">COT (Change of Title) Not Required</p>
+                        <p className="text-xs text-gray-600 mt-1">This customer does not require Change of Title documentation.</p>
+                    </div>
                 </div>
             </div>
+        );
+    }
+
+    return (
+        <div className="max-h-[600px] overflow-y-auto bg-orange/5 border border-orange/20 rounded-lg p-4 space-y-4">
+            {/* Header */}
+            <div>
+                <h3 className="text-sm font-bold text-text mb-2">COT (Change of Title) Documents</h3>
+                <div className="flex items-center gap-2 mb-2">
+                    <p className="text-xs text-muted">
+                        COT Type: <span className="font-semibold text-orange-700">{cotType || 'Not specified'}</span>
+                    </p>
+                </div>
+                <p className="text-xs text-muted">
+                    Review and download COT documents required for processing the Change of Title request.
+                </p>
+            </div>
+
+            {/* Download Error */}
+            {downloadError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-red-700 flex items-center gap-2">
+                        <AlertCircle size={16} />
+                        {downloadError}
+                    </p>
+                </div>
+            )}
+
+            {/* Available Documents */}
+            {availableDocuments.length > 0 && (
+                <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-orange-900">Available COT Documents</h4>
+                    <div className="grid gap-3">
+                        {availableDocuments.map((doc, index) => (
+                            <div
+                                key={index}
+                                className="bg-white border border-orange/20 rounded-lg p-3 flex items-center justify-between gap-3"
+                            >
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                    <div className="flex-shrink-0">
+                                        {getFileType(doc.url) === 'image' ? (
+                                            <FileText size={24} className="text-orange-600" />
+                                        ) : getFileType(doc.url) === 'pdf' ? (
+                                            <FileText size={24} className="text-red-600" />
+                                        ) : (
+                                            <FileText size={24} className="text-gray-600" />
+                                        )}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-sm font-semibold text-text truncate">{doc.label}</p>
+                                        <p className="text-xs text-muted truncate">{doc.url.split('/').pop()}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => handleDownload(doc.url, doc.filename)}
+                                    className="flex items-center gap-2 px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-semibold flex-shrink-0"
+                                >
+                                    <Download size={16} />
+                                    Download
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* COT Aadhaar Photos */}
+                    {cotAadhaarPhotosUrls.length > 0 && (
+                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <p className="text-sm font-semibold text-orange-900 mb-2">COT Aadhaar Photos ({cotAadhaarPhotosUrls.length})</p>
+                            <div className="grid gap-2">
+                                {cotAadhaarPhotosUrls.map((url: string, index: number) => (
+                                    <div key={index} className="flex items-center justify-between gap-3 bg-white rounded-lg p-2">
+                                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                                            <Image size={20} className="text-orange-600 flex-shrink-0" />
+                                            <p className="text-xs text-text truncate">Aadhaar Photo {index + 1}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => handleDownload(url, `COT_Aadhaar_Photo_${index + 1}.jpg`)}
+                                            className="flex items-center gap-1 px-2 py-1 bg-orange-600 text-white rounded text-xs font-semibold hover:bg-orange-700 transition-colors flex-shrink-0"
+                                        >
+                                            <Download size={14} />
+                                            Download
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Missing Documents Warning */}
+            {missingDocuments.length > 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                        <AlertCircle size={20} className="text-yellow-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                            <p className="text-sm font-semibold text-yellow-800 mb-2">
+                                {availableDocuments.length === 0
+                                    ? `No COT documents uploaded by ${customer?.created_by_name || 'Sales Executive'}`
+                                    : 'Missing Required COT Documents'}
+                            </p>
+                            <ul className="list-disc list-inside space-y-1">
+                                {missingDocuments.map((doc, index) => (
+                                    <li key={index} className="text-xs text-yellow-700">
+                                        {doc.label}
+                                    </li>
+                                ))}
+                            </ul>
+                            <p className="text-xs text-yellow-700 mt-2">
+                                Please contact {customer?.created_by_name || 'the sales executive'} to upload the missing documents.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* No Documents at All */}
+            {availableDocuments.length === 0 && missingDocuments.length === 0 && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                    <AlertCircle size={32} className="text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm font-semibold text-gray-700">No COT Document Requirements Defined</p>
+                    <p className="text-xs text-gray-600 mt-1">
+                        The COT type "{cotType}" does not have specific document requirements configured.
+                    </p>
+                </div>
+            )}
         </div>
     );
 };
@@ -1686,15 +1957,166 @@ export const LoadRequest: React.FC<WorkTypeDetailsProps> = ({ task: _task, custo
 
 // Name Correction Request Component
 export const NameCorrectionRequest: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
+    const [downloadError, setDownloadError] = React.useState<string>('');
+
+    const aadhaarFrontUrl = customer?.aadhaar_front_url;
+    const aadhaarBackUrl = customer?.aadhaar_back_url;
+    const electricBillUrl = customer?.electric_bill_url;
+
+    const allDocuments = [
+        { label: 'Aadhaar Front', url: aadhaarFrontUrl, filename: 'Aadhaar_Front.jpg' },
+        { label: 'Aadhaar Back', url: aadhaarBackUrl, filename: 'Aadhaar_Back.jpg' },
+        { label: 'Electric Bill', url: electricBillUrl, filename: 'Electric_Bill.pdf' },
+    ];
+
+    const availableDocuments = allDocuments.filter(doc => doc.url);
+    const missingDocuments = allDocuments.filter(doc => !doc.url);
+
+    const handleDownload = async (url: string, filename: string) => {
+        try {
+            setDownloadError('');
+
+            if (!url) {
+                setDownloadError('No file URL available');
+                return;
+            }
+
+            const fullUrl = getFullFileUrl(url);
+
+            // Fetch the file
+            const response = await fetch(fullUrl);
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch file: ${response.statusText}`);
+            }
+
+            // Get the blob
+            const blob = await response.blob();
+
+            // Determine file extension from blob type or URL
+            let fileExtension = '';
+            const urlExtension = url.split('.').pop()?.toLowerCase();
+
+            if (blob.type === 'application/pdf' || urlExtension === 'pdf') {
+                fileExtension = '.pdf';
+            } else if (blob.type.startsWith('image/')) {
+                // Try to get extension from blob type
+                const mimeType = blob.type;
+                if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') {
+                    fileExtension = '.jpg';
+                } else if (mimeType === 'image/png') {
+                    fileExtension = '.png';
+                } else if (mimeType === 'image/gif') {
+                    fileExtension = '.gif';
+                } else if (urlExtension) {
+                    fileExtension = `.${urlExtension}`;
+                } else {
+                    fileExtension = '.jpg'; // Default
+                }
+            } else if (urlExtension) {
+                fileExtension = `.${urlExtension}`;
+            }
+
+            // Ensure filename has extension
+            const finalFilename = filename.includes('.') ? filename : `${filename}${fileExtension}`;
+
+            // Create a temporary URL for the blob
+            const blobUrl = window.URL.createObjectURL(blob);
+
+            // Create a temporary anchor element and trigger download
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = finalFilename;
+            document.body.appendChild(link);
+            link.click();
+
+            // Clean up
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error('Download error:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Failed to download file';
+            setDownloadError(errorMessage);
+        }
+    };
+
+    const getFileType = (url: string) => {
+        if (!url) return 'unknown';
+        const ext = url.split('.').pop()?.toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext || '')) return 'image';
+        if (ext === 'pdf') return 'pdf';
+        return 'document';
+    };
+
     return (
-        <div className="flex items-start gap-3 bg-indigo/5 border border-indigo/20 rounded-lg p-3">
+        <div className="space-y-3 bg-indigo/5 border border-indigo/20 rounded-lg p-4">
             <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-muted uppercase mb-2">Name Correction</p>
-                <div className="space-y-2 text-sm">
-                    <p><span className="font-semibold">Name Correction Required:</span> {customer?.name_correction_required ? 'Yes' : 'No'}</p>
+                <p className="text-xs font-semibold text-muted uppercase mb-3">Name Correction Details</p>
+                <div className="space-y-2 text-sm mb-4">
+                    <p><span className="font-semibold">Name Correction Required:</span> {customer?.name_correction_required || '-'}</p>
                     <p><span className="font-semibold">Original Name:</span> {customer?.applicant_name || '-'}</p>
                     <p><span className="font-semibold">Correct Name:</span> {customer?.correct_name || '-'}</p>
                 </div>
+
+                {/* Available Documents Section */}
+                {availableDocuments.length > 0 && (
+                    <div className="mt-4">
+                        <p className="text-xs font-semibold text-muted uppercase mb-2">Required Documents</p>
+                        <div className="space-y-2">
+                            {availableDocuments.map((doc, index) => {
+                                const fileType = getFileType(doc.url);
+                                const iconColor = fileType === 'pdf' ? 'text-red-600' : 'text-blue-600';
+                                const Icon = fileType === 'pdf' ? FileText : Image;
+
+                                return (
+                                    <div key={index} className="flex items-center justify-between bg-white rounded-lg p-3 border border-slate-200">
+                                        <div className="flex items-center gap-2">
+                                            <Icon size={18} className={iconColor} />
+                                            <span className="text-sm font-medium text-slate-700">{doc.label}</span>
+                                        </div>
+                                        <button
+                                            onClick={() => handleDownload(doc.url, doc.filename)}
+                                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                                        >
+                                            <Download size={14} />
+                                            Download
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* Missing Documents Warning */}
+                {missingDocuments.length > 0 && (
+                    <div className="flex items-start gap-2 bg-yellow/10 border border-yellow/30 rounded-lg p-3 mt-4">
+                        <AlertCircle size={18} className="text-yellow-700 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                            <p className="text-sm font-semibold text-yellow-700 mb-1">
+                                {availableDocuments.length === 0
+                                    ? `No documents uploaded by ${customer?.created_by_name || 'Sales Executive'}`
+                                    : 'Missing documents'}
+                            </p>
+                            <p className="text-sm text-yellow-700">
+                                Please upload the following document{missingDocuments.length > 1 ? 's' : ''}:
+                            </p>
+                            <ul className="list-disc list-inside text-sm text-yellow-700 mt-1">
+                                {missingDocuments.map((doc, index) => (
+                                    <li key={index}>{doc.label}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+                )}
+
+                {/* Download Error Message */}
+                {downloadError && (
+                    <div className="flex items-start gap-2 bg-red/10 border border-red/30 rounded-lg p-3 mt-3">
+                        <AlertCircle size={18} className="text-red-700 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-red-700">{downloadError}</p>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -2645,7 +3067,6 @@ export const CDRCreation: React.FC<WorkTypeDetailsProps> = ({ task: _task, custo
         </div>
     );
 };
-
 
 // Photo Capture Component for take_installed_item_photos work type
 export const PhotoCapture: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
@@ -3891,7 +4312,7 @@ export const IndentSubmission: React.FC<WorkTypeDetailsProps> = ({ task: _task, 
     );
 };
 
-
+// Assign QA Component
 export const AssignQA: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
     const existingFeasibilityUrl = getAdditionalDocUrl(customer, 'feasibility_form');
     const [installationDate, setInstallationDate] = React.useState<string>('');
@@ -4010,6 +4431,246 @@ export const AssignQA: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer
                 </p>
             )}
 
+        </div>
+    );
+};
+
+// Meter Installation Component
+export const MeterInstallation: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
+    const existingCeilingPaperUrl = customer?.ceiling_paper_photo_url;
+    const meterType = customer?.meter_type;
+    const isElectricMeter = meterType === 'Electric Meter';
+
+    const [ceilingPaperFile, setCeilingPaperFile] = React.useState<File | null>(null);
+    const [ceilingPaperPreview, setCeilingPaperPreview] = React.useState<string>('');
+    const [message, setMessage] = React.useState('');
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [previewUrl, setPreviewUrl] = React.useState<string>('');
+    const [previewTitle, setPreviewTitle] = React.useState<string>('');
+
+    const getFileType = (url: string) => {
+        if (!url) return 'unknown';
+        const ext = url.split('.').pop()?.toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext || '')) return 'image';
+        if (ext === 'pdf') return 'pdf';
+        return 'document';
+    };
+
+    const handleCeilingPaperFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        setMessage('');
+        if (file) {
+            setCeilingPaperFile(file);
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onloadend = () => setCeilingPaperPreview(reader.result as string);
+                reader.readAsDataURL(file);
+            } else {
+                setCeilingPaperPreview('');
+            }
+        }
+    };
+
+    const handleCeilingPaperSubmit = async () => {
+        if (!ceilingPaperFile) {
+            setMessage('Ceiling paper photo is required');
+            return;
+        }
+
+        if (!customer?.id) {
+            setMessage('Customer ID not found');
+            return;
+        }
+
+        const token = localStorage.getItem('auth_token') || '';
+        if (!token) {
+            setMessage('Authentication required. Please login again.');
+            return;
+        }
+
+        setIsSubmitting(true);
+        setMessage('');
+        try {
+            // Upload ceiling paper photo to registered_customers table
+            const formData = new FormData();
+            formData.append('ceiling_paper_photo', ceilingPaperFile);
+
+            const response = await fetch(`${API_BASE}/registered-customers/${customer.id}/upload-batch`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to upload ceiling paper photo');
+            }
+
+            setMessage('Ceiling paper photo uploaded successfully');
+            setCeilingPaperFile(null);
+            setCeilingPaperPreview('');
+            setTimeout(() => window.location.reload(), 1200);
+        } catch (error: any) {
+            setMessage(error.message || 'Failed to upload ceiling paper photo');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const openExisting = (url: string, title: string) => {
+        if (url) {
+            setPreviewUrl(getFullFileUrl(url));
+            setPreviewTitle(title);
+        }
+    };
+
+    const closePreview = () => {
+        setPreviewUrl('');
+        setPreviewTitle('');
+    };
+
+    return (
+        <div className="max-h-[500px] overflow-y-auto bg-blue/5 border border-blue/20 rounded-lg p-4 space-y-4">
+            <div>
+                <h3 className="text-sm font-bold text-text mb-2">Meter Installation</h3>
+                <p className="text-xs text-muted mb-2">
+                    Meter Type: <span className="font-semibold">{meterType || 'Not specified'}</span>
+                </p>
+            </div>
+
+            {/* Ceiling Paper Photo Section - Only for Electric Meter */}
+            {isElectricMeter && (
+                <div className="bg-white/60 rounded-lg p-4 space-y-3 border border-blue/20">
+                    <div className="flex items-start gap-2">
+                        <div className="flex-1">
+                            <h4 className="text-sm font-semibold text-blue-900">Ceiling Paper Photo</h4>
+                            <p className="text-xs text-muted mt-1">Required for Electric Meter installations</p>
+                        </div>
+                        <span className="px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded">Required</span>
+                    </div>
+
+                    {existingCeilingPaperUrl && (
+                        <div className="bg-blue-50 border border-blue/20 rounded-lg p-3 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-lg">🖼️</span>
+                                <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-text truncate">Existing ceiling paper photo</p>
+                                    <p className="text-[11px] text-muted truncate">{existingCeilingPaperUrl.split('/').pop()}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <a
+                                    href={getFullFileUrl(existingCeilingPaperUrl)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs font-semibold text-blue-700 hover:text-blue-800"
+                                >
+                                    Open
+                                </a>
+                                <button
+                                    onClick={() => openExisting(existingCeilingPaperUrl, 'Ceiling Paper Photo')}
+                                    className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                >
+                                    Preview
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div>
+                        <label className="block text-xs font-semibold text-muted uppercase mb-2">
+                            Upload Ceiling Paper Photo *
+                        </label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleCeilingPaperFileChange}
+                            className="w-full border border-blue/30 rounded-lg px-3 py-2 text-sm"
+                        />
+                        {ceilingPaperFile && (
+                            <div className="mt-2 flex items-center gap-3">
+                                {ceilingPaperPreview ? (
+                                    <div className="overflow-hidden rounded-lg border border-blue/20">
+                                        <img src={ceilingPaperPreview} alt="Ceiling paper preview" className="h-20 w-20 object-cover" />
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-muted flex items-center gap-1">
+                                        <span>🖼️</span> {ceilingPaperFile.name}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    <button
+                        onClick={handleCeilingPaperSubmit}
+                        disabled={isSubmitting || !ceilingPaperFile}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center"
+                    >
+                        <Upload size={16} />
+                        {isSubmitting ? 'Uploading...' : 'Submit Ceiling Paper Photo'}
+                    </button>
+                </div>
+            )}
+
+            {/* Smart Meter Info */}
+            {!isElectricMeter && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p className="text-sm text-green-800">
+                        <span className="font-semibold">ℹ️ Smart Meter:</span> Ceiling paper photo is not required for Smart Meter installations as it is initially installed by customer
+                    </p>
+                </div>
+            )}
+
+            {/* Message Display */}
+            {message && (
+                <p className={`text-xs font-semibold px-3 py-2 rounded ${message.includes('successfully') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    {message}
+                </p>
+            )}
+
+            {/* Preview Modal */}
+            {previewUrl && (
+                <div
+                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+                    onClick={closePreview}
+                >
+                    <div
+                        className="relative bg-white rounded-xl shadow-2xl max-w-4xl max-h-[90vh] overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-3 flex items-center justify-between">
+                            <h3 className="text-white font-semibold text-sm">{previewTitle}</h3>
+                            <button
+                                onClick={closePreview}
+                                className="p-1 hover:bg-white/20 rounded-lg transition-colors text-white"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-4 max-h-[80vh] overflow-auto">
+                            {getFileType(previewUrl) === 'image' ? (
+                                <img src={previewUrl} alt={previewTitle} className="max-w-full h-auto rounded-lg" />
+                            ) : getFileType(previewUrl) === 'pdf' ? (
+                                <iframe src={previewUrl} className="w-full h-[70vh] rounded-lg" title={previewTitle} />
+                            ) : (
+                                <div className="text-center py-8">
+                                    <p className="text-muted mb-4">Cannot preview this file type</p>
+                                    <a
+                                        href={previewUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                    >
+                                        Open in New Tab
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
