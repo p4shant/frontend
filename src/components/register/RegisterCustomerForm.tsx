@@ -50,7 +50,7 @@ export default function RegisterCustomerForm({
     session?: { employeeId: string; name: string };
     applicationId?: string | null;
     preFilledData?: any;
-    onSuccess?: () => void;
+    onSuccess?: (customerId?: number) => void;
     onCancel?: () => void;
 }) {
     const { token } = useAuth()
@@ -60,7 +60,7 @@ export default function RegisterCustomerForm({
     const [prefillLoading, setPrefillLoading] = useState(false)
     const [manualGps, setManualGps] = useState(false)
 
-    const isEditMode = Boolean(applicationId) || Boolean(preFilledData)
+    const isEditMode = Boolean(applicationId)
 
     const UP_DISTRICTS = [
         'Ghazipur',
@@ -639,7 +639,13 @@ export default function RegisterCustomerForm({
                 ? await registeredCustomersAPI.update(applicationId!, payload, token)
                 : await registeredCustomersAPI.create(payload, token)
 
-            const customerId = (created?.id ?? applicationId) as string
+            console.log('=== Customer API Response ===');
+            console.log('Full response:', created);
+            console.log('created.id:', created?.id);
+            console.log('created.data?.id:', created?.data?.id);
+
+            const customerId = created?.data?.id || created?.id || applicationId;
+            console.log('Extracted customerId:', customerId, typeof customerId);
 
             // Prepare all files for batch upload
             const filesToUpload: Record<string, File | File[]> = {};
@@ -730,7 +736,9 @@ export default function RegisterCustomerForm({
 
             // Call onSuccess callback if provided (for modal closing)
             if (onSuccess) {
-                setTimeout(() => onSuccess(), fileUploadSuccess ? 500 : 2000)
+                const numericId = customerId ? Number(customerId) : undefined;
+                console.log('Calling onSuccess with customerId:', numericId);
+                setTimeout(() => onSuccess(numericId), fileUploadSuccess ? 500 : 2000)
             }
         } catch (err) {
             const errMsg = err instanceof Error ? err.message : 'Network error.'

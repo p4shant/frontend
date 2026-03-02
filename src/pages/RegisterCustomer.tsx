@@ -1,9 +1,12 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Plus, Search, X } from 'lucide-react';
+import { Plus, Search, X, UserPlus } from 'lucide-react';
 import RegisterCustomerForm from '../components/register/RegisterCustomerForm';
+import UnconfirmedLeadForm from '../components/register/UnconfirmedLeadForm';
+import UnconfirmedLeadsList from '../components/register/UnconfirmedLeadsList';
 import DocumentDownloadModal from '../components/DocumentDownloadModal';
 import { useAuth } from '../context/AuthContext';
-import { registeredCustomersAPI } from '../services/api';
+import { registeredCustomersAPI, unconfirmedLeadsAPI } from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 type Customer = {
     id: string;
@@ -28,6 +31,14 @@ function RegisterCustomer() {
     const [filterPhone, setFilterPhone] = useState('');
     const [filterDistrict, setFilterDistrict] = useState('');
     const { user, token } = useAuth();
+    const { showToast } = useToast();
+
+    // Unconfirmed Leads state
+    const [activeSection, setActiveSection] = useState<'customers' | 'leads'>('customers');
+    const [isLeadFormOpen, setIsLeadFormOpen] = useState(false);
+    const [convertingLead, setConvertingLead] = useState<any>(null);
+    const [preFilledData, setPreFilledData] = useState<any>(null);
+    const [leadsRefreshTrigger, setLeadsRefreshTrigger] = useState(0);
 
     // Prepare session object from logged-in user
     const session = user ? { employeeId: user.id, name: user.name } : undefined;
@@ -80,9 +91,36 @@ function RegisterCustomer() {
         setIsOpen(true);
     };
 
-    const handleSuccess = async () => {
+    const handleSuccess = async (customerId?: number) => {
+        console.log('=== handleSuccess called ===');
+        console.log('Received customerId:', customerId, typeof customerId);
+        console.log('convertingLead:', convertingLead);
+
         setIsOpen(false);
         setSelectedId(null);
+        setPreFilledData(null);
+
+        // If converting a lead, mark it as converted
+        if (convertingLead && customerId) {
+            console.log('Converting lead', convertingLead.id, 'to customer', customerId);
+            try {
+                await unconfirmedLeadsAPI.convertToCustomer(
+                    String(convertingLead.id),
+                    customerId,
+                    token!
+                );
+                showToast('Lead converted to customer successfully!', 'success');
+                setLeadsRefreshTrigger(prev => prev + 1);
+            } catch (e) {
+                console.error('Failed to mark lead as converted:', e);
+                const errMsg = e instanceof Error ? e.message : 'Failed to update lead status';
+                showToast(`Customer created but ${errMsg}`, 'error');
+            }
+            setConvertingLead(null);
+        } else if (convertingLead && !customerId) {
+            console.error('ERROR: Converting lead but customerId is undefined/null!');
+        }
+
         // Refresh the customer list
         if (user && token) {
             try {
@@ -123,211 +161,271 @@ function RegisterCustomer() {
         setFilterDistrict('');
     };
 
+    const handleConvertLead = (lead: any) => {
+        setConvertingLead(lead);
+        setPreFilledData({
+            applicant_name: lead.name,
+            mobile_number: lead.phone_number,
+            district: lead.district
+        });
+        setIsOpen(true);
+    };
+
+    const handleLeadFormSuccess = () => {
+        setIsLeadFormOpen(false);
+        setLeadsRefreshTrigger(prev => prev + 1);
+    };
+
     return (
         <div className="p-4 sm:p-6">
-            <button
-                type="button"
-                onClick={openCreate}
-                className="inline-flex items-center gap-2 rounded-xl border border-blue/18 bg-blue/10 px-4 py-3 text-blue-dark font-semibold shadow-sm hover:bg-blue/14 hover:border-blue/26 transition-colors"
-            >
-                <Plus size={18} />
-                <span>Register Customer</span>
-            </button>
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+                <button
+                    type="button"
+                    onClick={openCreate}
+                    className="inline-flex items-center gap-2 rounded-xl border border-blue/18 bg-blue/10 px-4 py-3 text-blue-dark font-semibold shadow-sm hover:bg-blue/14 hover:border-blue/26 transition-colors"
+                >
+                    <Plus size={18} />
+                    <span>Register Customer</span>
+                </button>
 
-            {/* Table of customers */}
-            <div className="mt-6">
-                {loading ? (
-                    <div className="text-sm text-muted">Loading customers…</div>
-                ) : error ? (
-                    <div className="text-sm text-red-600">{error}</div>
-                ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
-                        {/* Filter Section */}
-                        <div className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-slate-200 p-4">
-                            <div className="flex items-center gap-2 mb-3">
-                                <Search className="w-5 h-5 text-slate-600" />
-                                <h3 className="text-sm font-semibold text-slate-700">Filter Customers</h3>
+                <button
+                    type="button"
+                    onClick={() => setIsLeadFormOpen(true)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3 text-amber-700 font-semibold shadow-sm hover:from-amber-100 hover:to-orange-100 transition-colors"
+                >
+                    <UserPlus size={18} />
+                    <span>Add Unconfirmed Lead</span>
+                </button>
+            </div>
+
+            {/* Tab Switcher */}
+            <div className="flex gap-2 mb-6 border-b border-slate-200">
+                <button
+                    type="button"
+                    onClick={() => setActiveSection('customers')}
+                    className={`px-6 py-3 font-semibold text-sm transition-all ${activeSection === 'customers'
+                        ? 'text-blue-600 border-b-2 border-blue-600'
+                        : 'text-slate-600 hover:text-slate-800'
+                        }`}
+                >
+                    Confirmed Customers
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveSection('leads')}
+                    className={`px-6 py-3 font-semibold text-sm transition-all ${activeSection === 'leads'
+                        ? 'text-amber-600 border-b-2 border-amber-600'
+                        : 'text-slate-600 hover:text-slate-800'
+                        }`}
+                >
+                    Unconfirmed Leads
+                </button>
+            </div>
+
+            {/* Conditional Content */}
+            {activeSection === 'customers' ? (
+                /* Table of customers */
+                <div className="mt-6">
+                    {loading ? (
+                        <div className="text-sm text-muted">Loading customers…</div>
+                    ) : error ? (
+                        <div className="text-sm text-red-600">{error}</div>
+                    ) : (
+                        <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+                            {/* Filter Section */}
+                            <div className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-slate-200 p-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Search className="w-5 h-5 text-slate-600" />
+                                    <h3 className="text-sm font-semibold text-slate-700">Filter Customers</h3>
+                                    {(filterName || filterPhone || filterDistrict) && (
+                                        <button
+                                            onClick={clearFilters}
+                                            className="ml-auto px-3 py-1 text-xs bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1"
+                                        >
+                                            <X size={14} /> Clear Filters
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div className="relative">
+                                        <label className="block text-xs font-medium text-slate-600 mb-1">Name</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Search by name..."
+                                            value={filterName}
+                                            onChange={(e) => setFilterName(e.target.value)}
+                                            className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        />
+                                    </div>
+                                    <div className="relative">
+                                        <label className="block text-xs font-medium text-slate-600 mb-1">Phone Number</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Search by phone..."
+                                            value={filterPhone}
+                                            onChange={(e) => setFilterPhone(e.target.value)}
+                                            className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        />
+                                    </div>
+                                    <div className="relative">
+                                        <label className="block text-xs font-medium text-slate-600 mb-1">District</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Search by district..."
+                                            value={filterDistrict}
+                                            onChange={(e) => setFilterDistrict(e.target.value)}
+                                            className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        />
+                                    </div>
+                                </div>
                                 {(filterName || filterPhone || filterDistrict) && (
-                                    <button
-                                        onClick={clearFilters}
-                                        className="ml-auto px-3 py-1 text-xs bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1"
-                                    >
-                                        <X size={14} /> Clear Filters
-                                    </button>
+                                    <p className="text-xs text-slate-600 mt-3">
+                                        📊 Showing {filteredCustomers.length} of {customers.length} customer(s)
+                                    </p>
                                 )}
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div className="relative">
-                                    <label className="block text-xs font-medium text-slate-600 mb-1">Name</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Search by name..."
-                                        value={filterName}
-                                        onChange={(e) => setFilterName(e.target.value)}
-                                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                </div>
-                                <div className="relative">
-                                    <label className="block text-xs font-medium text-slate-600 mb-1">Phone Number</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Search by phone..."
-                                        value={filterPhone}
-                                        onChange={(e) => setFilterPhone(e.target.value)}
-                                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                </div>
-                                <div className="relative">
-                                    <label className="block text-xs font-medium text-slate-600 mb-1">District</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Search by district..."
-                                        value={filterDistrict}
-                                        onChange={(e) => setFilterDistrict(e.target.value)}
-                                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                </div>
-                            </div>
-                            {(filterName || filterPhone || filterDistrict) && (
-                                <p className="text-xs text-slate-600 mt-3">
-                                    📊 Showing {filteredCustomers.length} of {customers.length} customer(s)
-                                </p>
-                            )}
-                        </div>
 
-                        <table className="min-w-full divide-y divide-slate-200 hidden md:table">
-                            <thead className="bg-slate-50">
-                                <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Name</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Phone</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">District</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Payment Mode</th>
-                                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700">Plant Price</th>
-                                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700">Margin Money</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Created Date</th>
-                                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 bg-white">
-                                {filteredCustomers.map((c) => (
-                                    <tr key={c.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-4 py-2 text-sm text-slate-900">{c.applicant_name}</td>
-                                        <td className="px-4 py-2 text-sm text-slate-700">{c.mobile_number}</td>
-                                        <td className="px-4 py-2 text-sm text-slate-700">{c.district}</td>
-                                        <td className="px-4 py-2 text-sm text-slate-700">{c.payment_mode || '-'}</td>
-                                        <td className="px-4 py-2 text-sm text-slate-700 text-right font-semibold">
-                                            {c.plant_price ? `₹${parseFloat(c.plant_price).toLocaleString('en-IN')}` : '-'}
-                                        </td>
-                                        <td className="px-4 py-2 text-sm text-slate-700 text-right font-semibold">
-                                            {c.margin_money ? `₹${parseFloat(c.margin_money).toLocaleString('en-IN')}` : '-'}
-                                        </td>
-                                        <td className="px-4 py-2 text-sm text-slate-700">
-                                            {c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN', {
-                                                year: 'numeric',
-                                                month: 'short',
-                                                day: 'numeric'
-                                            }) : '-'}
-                                        </td>
-                                        <td className="px-4 py-2 text-sm text-right">
-                                            <div className="inline-flex items-center gap-2">
+                            <table className="min-w-full divide-y divide-slate-200 hidden md:table">
+                                <thead className="bg-slate-50">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Name</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Phone</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">District</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Payment Mode</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700">Plant Price</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700">Margin Money</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Created Date</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 bg-white">
+                                    {filteredCustomers.map((c) => (
+                                        <tr key={c.id} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-4 py-2 text-sm text-slate-900">{c.applicant_name}</td>
+                                            <td className="px-4 py-2 text-sm text-slate-700">{c.mobile_number}</td>
+                                            <td className="px-4 py-2 text-sm text-slate-700">{c.district}</td>
+                                            <td className="px-4 py-2 text-sm text-slate-700">{c.payment_mode || '-'}</td>
+                                            <td className="px-4 py-2 text-sm text-slate-700 text-right font-semibold">
+                                                {c.plant_price ? `₹${parseFloat(c.plant_price).toLocaleString('en-IN')}` : '-'}
+                                            </td>
+                                            <td className="px-4 py-2 text-sm text-slate-700 text-right font-semibold">
+                                                {c.margin_money ? `₹${parseFloat(c.margin_money).toLocaleString('en-IN')}` : '-'}
+                                            </td>
+                                            <td className="px-4 py-2 text-sm text-slate-700">
+                                                {c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN', {
+                                                    year: 'numeric',
+                                                    month: 'short',
+                                                    day: 'numeric'
+                                                }) : '-'}
+                                            </td>
+                                            <td className="px-4 py-2 text-sm text-right">
+                                                <div className="inline-flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openEdit(String(c.id))}
+                                                        className="px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 transition-colors"
+                                                    >Open</button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openDocumentModal(String(c.id))}
+                                                        className="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-800 text-xs font-semibold hover:bg-slate-300 transition-colors"
+                                                    >Download</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredCustomers.length === 0 && (
+                                        <tr>
+                                            <td className="px-4 py-6 text-center text-sm text-muted" colSpan={8}>
+                                                {customers.length === 0 ? 'No customers found.' : 'No customers match your filters.'}
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+
+                            {/* Mobile Card View */}
+                            <div className="md:hidden divide-y divide-slate-100 bg-white">
+                                {filteredCustomers.length === 0 ? (
+                                    <div className="px-4 py-6 text-center text-sm text-muted">
+                                        {customers.length === 0 ? 'No customers found.' : 'No customers match your filters.'}
+                                    </div>
+                                ) : (
+                                    filteredCustomers.map((c) => (
+                                        <div key={c.id} className="p-4 space-y-3 hover:bg-slate-50 transition-colors">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-semibold text-slate-900 truncate">{c.applicant_name}</p>
+                                                    <p className="text-sm text-slate-600">{c.mobile_number}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                                                        {c.district}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-3 text-xs">
+                                                <div>
+                                                    <p className="text-slate-500 font-medium">Payment Mode</p>
+                                                    <p className="text-slate-900 font-semibold">{c.payment_mode || '-'}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-slate-500 font-medium">Plant Price</p>
+                                                    <p className="text-slate-900 font-semibold">
+                                                        {c.plant_price ? `₹${parseFloat(c.plant_price).toLocaleString('en-IN')}` : '-'}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-slate-500 font-medium">Margin Money</p>
+                                                    <p className="text-slate-900 font-semibold">
+                                                        {c.margin_money ? `₹${parseFloat(c.margin_money).toLocaleString('en-IN')}` : '-'}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-slate-500 font-medium">Created Date</p>
+                                                    <p className="text-slate-900 font-semibold">
+                                                        {c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN', {
+                                                            year: '2-digit',
+                                                            month: 'short',
+                                                            day: 'numeric'
+                                                        }) : '-'}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex gap-2 pt-2">
                                                 <button
                                                     type="button"
                                                     onClick={() => openEdit(String(c.id))}
-                                                    className="px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 transition-colors"
-                                                >Open</button>
+                                                    className="flex-1 px-3 py-2 rounded-lg bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 transition-colors"
+                                                >
+                                                    ✏️ Open
+                                                </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => openDocumentModal(String(c.id))}
-                                                    className="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-800 text-xs font-semibold hover:bg-slate-300 transition-colors"
-                                                >Download</button>
+                                                    className="flex-1 px-3 py-2 rounded-lg bg-slate-200 text-slate-800 text-xs font-semibold hover:bg-slate-300 transition-colors"
+                                                >
+                                                    📥 Download
+                                                </button>
                                             </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {filteredCustomers.length === 0 && (
-                                    <tr>
-                                        <td className="px-4 py-6 text-center text-sm text-muted" colSpan={8}>
-                                            {customers.length === 0 ? 'No customers found.' : 'No customers match your filters.'}
-                                        </td>
-                                    </tr>
+                                        </div>
+                                    ))
                                 )}
-                            </tbody>
-                        </table>
-
-                        {/* Mobile Card View */}
-                        <div className="md:hidden divide-y divide-slate-100 bg-white">
-                            {filteredCustomers.length === 0 ? (
-                                <div className="px-4 py-6 text-center text-sm text-muted">
-                                    {customers.length === 0 ? 'No customers found.' : 'No customers match your filters.'}
-                                </div>
-                            ) : (
-                                filteredCustomers.map((c) => (
-                                    <div key={c.id} className="p-4 space-y-3 hover:bg-slate-50 transition-colors">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-semibold text-slate-900 truncate">{c.applicant_name}</p>
-                                                <p className="text-sm text-slate-600">{c.mobile_number}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                                                    {c.district}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-3 text-xs">
-                                            <div>
-                                                <p className="text-slate-500 font-medium">Payment Mode</p>
-                                                <p className="text-slate-900 font-semibold">{c.payment_mode || '-'}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-slate-500 font-medium">Plant Price</p>
-                                                <p className="text-slate-900 font-semibold">
-                                                    {c.plant_price ? `₹${parseFloat(c.plant_price).toLocaleString('en-IN')}` : '-'}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <p className="text-slate-500 font-medium">Margin Money</p>
-                                                <p className="text-slate-900 font-semibold">
-                                                    {c.margin_money ? `₹${parseFloat(c.margin_money).toLocaleString('en-IN')}` : '-'}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <p className="text-slate-500 font-medium">Created Date</p>
-                                                <p className="text-slate-900 font-semibold">
-                                                    {c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN', {
-                                                        year: '2-digit',
-                                                        month: 'short',
-                                                        day: 'numeric'
-                                                    }) : '-'}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex gap-2 pt-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => openEdit(String(c.id))}
-                                                className="flex-1 px-3 py-2 rounded-lg bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 transition-colors"
-                                            >
-                                                ✏️ Open
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => openDocumentModal(String(c.id))}
-                                                className="flex-1 px-3 py-2 rounded-lg bg-slate-200 text-slate-800 text-xs font-semibold hover:bg-slate-300 transition-colors"
-                                            >
-                                                📥 Download
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
+                            </div>
                         </div>
-                    </div>
-                )}
-            </div>
+                    )}
+                </div>
+            ) : (
+                <UnconfirmedLeadsList
+                    onConvertToCustomer={handleConvertLead}
+                    refreshTrigger={leadsRefreshTrigger}
+                />
+            )}
 
+            {/* Register Customer Modal */}
             {isOpen && (
                 <div
                     className="fixed inset-0 z-[1200] bg-text/30 backdrop-blur-sm flex items-center justify-center px-4 py-8"
@@ -357,12 +455,21 @@ function RegisterCustomer() {
                             <RegisterCustomerForm
                                 session={session}
                                 applicationId={selectedId}
+                                preFilledData={preFilledData}
                                 onSuccess={handleSuccess}
                                 onCancel={() => setIsOpen(false)}
                             />
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Unconfirmed Lead Form Modal */}
+            {isLeadFormOpen && (
+                <UnconfirmedLeadForm
+                    onSuccess={handleLeadFormSuccess}
+                    onCancel={() => setIsLeadFormOpen(false)}
+                />
             )}
 
             {/* Document Download Modal */}
