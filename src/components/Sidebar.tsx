@@ -53,19 +53,26 @@ function Sidebar({ state }: Props) {
     const isInventoryOperator = user?.employee_role === 'Inventory Operator';
 
     // Build nav items based on user role
-    // Stock Controller / Inventory Operator sees ONLY stock pages + profile
-    const visibleNavItems = (isStockController || isInventoryOperator)
+    // Stock Controller sees ONLY stock pages + profile (no attendance)
+    // Inventory Operator sees stock pages + mark attendance + profile
+    const visibleNavItems = isStockController
         ? [
             ...STOCK_ITEMS,
             ...COMMON_ITEMS,
         ]
-        : [
-            ...NAV_ITEMS,
-            ...(isMasterAdmin ? MASTER_ADMIN_ITEMS : []),
-            ...(isMasterAdmin ? STOCK_ITEMS : []),
-            ...(!isMasterAdmin && isAccountant ? [MONITOR_ATTENDANCE_ITEM] : []),
-            ...COMMON_ITEMS,
-        ];
+        : isInventoryOperator
+            ? [
+                ...STOCK_ITEMS,
+                { label: 'Mark Attendance', to: '/mark-attendance', icon: <CalendarCheck size={18} /> },
+                ...COMMON_ITEMS,
+            ]
+            : [
+                ...NAV_ITEMS,
+                ...(isMasterAdmin ? MASTER_ADMIN_ITEMS : []),
+                ...(isMasterAdmin ? STOCK_ITEMS : []),
+                ...(!isMasterAdmin && isAccountant ? [MONITOR_ATTENDANCE_ITEM] : []),
+                ...COMMON_ITEMS,
+            ];
 
     return (
         <>
