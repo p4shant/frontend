@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { CalendarCheck, LayoutDashboard, PanelsTopLeft, UserRound, Eye, FileText, UserPlus, Wallet, BarChart3, CheckSquare, ClipboardPlus } from 'lucide-react';
+import { CalendarCheck, LayoutDashboard, PanelsTopLeft, UserRound, Eye, FileText, UserPlus, Wallet, BarChart3, CheckSquare, ClipboardPlus, Package, ArrowDownToLine, ArrowUpFromLine, History } from 'lucide-react';
 import kamnLogo from '../assets/kaman-logo.png';
 import { useAuth } from '../context/AuthContext';
 
@@ -17,6 +17,13 @@ const MASTER_ADMIN_ITEMS = [
     { label: 'Task Approval', to: '/task-approval', icon: <CheckSquare size={18} /> },
     { label: 'Create Task', to: '/create-task', icon: <ClipboardPlus size={18} /> },
     { label: 'Admin Dashboard', to: '/admin-stats', icon: <BarChart3 size={18} /> },
+];
+
+const STOCK_ITEMS = [
+    { label: 'Stock Dashboard', to: '/stock-dashboard', icon: <Package size={18} /> },
+    { label: 'Stock Inward', to: '/stock-inward', icon: <ArrowDownToLine size={18} /> },
+    { label: 'Stock Outward', to: '/stock-outward', icon: <ArrowUpFromLine size={18} /> },
+    { label: 'Stock History', to: '/stock-history', icon: <History size={18} /> },
 ];
 
 const MONITOR_ATTENDANCE_ITEM = { label: 'Monitor Attendance', to: '/monitor-attendance', icon: <Eye size={18} /> };
@@ -42,14 +49,22 @@ function Sidebar({ state }: Props) {
     const { user } = useAuth();
     const isMasterAdmin = user?.employee_role === 'Master Admin';
     const isAccountant = user?.employee_role === 'Accountant';
+    const isStockController = user?.employee_role === 'Stock Controller';
 
     // Build nav items based on user role
-    const visibleNavItems = [
-        ...NAV_ITEMS,
-        ...(isMasterAdmin ? MASTER_ADMIN_ITEMS : []),
-        ...(!isMasterAdmin && isAccountant ? [MONITOR_ATTENDANCE_ITEM] : []),
-        ...COMMON_ITEMS,
-    ];
+    // Stock Controller sees ONLY stock pages + profile (no dashboard/register/attendance)
+    const visibleNavItems = isStockController
+        ? [
+            ...STOCK_ITEMS,
+            ...COMMON_ITEMS,
+        ]
+        : [
+            ...NAV_ITEMS,
+            ...(isMasterAdmin ? MASTER_ADMIN_ITEMS : []),
+            ...(isMasterAdmin ? STOCK_ITEMS : []),
+            ...(!isMasterAdmin && isAccountant ? [MONITOR_ATTENDANCE_ITEM] : []),
+            ...COMMON_ITEMS,
+        ];
 
     return (
         <>
