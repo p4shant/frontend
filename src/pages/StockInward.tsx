@@ -2,8 +2,8 @@ import { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { stockAPI } from '../services/api';
 import {
-    STOCK_COMPONENTS, COMPONENT_LABELS, STORE_DISTRICTS, NON_TATA_BRANDS,
-    DCR_TYPES, SYSTEM_TYPES, SYSTEM_BOM, PANEL_WATTAGES, INVERTER_TYPES,
+    COMPONENT_LABELS, STORE_DISTRICTS, NON_TATA_BRANDS,
+    DCR_TYPES, SYSTEM_TYPES, PANEL_WATTAGES, INVERTER_TYPES,
     calculatePlannedComponents, calculateInverterBreakdown,
     type StockComponent,
 } from '../config/stockConfig';

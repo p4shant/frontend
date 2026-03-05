@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { stockAPI } from '../services/api';
 import {
-    COMPONENT_LABELS, STORE_DISTRICTS, BRANDS, DCR_TYPES,
+    STORE_DISTRICTS, BRANDS, DCR_TYPES,
     INVERTER_TYPES, PANEL_WATTAGES, COMPONENT_SHORT_LABELS,
     type InventoryItem, type StockComponent,
 } from '../config/stockConfig';
