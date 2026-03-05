@@ -249,19 +249,24 @@ export default function StockHistory() {
 
             // Compute calculated columns
             allRows.forEach(row => {
-                // Panel total
+                // Panel total — sum of all panel wattage quantities in this row
                 let panelTotal = 0;
                 PANEL_WATTAGES.forEach(w => { panelTotal += row.values[`panel:${w}`] || 0; });
                 row.values['panel:total'] = panelTotal;
 
-                // Panel per inverter (based on same-row inverter data)
-                const invBreakdown: Record<string, number> = {};
-                INVERTER_TYPES.forEach(t => {
-                    const qty = row.values[`inv:${t}`] || 0;
-                    if (qty > 0) invBreakdown[t] = qty;
-                });
-                const expectedPanels = calculateExpectedPanelsFromInverters(invBreakdown);
-                row.values['panel:perInv'] = expectedPanels;
+                // P/Inv (expected panels from inverter BOM) — ONLY for balance rows.
+                // For inward/outward this is misleading: adding 2 inverters shows "16"
+                // expected panels even though no panels were part of that entry.
+                if (row.type === 'balance') {
+                    const invBreakdown: Record<string, number> = {};
+                    INVERTER_TYPES.forEach(t => {
+                        const qty = row.values[`inv:${t}`] || 0;
+                        if (qty > 0) invBreakdown[t] = qty;
+                    });
+                    row.values['panel:perInv'] = calculateExpectedPanelsFromInverters(invBreakdown);
+                } else {
+                    row.values['panel:perInv'] = 0;
+                }
             });
 
             setRows(allRows);
@@ -366,7 +371,7 @@ export default function StockHistory() {
                             <thead>
                                 <tr className="bg-gray-100 border-b-2 border-gray-300">
                                     <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap sticky left-0 bg-gray-100 z-10">Date</th>
-                                    <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">Time</th>
+                                    <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">Time <span className="text-[10px] text-gray-400 font-normal">(IST)</span></th>
                                     <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">Type</th>
                                     <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">District</th>
                                     {COLUMNS.map(col => (
