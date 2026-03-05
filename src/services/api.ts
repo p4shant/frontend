@@ -1174,6 +1174,204 @@ export const notificationsAPI = {
     },
 };
 
+// ============================================================================
+// STOCK MANAGEMENT API
+// ============================================================================
+export const stockAPI = {
+    // --- Config ---
+    async getConfig(token: string) {
+        const response = await fetch(`${API_BASE}/stock/config`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to fetch stock config');
+        return await response.json();
+    },
+
+    // --- Inventory ---
+    async getInventory(token: string, filters?: { district?: string; brand?: string; dcr_type?: string; component?: string }) {
+        const params = new URLSearchParams();
+        if (filters?.district) params.set('district', filters.district);
+        if (filters?.brand) params.set('brand', filters.brand);
+        if (filters?.dcr_type) params.set('dcr_type', filters.dcr_type);
+        if (filters?.component) params.set('component', filters.component);
+        const response = await fetch(`${API_BASE}/stock/inventory?${params}`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to fetch inventory');
+        return await response.json();
+    },
+
+    async getInventorySummary(token: string) {
+        const response = await fetch(`${API_BASE}/stock/inventory/summary`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to fetch inventory summary');
+        return await response.json();
+    },
+
+    async validateStock(token: string, data: { district: string; brand: string; dcr_type: string; items: { component: string; sub_type?: string | null; actual_quantity: number }[] }) {
+        const response = await fetch(`${API_BASE}/stock/inventory/validate`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) throw new Error('Failed to validate stock');
+        return await response.json();
+    },
+
+    // --- Inward ---
+    async createInward(token: string, data: any) {
+        const response = await fetch(`${API_BASE}/stock/inward`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.message || 'Failed to create inward record');
+        }
+        return await response.json();
+    },
+
+    async listInward(token: string, filters?: { page?: number; limit?: number; district?: string; brand?: string; dcr_type?: string; from_date?: string; to_date?: string }) {
+        const params = new URLSearchParams();
+        if (filters?.page) params.set('page', String(filters.page));
+        if (filters?.limit) params.set('limit', String(filters.limit));
+        if (filters?.district) params.set('district', filters.district);
+        if (filters?.brand) params.set('brand', filters.brand);
+        if (filters?.dcr_type) params.set('dcr_type', filters.dcr_type);
+        if (filters?.from_date) params.set('from_date', filters.from_date);
+        if (filters?.to_date) params.set('to_date', filters.to_date);
+        const response = await fetch(`${API_BASE}/stock/inward?${params}`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to fetch inward records');
+        return await response.json();
+    },
+
+    async getInwardById(token: string, id: number) {
+        const response = await fetch(`${API_BASE}/stock/inward/${id}`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to fetch inward record');
+        return await response.json();
+    },
+
+    // --- Outward ---
+    async createOutward(token: string, data: any) {
+        const response = await fetch(`${API_BASE}/stock/outward`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+            const err = await response.json();
+            const error = new Error(err.message || 'Failed to create outward record') as any;
+            error.shortages = err.shortages;
+            throw error;
+        }
+        return await response.json();
+    },
+
+    async listOutward(token: string, filters?: { page?: number; limit?: number; from_district?: string; dispatch_type?: string; brand?: string; dcr_type?: string; from_date?: string; to_date?: string }) {
+        const params = new URLSearchParams();
+        if (filters?.page) params.set('page', String(filters.page));
+        if (filters?.limit) params.set('limit', String(filters.limit));
+        if (filters?.from_district) params.set('from_district', filters.from_district);
+        if (filters?.dispatch_type) params.set('dispatch_type', filters.dispatch_type);
+        if (filters?.brand) params.set('brand', filters.brand);
+        if (filters?.dcr_type) params.set('dcr_type', filters.dcr_type);
+        if (filters?.from_date) params.set('from_date', filters.from_date);
+        if (filters?.to_date) params.set('to_date', filters.to_date);
+        const response = await fetch(`${API_BASE}/stock/outward?${params}`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to fetch outward records');
+        return await response.json();
+    },
+
+    async getOutwardById(token: string, id: number) {
+        const response = await fetch(`${API_BASE}/stock/outward/${id}`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to fetch outward record');
+        return await response.json();
+    },
+
+    // --- Dealers ---
+    async listDealers(token: string) {
+        const response = await fetch(`${API_BASE}/stock/dealers`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to fetch dealers');
+        return await response.json();
+    },
+
+    async createDealer(token: string, name: string) {
+        const response = await fetch(`${API_BASE}/stock/dealers`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+        });
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.message || 'Failed to create dealer');
+        }
+        return await response.json();
+    },
+
+    // --- Movement Log ---
+    async listMovementLog(token: string, filters?: { page?: number; limit?: number; district?: string; component?: string; brand?: string; dcr_type?: string; movement_type?: string; from_date?: string; to_date?: string }) {
+        const params = new URLSearchParams();
+        if (filters?.page) params.set('page', String(filters.page));
+        if (filters?.limit) params.set('limit', String(filters.limit));
+        if (filters?.district) params.set('district', filters.district);
+        if (filters?.component) params.set('component', filters.component);
+        if (filters?.brand) params.set('brand', filters.brand);
+        if (filters?.dcr_type) params.set('dcr_type', filters.dcr_type);
+        if (filters?.movement_type) params.set('movement_type', filters.movement_type);
+        if (filters?.from_date) params.set('from_date', filters.from_date);
+        if (filters?.to_date) params.set('to_date', filters.to_date);
+        const response = await fetch(`${API_BASE}/stock/movement-log?${params}`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to fetch movement log');
+        return await response.json();
+    },
+
+    // --- Customer Search ---
+    async searchCustomers(token: string, query: string) {
+        const response = await fetch(`${API_BASE}/stock/customers/search?q=${encodeURIComponent(query)}`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to search customers');
+        return await response.json();
+    },
+
+    // --- Daily Snapshots ---
+    async getDailySnapshots(token: string, filters?: { date?: string; district?: string; from_date?: string; to_date?: string }) {
+        const params = new URLSearchParams();
+        if (filters?.date) params.set('date', filters.date);
+        if (filters?.district) params.set('district', filters.district);
+        if (filters?.from_date) params.set('from_date', filters.from_date);
+        if (filters?.to_date) params.set('to_date', filters.to_date);
+        const response = await fetch(`${API_BASE}/stock/snapshots?${params}`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to fetch daily snapshots');
+        return await response.json();
+    },
+
+    async triggerSnapshot(token: string) {
+        const response = await fetch(`${API_BASE}/stock/snapshots/trigger`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to trigger snapshot');
+        return await response.json();
+    },
+};
+
 export default {
     authAPI,
     tasksAPI,
@@ -1186,4 +1384,5 @@ export default {
     plantInstallationsAPI,
     statsAPI,
     notificationsAPI,
+    stockAPI,
 };

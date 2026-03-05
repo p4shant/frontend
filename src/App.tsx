@@ -12,6 +12,10 @@ import AdminStats from './pages/AdminStats';
 import TaskApproval from './pages/TaskApproval';
 import CreateTask from './pages/CreateTask';
 import Login from './pages/Login';
+import StockDashboard from './pages/StockDashboard';
+import StockInward from './pages/StockInward';
+import StockOutward from './pages/StockOutward';
+import StockHistory from './pages/StockHistory';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
 function App() {
@@ -127,6 +131,48 @@ function App() {
           <ProtectedRoute>
             <AppLayout>
               <Profile />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Stock Management routes - Stock Controller & Master Admin only */}
+      <Route
+        path="/stock-dashboard"
+        element={
+          <ProtectedRoute requiredRoles={['Stock Controller', 'Master Admin']}>
+            <AppLayout>
+              <StockDashboard />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/stock-inward"
+        element={
+          <ProtectedRoute requiredRoles={['Stock Controller', 'Master Admin']}>
+            <AppLayout>
+              <StockInward />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/stock-outward"
+        element={
+          <ProtectedRoute requiredRoles={['Stock Controller', 'Master Admin']}>
+            <AppLayout>
+              <StockOutward />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/stock-history"
+        element={
+          <ProtectedRoute requiredRoles={['Stock Controller', 'Master Admin']}>
+            <AppLayout>
+              <StockHistory />
             </AppLayout>
           </ProtectedRoute>
         }
