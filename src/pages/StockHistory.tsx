@@ -46,6 +46,7 @@ const COLUMNS = buildColumns();
 interface FlatRow {
     id: string;
     date: string;
+    time: string;           // HH:MM for inward/outward, '—' for balance
     type: 'balance' | 'inward' | 'outward';
     typeLabel: string;
     district: string;
@@ -55,11 +56,42 @@ interface FlatRow {
     notes?: string;
 }
 
-const TYPE_STYLES: Record<string, string> = {
-    balance: 'bg-blue-100 text-blue-800',
-    inward: 'bg-green-100 text-green-700',
-    outward: 'bg-orange-100 text-orange-700',
+// ── Row-level styling ─────────────────────────────────────────────────
+// Full row background tints so the type is instantly visible by color
+const ROW_BG: Record<string, string> = {
+    balance: 'bg-red-50',
+    inward: 'bg-green-50',
+    outward: 'bg-orange-50',
 };
+const ROW_HOVER: Record<string, string> = {
+    balance: 'hover:bg-red-100/70',
+    inward: 'hover:bg-green-100/70',
+    outward: 'hover:bg-orange-100/70',
+};
+const ROW_STICKY_BG: Record<string, string> = {
+    balance: 'bg-red-50',
+    inward: 'bg-green-50',
+    outward: 'bg-orange-50',
+};
+const TYPE_BADGE: Record<string, string> = {
+    balance: 'bg-red-200 text-red-900',
+    inward: 'bg-green-200 text-green-900',
+    outward: 'bg-orange-200 text-orange-900',
+};
+const ROW_BORDER: Record<string, string> = {
+    balance: 'border-l-4 border-l-red-500',
+    inward: 'border-l-4 border-l-green-500',
+    outward: 'border-l-4 border-l-orange-500',
+};
+
+/** Extract HH:MM from a created_at string */
+function extractTime(createdAt?: string): string {
+    if (!createdAt) return '—';
+    const timePart = createdAt.includes('T')
+        ? createdAt.slice(11, 16)
+        : createdAt.slice(11, 16);
+    return timePart || '—';
+}
 
 export default function StockHistory() {
     const { token } = useAuth();
@@ -136,6 +168,7 @@ export default function StockHistory() {
                     allRows.push({
                         id: `bal-${key}`,
                         date,
+                        time: '—',
                         type: 'balance',
                         typeLabel: 'Balance',
                         district,
@@ -162,6 +195,7 @@ export default function StockHistory() {
                     allRows.push({
                         id: `in-${rec.id}`,
                         date: rec.created_at?.slice(0, 10) || '',
+                        time: extractTime(rec.created_at),
                         type: 'inward',
                         typeLabel: 'Inward',
                         district: rec.district,
@@ -194,6 +228,7 @@ export default function StockHistory() {
                     allRows.push({
                         id: `out-${rec.id}`,
                         date: rec.created_at?.slice(0, 10) || '',
+                        time: extractTime(rec.created_at),
                         type: 'outward',
                         typeLabel,
                         district: rec.from_district,
@@ -205,11 +240,11 @@ export default function StockHistory() {
                 });
             }
 
-            // Sort by date desc, balance first within same date
+            // Sort: newest date first, then inward → outward → balance within same date
             allRows.sort((a, b) => {
                 if (a.date !== b.date) return b.date.localeCompare(a.date);
-                const typeOrder = { balance: 0, inward: 1, outward: 2 };
-                return (typeOrder[a.type] || 9) - (typeOrder[b.type] || 9);
+                const typeOrder: Record<string, number> = { inward: 0, outward: 1, balance: 2 };
+                return (typeOrder[a.type] ?? 9) - (typeOrder[b.type] ?? 9);
             });
 
             // Compute calculated columns
@@ -329,40 +364,58 @@ export default function StockHistory() {
                     <div className="overflow-x-auto">
                         <table className="w-full text-xs">
                             <thead>
-                                <tr className="bg-gray-50 border-b border-gray-200">
-                                    <th className="px-2 py-2 text-left font-semibold text-gray-600 whitespace-nowrap sticky left-0 bg-gray-50 z-10">Date</th>
-                                    <th className="px-2 py-2 text-left font-semibold text-gray-600 whitespace-nowrap">Type</th>
-                                    <th className="px-2 py-2 text-left font-semibold text-gray-600 whitespace-nowrap">District</th>
+                                <tr className="bg-gray-100 border-b-2 border-gray-300">
+                                    <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap sticky left-0 bg-gray-100 z-10">Date</th>
+                                    <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">Time</th>
+                                    <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">Type</th>
+                                    <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">District</th>
                                     {COLUMNS.map(col => (
-                                        <th key={col.key} className={`px-1.5 py-2 text-center font-semibold whitespace-nowrap ${col.colorClass}`}>
+                                        <th key={col.key} className={`px-1.5 py-2.5 text-center font-bold whitespace-nowrap ${col.colorClass}`}>
                                             {col.shortLabel}
                                         </th>
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {paginatedRows.map(row => (
-                                    <tr key={row.id} className={`hover:bg-purple-50/30 ${row.type === 'balance' ? 'bg-blue-50/40' : ''}`}>
-                                        <td className="px-2 py-2 font-medium text-gray-700 whitespace-nowrap sticky left-0 bg-inherit z-10">
-                                            {row.date}
-                                        </td>
-                                        <td className="px-2 py-2 whitespace-nowrap">
-                                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${TYPE_STYLES[row.type] || 'bg-gray-100 text-gray-600'}`}>
-                                                {row.typeLabel}
-                                            </span>
-                                        </td>
-                                        <td className="px-2 py-2 font-medium text-gray-700 whitespace-nowrap">{row.district}</td>
-                                        {COLUMNS.map(col => {
-                                            const val = row.values[col.key] || 0;
-                                            const isCalc = col.group === 'calculated';
-                                            return (
-                                                <td key={col.key} className={`px-1.5 py-2 text-center font-mono ${isCalc ? 'font-bold' : ''} ${val > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
-                                                    {val || '·'}
-                                                </td>
-                                            );
-                                        })}
-                                    </tr>
-                                ))}
+                            <tbody>
+                                {paginatedRows.map(row => {
+                                    const bg = ROW_BG[row.type] || '';
+                                    const hover = ROW_HOVER[row.type] || 'hover:bg-gray-50';
+                                    const stickyBg = ROW_STICKY_BG[row.type] || 'bg-white';
+                                    const borderL = ROW_BORDER[row.type] || '';
+                                    const badge = TYPE_BADGE[row.type] || 'bg-gray-100 text-gray-600';
+                                    return (
+                                        <tr key={row.id}
+                                            className={`${bg} ${hover} ${borderL} border-b border-gray-200/60 transition-colors`}>
+                                            {/* Date — sticky */}
+                                            <td className={`px-2 py-2 font-semibold text-gray-800 whitespace-nowrap sticky left-0 z-10 ${stickyBg}`}>
+                                                {row.date}
+                                            </td>
+                                            {/* Time */}
+                                            <td className="px-2 py-2 text-gray-500 whitespace-nowrap font-mono">
+                                                {row.time}
+                                            </td>
+                                            {/* Type badge */}
+                                            <td className="px-2 py-2 whitespace-nowrap">
+                                                <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide uppercase ${badge}`}>
+                                                    {row.typeLabel}
+                                                </span>
+                                            </td>
+                                            {/* District */}
+                                            <td className="px-2 py-2 font-semibold text-gray-800 whitespace-nowrap">{row.district}</td>
+                                            {/* Data columns */}
+                                            {COLUMNS.map(col => {
+                                                const val = row.values[col.key] || 0;
+                                                const isCalc = col.group === 'calculated';
+                                                return (
+                                                    <td key={col.key}
+                                                        className={`px-1.5 py-2 text-center font-mono ${isCalc ? 'font-extrabold' : 'font-semibold'} ${val > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
+                                                        {val || '·'}
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
@@ -390,11 +443,20 @@ export default function StockHistory() {
             )}
 
             {/* Legend */}
-            <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-100 border border-blue-200" /> Balance (daily snapshot)</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-100 border border-green-200" /> Inward</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-100 border border-orange-200" /> Outward</span>
-                <span className="text-purple-600 font-medium">P/Inv = Expected panels based on inverter BOM</span>
+            <div className="flex flex-wrap gap-4 text-xs text-gray-600 bg-white rounded-xl border border-gray-200 p-3 shadow-sm">
+                <span className="flex items-center gap-1.5">
+                    <span className="w-4 h-3 rounded border-l-4 border-l-green-500 bg-green-50 border border-green-200" />
+                    <span className="font-semibold">Inward</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                    <span className="w-4 h-3 rounded border-l-4 border-l-orange-500 bg-orange-50 border border-orange-200" />
+                    <span className="font-semibold">Outward</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                    <span className="w-4 h-3 rounded border-l-4 border-l-red-500 bg-red-50 border border-red-200" />
+                    <span className="font-semibold">Balance</span> <span className="text-gray-400">(auto-snapshot after every entry)</span>
+                </span>
+                <span className="ml-auto text-purple-600 font-semibold">P/Inv = Expected panels based on inverter BOM</span>
             </div>
         </div>
     );

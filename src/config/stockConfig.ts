@@ -42,6 +42,16 @@ export const COMPONENT_SHORT_LABELS: Record<StockComponent, string> = {
 };
 
 // ---------------------------------------------------------------------------
+// Entry Mode (mandatory on every inward/outward record)
+// ---------------------------------------------------------------------------
+export const ENTRY_MODES = [
+    { value: 'system', label: '☀️ Solar System', description: 'Full system kit — all components auto-calculated from BOM' },
+    { value: 'component', label: '🔧 Component-wise', description: 'Individual components only — enter quantities directly' },
+] as const;
+
+export type EntryMode = 'system' | 'component';
+
+// ---------------------------------------------------------------------------
 // Sub-type support
 // ---------------------------------------------------------------------------
 export const COMPONENTS_WITH_SUBTYPES: StockComponent[] = ['panel', 'inverter'];
@@ -179,6 +189,7 @@ export interface InwardRecord {
     district: string;
     brand: string;
     dcr_type: string;
+    entry_mode: EntryMode;
     notes: string | null;
     created_by: number;
     created_by_name: string;
@@ -200,6 +211,7 @@ export interface OutwardRecord {
     connector: string | null;
     brand: string;
     dcr_type: string;
+    entry_mode: EntryMode;
     notes: string | null;
     created_by: number;
     created_by_name: string;
