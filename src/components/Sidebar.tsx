@@ -50,10 +50,11 @@ function Sidebar({ state }: Props) {
     const isMasterAdmin = user?.employee_role === 'Master Admin';
     const isAccountant = user?.employee_role === 'Accountant';
     const isStockController = user?.employee_role === 'Stock Controller';
+    const isInventoryOperator = user?.employee_role === 'Inventory Operator';
 
     // Build nav items based on user role
-    // Stock Controller sees ONLY stock pages + profile (no dashboard/register/attendance)
-    const visibleNavItems = isStockController
+    // Stock Controller / Inventory Operator sees ONLY stock pages + profile
+    const visibleNavItems = (isStockController || isInventoryOperator)
         ? [
             ...STOCK_ITEMS,
             ...COMMON_ITEMS,
