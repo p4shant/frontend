@@ -59,8 +59,12 @@ export const COMPONENTS_WITH_SUBTYPES: StockComponent[] = ['panel', 'inverter'];
 export const PANEL_WATTAGES = ['570', '575', '580', '585', '590'] as const;
 export type PanelWattage = (typeof PANEL_WATTAGES)[number];
 
-export const INVERTER_TYPES = ['2KW', '3KW', '4KW', '5(I)KW', '5(III)KW', '6KW', '8KW', '10KW'] as const;
+export const INVERTER_TYPES = ['2KW', '3KW', '4KW', '5(I)KW', '5(III)KW', '6KW', '8KW', '10KW', 'H-3KW', 'H-5KW', 'H-6KW'] as const;
 export type InverterType = (typeof INVERTER_TYPES)[number];
+
+// Hybrid inverter types (for UI grouping)
+export const HYBRID_INVERTER_TYPES = ['H-3KW', 'H-5KW', 'H-6KW'] as const;
+export const REGULAR_INVERTER_TYPES = ['2KW', '3KW', '4KW', '5(I)KW', '5(III)KW', '6KW', '8KW', '10KW'] as const;
 
 // ---------------------------------------------------------------------------
 // Bill of Materials (BOM) — components required per system type
