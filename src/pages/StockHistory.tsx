@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { stockAPI } from '../services/api';
 import {
     STORE_DISTRICTS, BRANDS, DCR_TYPES,
-    INVERTER_TYPES, PANEL_WATTAGES, COMPONENT_SHORT_LABELS,
+    REGULAR_INVERTER_TYPES, HYBRID_INVERTER_TYPES,
+    PANEL_WATTAGES, COMPONENT_SHORT_LABELS,
     calculateExpectedPanelsFromInverters,
     type StockComponent,
 } from '../config/stockConfig';
@@ -16,15 +17,19 @@ interface ColDef {
     key: string;
     label: string;
     shortLabel: string;
-    group: 'meta' | 'inverter' | 'panel' | 'simple' | 'calculated';
+    group: 'meta' | 'inverter' | 'hybrid_inverter' | 'panel' | 'simple' | 'calculated';
     colorClass: string;
 }
 
 function buildColumns(): ColDef[] {
     const cols: ColDef[] = [];
-    // Inverters
-    INVERTER_TYPES.forEach(t => {
+    // Regular Inverters
+    REGULAR_INVERTER_TYPES.forEach(t => {
         cols.push({ key: `inv:${t}`, label: `Inverter ${t}`, shortLabel: `Inv ${t}`, group: 'inverter', colorClass: 'text-indigo-600' });
+    });
+    // Hybrid Inverters
+    HYBRID_INVERTER_TYPES.forEach(t => {
+        cols.push({ key: `inv:${t}`, label: `Hybrid ${t}`, shortLabel: `${t}`, group: 'hybrid_inverter', colorClass: 'text-purple-600' });
     });
     // Panels
     PANEL_WATTAGES.forEach(w => {
@@ -259,7 +264,7 @@ export default function StockHistory() {
                 // expected panels even though no panels were part of that entry.
                 if (row.type === 'balance') {
                     const invBreakdown: Record<string, number> = {};
-                    INVERTER_TYPES.forEach(t => {
+                    [...REGULAR_INVERTER_TYPES, ...HYBRID_INVERTER_TYPES].forEach(t => {
                         const qty = row.values[`inv:${t}`] || 0;
                         if (qty > 0) invBreakdown[t] = qty;
                     });

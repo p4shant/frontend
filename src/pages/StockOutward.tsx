@@ -5,6 +5,7 @@ import {
     COMPONENT_LABELS, STORE_DISTRICTS, NON_TATA_BRANDS,
     DCR_TYPES, SYSTEM_TYPES, CONNECTORS, DISPATCH_TYPES,
     PANEL_WATTAGES, INVERTER_TYPES,
+    REGULAR_INVERTER_TYPES, HYBRID_INVERTER_TYPES,
     ENTRY_MODES, STOCK_COMPONENTS,
     calculatePlannedComponents, calculateInverterBreakdown,
     type StockComponent, type EntryMode, type Dealer, type CustomerSearchResult,
@@ -16,6 +17,8 @@ type PanelBreakdown = Record<string, number>;
 type InverterQuantities = Record<string, number>;
 
 const SIMPLE_COMPONENTS: StockComponent[] = ['acdb', 'dcdb', 'earthing_rod', 'earthing_chemical', 'lightning_arrestor'];
+
+const CUSTOMER_DISTRICTS = ['Ghazipur', 'Varanasi', 'Mau', 'Azamgarh', 'Ballia', 'Chandauli', 'Jaunpur', 'Gorakhpur'];
 
 export default function StockOutward() {
     const { token } = useAuth();
@@ -415,9 +418,12 @@ export default function StockOutward() {
                                 )}
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Customer District</label>
-                                <input type="text" value={customerDistrict} onChange={e => setCustomerDistrict(e.target.value)}
-                                    placeholder="District" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Customer District *</label>
+                                <select value={customerDistrict} onChange={e => setCustomerDistrict(e.target.value)}
+                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 text-sm">
+                                    <option value="">Select District</option>
+                                    {CUSTOMER_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                                </select>
                             </div>
                         </div>
                     )}
@@ -701,20 +707,42 @@ export default function StockOutward() {
                                 <span>Inverter — Type Quantities</span>
                                 <span className="text-xs sm:text-sm font-normal opacity-90">Total: {compTotalInverters}</span>
                             </div>
-                            <div className="p-4 sm:p-5">
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                                    {INVERTER_TYPES.map(t => {
-                                        const key = `inverter:${t}`;
-                                        return (
-                                            <div key={t} className={`bg-indigo-50 rounded-xl p-3 sm:p-4 text-center border ${stockStatus[key] && !stockStatus[key].sufficient ? 'border-red-400 bg-red-50' : 'border-indigo-100'}`}>
-                                                <label className="block text-xs sm:text-sm font-bold text-indigo-800 mb-1 sm:mb-2">{t}</label>
-                                                <input type="number" min={0} value={compInverterQty[t]}
-                                                    onChange={e => setCompInverterQty(prev => ({ ...prev, [t]: Math.max(0, parseInt(e.target.value) || 0) }))}
-                                                    className="w-full text-center text-base sm:text-lg font-bold px-2 py-1.5 sm:py-2 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500" />
-                                                <div className="mt-1">{getStockStatusIcon(key)}</div>
-                                            </div>
-                                        );
-                                    })}
+                            <div className="p-4 sm:p-5 space-y-4">
+                                {/* Regular Inverters */}
+                                <div>
+                                    <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Regular Inverters</p>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                                        {REGULAR_INVERTER_TYPES.map(t => {
+                                            const key = `inverter:${t}`;
+                                            return (
+                                                <div key={t} className={`bg-indigo-50 rounded-xl p-3 sm:p-4 text-center border ${stockStatus[key] && !stockStatus[key].sufficient ? 'border-red-400 bg-red-50' : 'border-indigo-100'}`}>
+                                                    <label className="block text-xs sm:text-sm font-bold text-indigo-800 mb-1 sm:mb-2">{t}</label>
+                                                    <input type="number" min={0} value={compInverterQty[t]}
+                                                        onChange={e => setCompInverterQty(prev => ({ ...prev, [t]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                                                        className="w-full text-center text-base sm:text-lg font-bold px-2 py-1.5 sm:py-2 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+                                                    <div className="mt-1">{getStockStatusIcon(key)}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                {/* Hybrid Inverters */}
+                                <div>
+                                    <p className="text-xs font-semibold text-purple-600 mb-2 uppercase tracking-wide">⚡ Hybrid Inverters</p>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+                                        {HYBRID_INVERTER_TYPES.map(t => {
+                                            const key = `inverter:${t}`;
+                                            return (
+                                                <div key={t} className={`bg-purple-50 rounded-xl p-3 sm:p-4 text-center border ${stockStatus[key] && !stockStatus[key].sufficient ? 'border-red-400 bg-red-50' : 'border-purple-200'}`}>
+                                                    <label className="block text-xs sm:text-sm font-bold text-purple-800 mb-1 sm:mb-2">{t}</label>
+                                                    <input type="number" min={0} value={compInverterQty[t]}
+                                                        onChange={e => setCompInverterQty(prev => ({ ...prev, [t]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                                                        className="w-full text-center text-base sm:text-lg font-bold px-2 py-1.5 sm:py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500" />
+                                                    <div className="mt-1">{getStockStatusIcon(key)}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
                         </div>

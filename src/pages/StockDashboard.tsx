@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { stockAPI } from '../services/api';
 import {
     STORE_DISTRICTS, BRANDS, DCR_TYPES,
-    INVERTER_TYPES, PANEL_WATTAGES, COMPONENT_SHORT_LABELS,
+    REGULAR_INVERTER_TYPES, HYBRID_INVERTER_TYPES,
+    PANEL_WATTAGES, COMPONENT_SHORT_LABELS,
     type InventoryItem, type StockComponent,
 } from '../config/stockConfig';
 import { Package, MapPin, Filter, BarChart3, RefreshCw } from 'lucide-react';
@@ -40,12 +41,18 @@ export default function StockDashboard() {
     // Summary totals by component+sub_type
     const summaryCards = useMemo(() => {
         const cards: { label: string; value: number; color: string }[] = [];
-        // Inverter totals by sub_type
+        // Regular Inverter totals by sub_type
         let totalInverters = 0;
-        INVERTER_TYPES.forEach(t => {
+        REGULAR_INVERTER_TYPES.forEach(t => {
             const qty = inventory.filter(i => i.component === 'inverter' && i.sub_type === t).reduce((s, i) => s + i.quantity, 0);
             totalInverters += qty;
             if (qty > 0) cards.push({ label: `Inv ${t}`, value: qty, color: 'bg-indigo-50 text-indigo-700' });
+        });
+        // Hybrid Inverter totals by sub_type
+        HYBRID_INVERTER_TYPES.forEach(t => {
+            const qty = inventory.filter(i => i.component === 'inverter' && i.sub_type === t).reduce((s, i) => s + i.quantity, 0);
+            totalInverters += qty;
+            if (qty > 0) cards.push({ label: `${t}`, value: qty, color: 'bg-purple-50 text-purple-700' });
         });
         // Panel totals by wattage
         let totalPanels = 0;
@@ -189,8 +196,11 @@ function DistrictCard({ district, items }: { district: string; items: InventoryI
                     <thead>
                         <tr className="bg-gray-50">
                             <th className="px-3 py-2 text-left font-semibold text-gray-600 whitespace-nowrap">Brand / DCR</th>
-                            {INVERTER_TYPES.map(t => (
+                            {REGULAR_INVERTER_TYPES.map(t => (
                                 <th key={`inv-${t}`} className="px-2 py-2 text-center font-semibold text-indigo-600 whitespace-nowrap">Inv {t}</th>
+                            ))}
+                            {HYBRID_INVERTER_TYPES.map(t => (
+                                <th key={`inv-${t}`} className="px-2 py-2 text-center font-semibold text-purple-600 whitespace-nowrap">{t}</th>
                             ))}
                             {PANEL_WATTAGES.map(w => (
                                 <th key={`p-${w}`} className="px-2 py-2 text-center font-semibold text-amber-600 whitespace-nowrap">P {w}</th>
@@ -204,11 +214,21 @@ function DistrictCard({ district, items }: { district: string; items: InventoryI
                         {Object.entries(grouped).map(([key, groupItems]) => (
                             <tr key={key} className="hover:bg-blue-50/50">
                                 <td className="px-3 py-2 font-medium text-gray-800 whitespace-nowrap">{key}</td>
-                                {INVERTER_TYPES.map(t => {
+                                {REGULAR_INVERTER_TYPES.map(t => {
                                     const qty = groupItems.find(i => i.component === 'inverter' && i.sub_type === t)?.quantity || 0;
                                     return (
                                         <td key={`inv-${t}`} className="px-2 py-2 text-center">
                                             <span className={`inline-flex items-center justify-center min-w-[1.5rem] px-1 py-0.5 rounded-full text-xs font-bold ${qty > 0 ? 'bg-indigo-100 text-indigo-700' : 'text-gray-300'}`}>
+                                                {qty || '·'}
+                                            </span>
+                                        </td>
+                                    );
+                                })}
+                                {HYBRID_INVERTER_TYPES.map(t => {
+                                    const qty = groupItems.find(i => i.component === 'inverter' && i.sub_type === t)?.quantity || 0;
+                                    return (
+                                        <td key={`inv-${t}`} className="px-2 py-2 text-center">
+                                            <span className={`inline-flex items-center justify-center min-w-[1.5rem] px-1 py-0.5 rounded-full text-xs font-bold ${qty > 0 ? 'bg-purple-100 text-purple-700' : 'text-gray-300'}`}>
                                                 {qty || '·'}
                                             </span>
                                         </td>
