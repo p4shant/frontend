@@ -10,7 +10,10 @@ const EMPLOYEE_ROLES = [
     'System Admin',
     'Technician',
     'Technical Assistant',
-    'Accountant'
+    'Accountant',
+    'Stock Controller',
+    'Inventory Operator',
+    'QA Tester'
 ];
 
 const DISTRICTS = [

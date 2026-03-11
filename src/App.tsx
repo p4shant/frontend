@@ -147,11 +147,11 @@ function App() {
         }
       />
 
-      {/* Stock Management routes - Stock Controller & Master Admin only */}
+      {/* Stock Management routes */}
       <Route
         path="/stock-dashboard"
         element={
-          <ProtectedRoute requiredRoles={['Stock Controller', 'Inventory Operator', 'Master Admin']}>
+          <ProtectedRoute requiredRoles={['Stock Controller', 'Inventory Operator', 'Master Admin', 'Accountant']}>
             <AppLayout>
               <StockDashboard />
             </AppLayout>
@@ -161,7 +161,7 @@ function App() {
       <Route
         path="/stock-inward"
         element={
-          <ProtectedRoute requiredRoles={['Stock Controller', 'Inventory Operator', 'Master Admin']}>
+          <ProtectedRoute requiredRoles={['Stock Controller', 'Inventory Operator', 'Master Admin', 'Accountant']}>
             <AppLayout>
               <StockInward />
             </AppLayout>
@@ -171,7 +171,7 @@ function App() {
       <Route
         path="/stock-outward"
         element={
-          <ProtectedRoute requiredRoles={['Stock Controller', 'Inventory Operator', 'Master Admin']}>
+          <ProtectedRoute requiredRoles={['Stock Controller', 'Inventory Operator', 'Master Admin', 'Accountant']}>
             <AppLayout>
               <StockOutward />
             </AppLayout>
@@ -181,7 +181,7 @@ function App() {
       <Route
         path="/stock-history"
         element={
-          <ProtectedRoute requiredRoles={['Stock Controller', 'Inventory Operator', 'Master Admin']}>
+          <ProtectedRoute requiredRoles={['Stock Controller', 'Inventory Operator', 'Master Admin', 'Accountant']}>
             <AppLayout>
               <StockHistory />
             </AppLayout>
