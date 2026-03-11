@@ -76,7 +76,7 @@ function Sidebar({ state }: Props) {
             : [
                 ...NAV_ITEMS,
                 ...(isMasterAdmin ? MASTER_ADMIN_ITEMS : []),
-                ...(isMasterAdmin ? STOCK_ITEMS : []),
+                ...(isMasterAdmin || isAccountant ? STOCK_ITEMS : []),
                 ...(!isMasterAdmin && isAccountant ? [MONITOR_ATTENDANCE_ITEM] : []),
                 ...(isSupervisor ? [TEAM_ATTENDANCE_ITEM] : []),
                 ...COMMON_ITEMS,

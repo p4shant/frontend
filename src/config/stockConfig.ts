@@ -96,7 +96,7 @@ export const DCR_TYPES = ['DCR', 'Non-DCR'] as const;
 // ---------------------------------------------------------------------------
 // District stores
 // ---------------------------------------------------------------------------
-export const STORE_DISTRICTS = ['Ghazipur', 'Varanasi', 'Mau', 'Azamgarh', 'Ballia'] as const;
+export const STORE_DISTRICTS = ['Ghazipur', 'Varanasi Sarnath', 'Banaras Home', 'Mau', 'Azamgarh', 'Ballia'] as const;
 
 // ---------------------------------------------------------------------------
 // Connectors (hardcoded sales people)
