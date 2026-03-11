@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard';
 import RegisterCustomer from './pages/RegisterCustomer';
 import RegisterEmployee from './pages/RegisterEmployee';
 import MarkAttendance from './pages/MarkAttendance';
+import MarkTeamAttendance from './pages/MarkTeamAttendance';
 import Profile from './pages/Profile';
 import TrackApplication from './pages/TrackApplication';
 import MonitorAttendance from './pages/MonitorAttendance';
@@ -51,6 +52,16 @@ function App() {
           <ProtectedRoute>
             <AppLayout>
               <MarkAttendance />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mark-team-attendance"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <MarkTeamAttendance />
             </AppLayout>
           </ProtectedRoute>
         }
