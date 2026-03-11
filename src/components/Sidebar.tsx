@@ -1,7 +1,10 @@
 import { NavLink } from 'react-router-dom';
-import { CalendarCheck, LayoutDashboard, PanelsTopLeft, UserRound, Eye, FileText, UserPlus, Wallet, BarChart3, CheckSquare, ClipboardPlus, Package, ArrowDownToLine, ArrowUpFromLine, History } from 'lucide-react';
+import { CalendarCheck, LayoutDashboard, PanelsTopLeft, UserRound, Eye, FileText, UserPlus, Wallet, BarChart3, CheckSquare, ClipboardPlus, Package, ArrowDownToLine, ArrowUpFromLine, History, Users } from 'lucide-react';
 import kamnLogo from '../assets/kaman-logo.png';
 import { useAuth } from '../context/AuthContext';
+
+// Supervisor names who can mark team attendance
+const SUPERVISOR_NAMES = ['Upendra Nath', 'Aashish Singh', 'Sanjay Singh Yadav', 'SN Singh'];
 
 const NAV_ITEMS = [
     { label: 'Dashboard', to: '/', icon: <LayoutDashboard size={18} /> },
@@ -28,6 +31,8 @@ const STOCK_ITEMS = [
 
 const MONITOR_ATTENDANCE_ITEM = { label: 'Monitor Attendance', to: '/monitor-attendance', icon: <Eye size={18} /> };
 
+const TEAM_ATTENDANCE_ITEM = { label: 'Team Attendance', to: '/mark-team-attendance', icon: <Users size={18} /> };
+
 const COMMON_ITEMS = [
     { label: 'Profile', to: '/profile', icon: <UserRound size={18} /> },
 ];
@@ -51,6 +56,7 @@ function Sidebar({ state }: Props) {
     const isAccountant = user?.employee_role === 'Accountant';
     const isStockController = user?.employee_role === 'Stock Controller';
     const isInventoryOperator = user?.employee_role === 'Inventory Operator';
+    const isSupervisor = user?.name && SUPERVISOR_NAMES.includes(user.name);
 
     // Build nav items based on user role
     // Stock Controller sees ONLY stock pages + profile (no attendance)
@@ -64,6 +70,7 @@ function Sidebar({ state }: Props) {
             ? [
                 ...STOCK_ITEMS,
                 { label: 'Mark Attendance', to: '/mark-attendance', icon: <CalendarCheck size={18} /> },
+                ...(isSupervisor ? [TEAM_ATTENDANCE_ITEM] : []),
                 ...COMMON_ITEMS,
             ]
             : [
@@ -71,6 +78,7 @@ function Sidebar({ state }: Props) {
                 ...(isMasterAdmin ? MASTER_ADMIN_ITEMS : []),
                 ...(isMasterAdmin ? STOCK_ITEMS : []),
                 ...(!isMasterAdmin && isAccountant ? [MONITOR_ATTENDANCE_ITEM] : []),
+                ...(isSupervisor ? [TEAM_ATTENDANCE_ITEM] : []),
                 ...COMMON_ITEMS,
             ];
 

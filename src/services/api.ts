@@ -388,6 +388,59 @@ export const attendanceAPI = {
             throw error;
         }
     },
+
+    async getTeamMembers(token: string) {
+        const response = await fetch(`${API_BASE}/attendance/team/members`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to fetch team members');
+        }
+
+        return await response.json();
+    },
+
+    async getTeamAttendance(date: string, token: string) {
+        const params = new URLSearchParams();
+        params.append('date', date);
+
+        const response = await fetch(`${API_BASE}/attendance/team/status?${params}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to fetch team attendance');
+        }
+
+        return await response.json();
+    },
+
+    async markTeamAttendance(data: { date: string; attendance: Array<{ employee_id: number; status: 'present' | 'absent' }> }, token: string) {
+        const response = await fetch(`${API_BASE}/attendance/team/mark`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to mark team attendance');
+        }
+
+        return await response.json();
+    },
 };
 
 // ============================================================================

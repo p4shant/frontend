@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { attendanceAPI } from '../services/api';
+import { Info } from 'lucide-react';
+
+// Roles that are managed by supervisors (cannot self punch-in/out)
+const SUPERVISOR_MANAGED_ROLES = ['Technician', 'Technical Assistant'];
 
 type TodayStatus = {
     punch_in_time?: string | null;
@@ -22,7 +26,7 @@ type Location = {
 };
 
 const MarkAttendance = () => {
-    const { token } = useAuth();
+    const { token, user } = useAuth();
     const API_ORIGIN = import.meta.env.VITE_API_ORIGIN || (import.meta.env.VITE_API_BASE?.replace('/api', '') ?? '');
     const [todayStatus, setTodayStatus] = useState<TodayStatus | null>(null);
     const [loading, setLoading] = useState(true);
@@ -249,6 +253,40 @@ const MarkAttendance = () => {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue"></div>
+            </div>
+        );
+    }
+
+    // Block self-punch for Technicians and Technical Assistants
+    if (user?.employee_role && SUPERVISOR_MANAGED_ROLES.includes(user.employee_role)) {
+        return (
+            <div className="max-w-3xl mx-auto p-6">
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg shadow-sm">
+                    <div className="flex items-start gap-4">
+                        <Info className="text-blue-500 flex-shrink-0 mt-1" size={24} />
+                        <div>
+                            <h2 className="text-xl font-semibold text-blue-900 mb-2">
+                                Attendance Marked by Supervisor
+                            </h2>
+                            <p className="text-blue-800 mb-3">
+                                As a <strong>{user.employee_role}</strong>, your attendance is marked by your supervisor.
+                                You do not need to punch in or punch out.
+                            </p>
+                            <div className="bg-white p-4 rounded border border-blue-200">
+                                <p className="text-sm text-blue-700 mb-2"><strong>Your Supervisors:</strong></p>
+                                <ul className="list-disc list-inside text-sm text-blue-700 space-y-1">
+                                    <li>Upendra Nath</li>
+                                    <li>Aashish Singh</li>
+                                    <li>Sanjay Singh Yadav</li>
+                                    <li>SN Singh</li>
+                                </ul>
+                            </div>
+                            <p className="text-sm text-blue-700 mt-3">
+                                Your supervisor will mark your attendance daily. If you have any questions, please contact your supervisor.
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }

@@ -33,6 +33,10 @@ interface AttendanceRecord {
     attendance_date: string
     is_late: number
     forgot_to_punch_out: number
+    attendance_mode?: 'self' | 'supervisor'
+    marked_by?: number | null
+    marked_by_name?: string | null
+    marked_status?: 'present' | 'absent' | null
 }
 
 function MonitorAttendance() {
@@ -383,7 +387,7 @@ function MonitorAttendance() {
         window.open(mapsUrl, '_blank')
     }
 
-    const getStatusBadge = (status: string) => {
+    const getStatusBadge = (status: string, attendanceMode?: string, markedByName?: string | null) => {
         const badgeStyles: Record<string, { bg: string; text: string; icon: string }> = {
             'present': { bg: 'bg-green-100', text: 'text-green-700 border border-green-300', icon: '✓' },
             'late': { bg: 'bg-yellow-100', text: 'text-yellow-700 border border-yellow-300', icon: '⏱' },
@@ -400,9 +404,16 @@ function MonitorAttendance() {
         }
 
         return (
-            <span className={`px-3 py-1 text-xs font-bold rounded-full ${style.bg} ${style.text}`}>
-                {style.icon} {labels[status]}
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+                <span className={`px-3 py-1 text-xs font-bold rounded-full ${style.bg} ${style.text}`}>
+                    {style.icon} {labels[status]}
+                </span>
+                {attendanceMode === 'supervisor' && (
+                    <span className="px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-700 border border-blue-300" title={`Marked by ${markedByName || 'Supervisor'}`}>
+                        👤 By Supervisor
+                    </span>
+                )}
+            </div>
         )
     }
 
@@ -728,7 +739,7 @@ function MonitorAttendance() {
                                                 </td>
                                                 <td className="px-3 sm:px-4 py-3 sm:py-4 text-gray-700 font-medium align-middle text-center hidden sm:table-cell">{calculateHours(record.punch_in_time, record.punch_out_time)}</td>
                                                 <td className="px-3 sm:px-4 py-3 sm:py-4 text-center align-middle min-w-[140px] sm:min-w-[160px]">
-                                                    {getStatusBadge(record.status)}
+                                                    {getStatusBadge(record.status, record.attendance_mode, record.marked_by_name)}
                                                 </td>
                                             </tr>
                                         ))}
