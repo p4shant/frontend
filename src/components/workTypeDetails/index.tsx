@@ -2076,7 +2076,7 @@ export const NameCorrectionRequest: React.FC<WorkTypeDetailsProps> = ({ task: _t
                                         </div>
                                         <button
                                             onClick={() => handleDownload(doc.url, doc.filename)}
-                                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-blue rounded-lg hover:bg-blue-700 transition-colors"
                                         >
                                             <Download size={14} />
                                             Download
