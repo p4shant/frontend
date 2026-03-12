@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { CalendarCheck, LayoutDashboard, PanelsTopLeft, UserRound, Eye, FileText, UserPlus, Wallet, BarChart3, CheckSquare, ClipboardPlus, Package, ArrowDownToLine, ArrowUpFromLine, History, Users } from 'lucide-react';
+import { CalendarCheck, LayoutDashboard, PanelsTopLeft, UserRound, Eye, FileText, UserPlus, Wallet, BarChart3, CheckSquare, ClipboardPlus, Package, ArrowDownToLine, ArrowUpFromLine, History, Users, Gauge, Car } from 'lucide-react';
 import kamnLogo from '../assets/kaman-logo.png';
 import { useAuth } from '../context/AuthContext';
 
@@ -37,6 +37,12 @@ const COMMON_ITEMS = [
     { label: 'Profile', to: '/profile', icon: <UserRound size={18} /> },
 ];
 
+const QA_TESTER_ITEMS = [
+    { label: 'Travel Log', to: '/qa-travel-punch', icon: <Gauge size={18} /> },
+];
+
+const TRAVEL_REVIEW_ITEM = { label: 'Travel Allowance', to: '/travel-allowance', icon: <Car size={18} /> };
+
 interface SidebarState {
     isCollapsed: boolean;
     isMobileOpen: boolean;
@@ -56,11 +62,14 @@ function Sidebar({ state }: Props) {
     const isAccountant = user?.employee_role === 'Accountant';
     const isStockController = user?.employee_role === 'Stock Controller';
     const isInventoryOperator = user?.employee_role === 'Inventory Operator';
+    const isQATester = user?.employee_role === 'QA Tester';
+    const isSFDCAdmin = user?.employee_role === 'SFDC Admin';
     const isSupervisor = user?.name && SUPERVISOR_NAMES.includes(user.name);
 
     // Build nav items based on user role
     // Stock Controller sees ONLY stock pages + profile (no attendance)
     // Inventory Operator sees stock pages + mark attendance + profile
+    // QA Tester sees core pages + Travel Log (NOT Mark Attendance — handled via travel punch)
     const visibleNavItems = isStockController
         ? [
             ...STOCK_ITEMS,
@@ -73,14 +82,22 @@ function Sidebar({ state }: Props) {
                 ...(isSupervisor ? [TEAM_ATTENDANCE_ITEM] : []),
                 ...COMMON_ITEMS,
             ]
-            : [
-                ...NAV_ITEMS,
-                ...(isMasterAdmin ? MASTER_ADMIN_ITEMS : []),
-                ...(isMasterAdmin || isAccountant ? STOCK_ITEMS : []),
-                ...(!isMasterAdmin && isAccountant ? [MONITOR_ATTENDANCE_ITEM] : []),
-                ...(isSupervisor ? [TEAM_ATTENDANCE_ITEM] : []),
-                ...COMMON_ITEMS,
-            ];
+            : isQATester
+                ? [
+                    { label: 'Dashboard', to: '/', icon: <LayoutDashboard size={18} /> },
+                    { label: 'Register Customer', to: '/register-customer', icon: <PanelsTopLeft size={18} /> },
+                    ...QA_TESTER_ITEMS,
+                    ...COMMON_ITEMS,
+                ]
+                : [
+                    ...NAV_ITEMS,
+                    ...(isMasterAdmin ? [...MASTER_ADMIN_ITEMS, TRAVEL_REVIEW_ITEM] : []),
+                    ...(isSFDCAdmin ? [TRAVEL_REVIEW_ITEM] : []),
+                    ...(isMasterAdmin || isAccountant ? STOCK_ITEMS : []),
+                    ...(!isMasterAdmin && isAccountant ? [MONITOR_ATTENDANCE_ITEM] : []),
+                    ...(isSupervisor ? [TEAM_ATTENDANCE_ITEM] : []),
+                    ...COMMON_ITEMS,
+                ];
 
     return (
         <>

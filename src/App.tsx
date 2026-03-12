@@ -17,6 +17,8 @@ import StockDashboard from './pages/StockDashboard';
 import StockInward from './pages/StockInward';
 import StockOutward from './pages/StockOutward';
 import StockHistory from './pages/StockHistory';
+import QATravelPunch from './pages/QATravelPunch';
+import TravelAllowanceReview from './pages/TravelAllowanceReview';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
 function App() {
@@ -184,6 +186,28 @@ function App() {
           <ProtectedRoute requiredRoles={['Stock Controller', 'Inventory Operator', 'Master Admin', 'Accountant']}>
             <AppLayout>
               <StockHistory />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* QA Travel routes */}
+      <Route
+        path="/qa-travel-punch"
+        element={
+          <ProtectedRoute requiredRoles={['QA Tester']}>
+            <AppLayout>
+              <QATravelPunch />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/travel-allowance"
+        element={
+          <ProtectedRoute requiredRoles={['Master Admin', 'SFDC Admin']}>
+            <AppLayout>
+              <TravelAllowanceReview />
             </AppLayout>
           </ProtectedRoute>
         }
