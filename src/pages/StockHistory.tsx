@@ -379,6 +379,7 @@ export default function StockHistory() {
                                     <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">Time <span className="text-[10px] text-gray-400 font-normal">(IST)</span></th>
                                     <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">Type</th>
                                     <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">District</th>
+                                    <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">Brand</th>
                                     {COLUMNS.map(col => (
                                         <th key={col.key} className={`px-1.5 py-2.5 text-center font-bold whitespace-nowrap ${col.colorClass}`}>
                                             {col.shortLabel}
@@ -412,6 +413,8 @@ export default function StockHistory() {
                                             </td>
                                             {/* District */}
                                             <td className="px-2 py-2 font-semibold text-gray-800 whitespace-nowrap">{row.district}</td>
+                                            {/* Brand */}
+                                            <td className="px-2 py-2 font-semibold text-gray-800 whitespace-nowrap">{row.brand}</td>
                                             {/* Data columns */}
                                             {COLUMNS.map(col => {
                                                 const val = row.values[col.key] || 0;
