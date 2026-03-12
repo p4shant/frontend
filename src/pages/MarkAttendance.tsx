@@ -257,6 +257,34 @@ const MarkAttendance = () => {
         );
     }
 
+    // Block QA Tester — their attendance is recorded via Travel Log
+    if (user?.employee_role === 'QA Tester') {
+        return (
+            <div className="max-w-3xl mx-auto p-6">
+                <div className="bg-teal-50 border-l-4 border-teal-500 p-6 rounded-lg shadow-sm">
+                    <div className="flex items-start gap-4">
+                        <Info className="text-teal-500 flex-shrink-0 mt-1" size={24} />
+                        <div>
+                            <h2 className="text-xl font-semibold text-teal-900 mb-2">
+                                Attendance via Travel Log
+                            </h2>
+                            <p className="text-teal-800 mb-4">
+                                As a <strong>QA Tester</strong>, your attendance is automatically recorded when you log
+                                your daily travel (speedometer punch-in / punch-out). You do not need to punch in here.
+                            </p>
+                            <a
+                                href="/qa-travel-punch"
+                                className="inline-block px-5 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-semibold text-sm"
+                            >
+                                Go to Travel Log →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     // Block self-punch for Technicians and Technical Assistants
     if (user?.employee_role && SUPERVISOR_MANAGED_ROLES.includes(user.employee_role)) {
         return (

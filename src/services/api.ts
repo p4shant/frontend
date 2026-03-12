@@ -1425,6 +1425,87 @@ export const stockAPI = {
     },
 };
 
+// ============================================================================
+// QA TRAVEL ALLOWANCE API
+// ============================================================================
+export const qaTravelAPI = {
+    async getTodayStatus(token: string) {
+        const response = await fetch(`${API_BASE}/qa-travel/today`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to fetch travel status');
+        return await response.json();
+    },
+
+    async punchIn(formData: FormData, token: string) {
+        const response = await fetch(`${API_BASE}/qa-travel/punch-in`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData,
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to record travel punch-in');
+        }
+        return await response.json();
+    },
+
+    async punchOut(formData: FormData, token: string) {
+        const response = await fetch(`${API_BASE}/qa-travel/punch-out`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData,
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to record travel punch-out');
+        }
+        return await response.json();
+    },
+
+    async getLogs(
+        token: string,
+        filters?: { page?: number; limit?: number; date_from?: string; date_to?: string; employee_id?: string }
+    ) {
+        const params = new URLSearchParams();
+        if (filters?.page) params.append('page', String(filters.page));
+        if (filters?.limit) params.append('limit', String(filters.limit));
+        if (filters?.date_from) params.append('date_from', filters.date_from);
+        if (filters?.date_to) params.append('date_to', filters.date_to);
+        if (filters?.employee_id) params.append('employee_id', filters.employee_id);
+        const response = await fetch(`${API_BASE}/qa-travel/logs?${params}`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to fetch travel logs');
+        return await response.json();
+    },
+
+    async getLogDetail(token: string, id: number) {
+        const response = await fetch(`${API_BASE}/qa-travel/logs/${id}`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to fetch travel log detail');
+        return await response.json();
+    },
+
+    async searchCustomers(token: string, query: string) {
+        const response = await fetch(
+            `${API_BASE}/qa-travel/customers/search?q=${encodeURIComponent(query)}`,
+            { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
+        );
+        if (!response.ok) throw new Error('Failed to search customers');
+        return await response.json();
+    },
+
+    async getQATesters(token: string) {
+        const response = await fetch(`${API_BASE}/qa-travel/testers`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to fetch QA Testers');
+        return await response.json();
+    },
+};
+
 export default {
     authAPI,
     tasksAPI,
@@ -1432,6 +1513,7 @@ export default {
     registeredCustomersAPI,
     unconfirmedLeadsAPI,
     attendanceAPI,
+    qaTravelAPI,
     employeesAPI,
     transactionLogsAPI,
     plantInstallationsAPI,
