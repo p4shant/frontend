@@ -8,7 +8,7 @@ import {
     calculateExpectedPanelsFromInverters,
     type StockComponent,
 } from '../config/stockConfig';
-import { History, Filter, ChevronLeft, ChevronRight, Camera } from 'lucide-react';
+import { History, Filter, ChevronLeft, ChevronRight, Camera, Download } from 'lucide-react';
 
 const SIMPLE_COMPONENTS: StockComponent[] = ['acdb', 'dcdb', 'earthing_rod', 'earthing_chemical', 'lightning_arrestor'];
 
@@ -59,6 +59,7 @@ interface FlatRow {
     dcr_type: string;
     values: Record<string, number>;
     notes?: string;
+    createdByName?: string;
 }
 
 // ── Row-level styling ─────────────────────────────────────────────────
@@ -208,6 +209,7 @@ export default function StockHistory() {
                         dcr_type: rec.dcr_type,
                         values,
                         notes: rec.notes,
+                        createdByName: rec.created_by_name || '—',
                     });
                 });
             }
@@ -241,6 +243,7 @@ export default function StockHistory() {
                         dcr_type: rec.dcr_type,
                         values,
                         notes: rec.notes,
+                        createdByName: rec.created_by_name || '—',
                     });
                 });
             }
@@ -304,6 +307,30 @@ export default function StockHistory() {
         }
     };
 
+    const exportToCSV = () => {
+        const headers = ['Date', 'Time', 'Type', 'District', 'Brand', 'By', ...COLUMNS.map(c => c.shortLabel)];
+        const csvRows = [headers.join(',')];
+        rows.forEach(row => {
+            const cells = [
+                row.date,
+                row.time,
+                `"${row.typeLabel}"`,
+                row.district,
+                row.brand,
+                `"${row.type === 'balance' ? '—' : (row.createdByName || '—')}"`,
+                ...COLUMNS.map(c => row.values[c.key] || 0),
+            ];
+            csvRows.push(cells.join(','));
+        });
+        const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `stock-history-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
             {/* Header */}
@@ -315,15 +342,22 @@ export default function StockHistory() {
                     </h1>
                     <p className="text-gray-500 text-sm mt-1">Balance snapshots, inward & outward transactions</p>
                 </div>
-                <button onClick={handleTriggerSnapshot} disabled={snapshotting}
-                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 text-sm">
-                    <Camera size={16} className={snapshotting ? 'animate-pulse' : ''} />
-                    {snapshotting ? 'Taking...' : 'Take Snapshot Now'}
-                </button>
+                <div className="flex gap-2">
+                    <button onClick={exportToCSV} disabled={rows.length === 0}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm">
+                        <Download size={16} />
+                        Export CSV
+                    </button>
+                    <button onClick={handleTriggerSnapshot} disabled={snapshotting}
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 text-sm">
+                        <Camera size={16} className={snapshotting ? 'animate-pulse' : ''} />
+                        {snapshotting ? 'Taking...' : 'Take Snapshot Now'}
+                    </button>
+                </div>
             </div>
 
             {/* Filters */}
-            <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 shadow-sm sticky top-0 z-20">
                 <div className="flex items-center gap-2 mb-2 sm:mb-3">
                     <Filter size={16} className="text-gray-500" />
                     <h3 className="font-semibold text-gray-700 text-sm">Filters</h3>
@@ -371,15 +405,16 @@ export default function StockHistory() {
                 </div>
             ) : (
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-14rem)]">
                         <table className="w-full text-xs">
-                            <thead>
+                            <thead className="sticky top-0 z-10">
                                 <tr className="bg-gray-100 border-b-2 border-gray-300">
                                     <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap sticky left-0 bg-gray-100 z-10">Date</th>
                                     <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">Time <span className="text-[10px] text-gray-400 font-normal">(IST)</span></th>
                                     <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">Type</th>
                                     <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">District</th>
                                     <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">Brand</th>
+                                    <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">By</th>
                                     {COLUMNS.map(col => (
                                         <th key={col.key} className={`px-1.5 py-2.5 text-center font-bold whitespace-nowrap ${col.colorClass}`}>
                                             {col.shortLabel}
@@ -415,6 +450,10 @@ export default function StockHistory() {
                                             <td className="px-2 py-2 font-semibold text-gray-800 whitespace-nowrap">{row.district}</td>
                                             {/* Brand */}
                                             <td className="px-2 py-2 font-semibold text-gray-800 whitespace-nowrap">{row.brand}</td>
+                                            {/* By */}
+                                            <td className="px-2 py-2 whitespace-nowrap text-gray-500 text-[11px]">
+                                                {row.type === 'balance' ? '—' : (row.createdByName || '—')}
+                                            </td>
                                             {/* Data columns */}
                                             {COLUMNS.map(col => {
                                                 const val = row.values[col.key] || 0;
