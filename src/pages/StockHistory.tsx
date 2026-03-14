@@ -406,17 +406,17 @@ export default function StockHistory() {
             ) : (
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                     <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-14rem)]">
-                        <table className="w-full text-xs">
+                        <table className="w-full text-xl">
                             <thead className="sticky top-0 z-10">
                                 <tr className="bg-gray-100 border-b-2 border-gray-300">
-                                    <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap sticky left-0 bg-gray-100 z-10">Date</th>
-                                    <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">Time <span className="text-[10px] text-gray-400 font-normal">(IST)</span></th>
-                                    <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">Type</th>
-                                    <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">District</th>
-                                    <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">Brand</th>
-                                    <th className="px-2 py-2.5 text-left font-bold text-gray-700 whitespace-nowrap">By</th>
+                                    <th className="px-3 py-3 text-left font-bold text-gray-700 whitespace-nowrap sticky left-0 bg-gray-100 z-10">Date</th>
+                                    <th className="px-3 py-3 text-left font-bold text-gray-700 whitespace-nowrap">Time <span className="text-xs text-gray-400 font-normal">(IST)</span></th>
+                                    <th className="px-3 py-3 text-left font-bold text-gray-700 whitespace-nowrap">Type</th>
+                                    <th className="px-3 py-3 text-left font-bold text-gray-700 whitespace-nowrap">District</th>
+                                    <th className="px-3 py-3 text-left font-bold text-gray-700 whitespace-nowrap">Brand</th>
+                                    <th className="px-3 py-3 text-left font-bold text-gray-700 whitespace-nowrap">By</th>
                                     {COLUMNS.map(col => (
-                                        <th key={col.key} className={`px-1.5 py-2.5 text-center font-bold whitespace-nowrap ${col.colorClass}`}>
+                                        <th key={col.key} className={`px-2 py-3 text-center font-bold whitespace-nowrap ${col.colorClass}`}>
                                             {col.shortLabel}
                                         </th>
                                     ))}
@@ -433,25 +433,25 @@ export default function StockHistory() {
                                         <tr key={row.id}
                                             className={`${bg} ${hover} ${borderL} border-b border-gray-200/60 transition-colors`}>
                                             {/* Date — sticky */}
-                                            <td className={`px-2 py-2 font-semibold text-gray-800 whitespace-nowrap sticky left-0 z-10 ${stickyBg}`}>
+                                            <td className={`px-3 py-2.5 font-semibold text-gray-800 whitespace-nowrap sticky left-0 z-10 ${stickyBg}`}>
                                                 {row.date}
                                             </td>
                                             {/* Time */}
-                                            <td className="px-2 py-2 text-gray-500 whitespace-nowrap font-mono">
+                                            <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap font-mono">
                                                 {row.time}
                                             </td>
                                             {/* Type badge */}
-                                            <td className="px-2 py-2 whitespace-nowrap">
-                                                <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide uppercase ${badge}`}>
+                                            <td className="px-3 py-2.5 whitespace-nowrap">
+                                                <span className={`inline-block px-2.5 py-1 rounded-full text-base font-extrabold tracking-wide uppercase ${badge}`}>
                                                     {row.typeLabel}
                                                 </span>
                                             </td>
                                             {/* District */}
-                                            <td className="px-2 py-2 font-semibold text-gray-800 whitespace-nowrap">{row.district}</td>
+                                            <td className="px-3 py-2.5 font-semibold text-gray-800 whitespace-nowrap">{row.district}</td>
                                             {/* Brand */}
-                                            <td className="px-2 py-2 font-semibold text-gray-800 whitespace-nowrap">{row.brand}</td>
+                                            <td className="px-3 py-2.5 font-semibold text-gray-800 whitespace-nowrap">{row.brand}</td>
                                             {/* By */}
-                                            <td className="px-2 py-2 whitespace-nowrap text-gray-500 text-[11px]">
+                                            <td className="px-3 py-2.5 whitespace-nowrap text-gray-500 text-base">
                                                 {row.type === 'balance' ? '—' : (row.createdByName || '—')}
                                             </td>
                                             {/* Data columns */}
@@ -460,7 +460,7 @@ export default function StockHistory() {
                                                 const isCalc = col.group === 'calculated';
                                                 return (
                                                     <td key={col.key}
-                                                        className={`px-1.5 py-2 text-center font-mono ${isCalc ? 'font-extrabold' : 'font-semibold'} ${val > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
+                                                        className={`px-2 py-2.5 text-center font-mono ${isCalc ? 'font-extrabold' : 'font-semibold'} ${val > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
                                                         {val || '·'}
                                                     </td>
                                                 );
