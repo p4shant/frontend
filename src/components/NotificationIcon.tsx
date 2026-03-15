@@ -174,14 +174,14 @@ export default function NotificationIcon({ token, employeeId }: NotificationIcon
 
             {/* Notifications Dropdown */}
             {isOpen && (
-                <div className="fixed md:absolute bottom-0 md:bottom-auto left-4 md:left-auto right-4 md:right-0 top-auto md:top-full md:mt-2 bg-white rounded-lg shadow-2xl z-50 border border-gray-200 max-h-[80vh] md:max-h-96 w-auto md:w-96 flex flex-col">
+                <div className="fixed md:absolute left-3 right-3 top-20 md:left-auto md:right-0 md:top-full md:mt-3 z-[1201] bg-white rounded-xl shadow-2xl border border-gray-200 md:w-96 max-h-[70vh] md:max-h-96 flex flex-col overflow-hidden">
                     {/* Header */}
-                    <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 rounded-t-lg flex-shrink-0">
+                    <div className="bg-gradient-to-r from-green-700 to-green-900 px-6 py-4 rounded-t-xl flex-shrink-0 shadow-sm">
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-semibold text-white">Notifications</h3>
                             <button
                                 onClick={() => setIsOpen(false)}
-                                className="text-white hover:bg-blue-800 p-1 rounded-lg transition"
+                                className="text-white hover:bg-white/15 p-1 rounded-lg transition"
                             >
                                 <X className="w-5 h-5" />
                             </button>
