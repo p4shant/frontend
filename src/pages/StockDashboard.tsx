@@ -4,10 +4,10 @@ import { stockAPI } from '../services/api';
 import {
     STORE_DISTRICTS, BRANDS, DCR_TYPES,
     REGULAR_INVERTER_TYPES, HYBRID_INVERTER_TYPES,
-    PANEL_WATTAGES, COMPONENT_SHORT_LABELS,
+    PANEL_WATTAGES, COMPONENT_SHORT_LABELS, SYSTEM_BOM,
     type InventoryItem, type StockComponent,
 } from '../config/stockConfig';
-import { Package, MapPin, Filter, BarChart3, RefreshCw } from 'lucide-react';
+import { Package, MapPin, Filter, BarChart3, RefreshCw, TrendingUp, TrendingDown, Minus, Zap } from 'lucide-react';
 
 const SIMPLE_COMPONENTS: StockComponent[] = ['acdb', 'dcdb', 'earthing_rod', 'earthing_chemical', 'lightning_arrestor'];
 
@@ -69,6 +69,35 @@ export default function StockDashboard() {
         return { cards, totalInverters, totalPanels };
     }, [inventory]);
 
+    // Ratio analysis cards — compare actual stock vs BOM-expected quantities per inverter count
+    const ratioCards = useMemo(() => {
+        const HYBRID_TO_BASE: Record<string, string> = { 'H-3KW': '3KW', 'H-5KW': '5(I)KW', 'H-6KW': '6KW' };
+        const allInverters = inventory.filter(i => i.component === 'inverter');
+        const totalInverters = allInverters.reduce((s, i) => s + i.quantity, 0);
+        const hybridInverters = allInverters
+            .filter(i => (HYBRID_INVERTER_TYPES as readonly string[]).includes(i.sub_type ?? ''))
+            .reduce((s, i) => s + i.quantity, 0);
+
+        let expectedPanels = 0;
+        allInverters.forEach(inv => {
+            const baseType = HYBRID_TO_BASE[inv.sub_type ?? ''] ?? (inv.sub_type ?? '');
+            expectedPanels += inv.quantity * (SYSTEM_BOM[baseType]?.panel ?? 0);
+        });
+
+        const actualPanels = inventory.filter(i => i.component === 'panel').reduce((s, i) => s + i.quantity, 0);
+        const actualAcdb = inventory.filter(i => i.component === 'acdb').reduce((s, i) => s + i.quantity, 0);
+        const actualLa = inventory.filter(i => i.component === 'lightning_arrestor').reduce((s, i) => s + i.quantity, 0);
+        const actualERod = inventory.filter(i => i.component === 'earthing_rod').reduce((s, i) => s + i.quantity, 0);
+
+        return [
+            { label: 'Total Inverters', actual: totalInverters, expected: null as number | null, note: `incl. ${hybridInverters} hybrid`, subtitle: 'All types combined' },
+            { label: 'Inv / Panel', actual: actualPanels, expected: expectedPanels, note: null as string | null, subtitle: 'BOM-based per inverter type' },
+            { label: 'Inv / ACDB', actual: actualAcdb, expected: totalInverters, note: null as string | null, subtitle: '1 ACDB per inverter' },
+            { label: 'Inv / LA', actual: actualLa, expected: totalInverters, note: null as string | null, subtitle: '1 LA per inverter' },
+            { label: 'Inv / E-Rod', actual: actualERod, expected: totalInverters * 3, note: null as string | null, subtitle: '3 rods per inverter' },
+        ];
+    }, [inventory]);
+
     const totalStock = inventory.reduce((s, i) => s + i.quantity, 0);
 
     // Group by district
@@ -107,6 +136,19 @@ export default function StockDashboard() {
                         <p className="text-xl sm:text-2xl font-bold mt-0.5">{card.value}</p>
                     </div>
                 ))}
+            </div>
+
+            {/* Inverter Ratio Analysis Cards */}
+            <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2 flex items-center gap-1.5">
+                    <Zap size={12} className="text-yellow-500" />
+                    Inverter Ratio Analysis
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+                    {ratioCards.map(card => (
+                        <RatioCard key={card.label} {...card} />
+                    ))}
+                </div>
             </div>
 
             {/* Total */}
@@ -164,6 +206,55 @@ export default function StockDashboard() {
                     <DistrictCard key={district} district={district} items={items} />
                 ))
             )}
+        </div>
+    );
+}
+
+function RatioCard({ label, actual, expected, note, subtitle }: {
+    label: string;
+    actual: number;
+    expected: number | null;
+    note: string | null;
+    subtitle: string;
+}) {
+    let Icon = Minus;
+    let statusText = '';
+    let chipCls = 'text-blue-600 bg-blue-50 border-blue-200';
+
+    if (expected !== null) {
+        const diff = actual - expected;
+        if (diff > 0) {
+            Icon = TrendingUp;
+            statusText = `+${diff} surplus`;
+            chipCls = 'text-green-700 bg-green-50 border-green-200';
+        } else if (diff < 0) {
+            Icon = TrendingDown;
+            statusText = `${diff} short`;
+            chipCls = 'text-red-600 bg-red-50 border-red-200';
+        } else {
+            statusText = 'Balanced';
+            chipCls = 'text-blue-600 bg-blue-50 border-blue-200';
+        }
+    }
+
+    return (
+        <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 shadow-sm flex flex-col gap-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">{actual}</p>
+            {expected !== null ? (
+                <div className="flex flex-col gap-1 mt-0.5">
+                    <p className="text-xs text-gray-400">
+                        Expected: <span className="font-semibold text-gray-600">{expected}</span>
+                    </p>
+                    <span className={`inline-flex items-center gap-1 self-start px-2 py-0.5 rounded-full text-xs font-semibold border ${chipCls}`}>
+                        <Icon size={11} />
+                        {statusText}
+                    </span>
+                </div>
+            ) : (
+                note && <p className="text-xs text-gray-400 mt-0.5">{note}</p>
+            )}
+            <p className="text-xs text-gray-400 leading-tight">{subtitle}</p>
         </div>
     );
 }

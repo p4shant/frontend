@@ -52,7 +52,7 @@ interface FlatRow {
     id: string;
     date: string;
     time: string;           // HH:MM for inward/outward, '—' for balance
-    type: 'balance' | 'inward' | 'outward';
+    type: 'balance' | 'inward' | 'outward' | 'transfer';
     typeLabel: string;
     district: string;
     brand: string;
@@ -65,29 +65,34 @@ interface FlatRow {
 // ── Row-level styling ─────────────────────────────────────────────────
 // Full row background tints so the type is instantly visible by color
 const ROW_BG: Record<string, string> = {
-    balance: 'bg-red-50',
-    inward: 'bg-green-50',
-    outward: 'bg-orange-50',
+    balance: 'bg-red-100',
+    inward: 'bg-green-100',
+    outward: 'bg-purple-50',
+    transfer: 'bg-blue-100',
 };
 const ROW_HOVER: Record<string, string> = {
-    balance: 'hover:bg-red-100/70',
-    inward: 'hover:bg-green-100/70',
-    outward: 'hover:bg-orange-100/70',
+    balance: 'hover:bg-red-200/70',
+    inward: 'hover:bg-green-200/70',
+    outward: 'hover:bg-purple-100/70',
+    transfer: 'hover:bg-blue-200/70',
 };
 const ROW_STICKY_BG: Record<string, string> = {
-    balance: 'bg-red-50',
-    inward: 'bg-green-50',
-    outward: 'bg-orange-50',
+    balance: 'bg-red-100',
+    inward: 'bg-green-100',
+    outward: 'bg-purple-50',
+    transfer: 'bg-blue-100',
 };
 const TYPE_BADGE: Record<string, string> = {
     balance: 'bg-red-200 text-red-900',
     inward: 'bg-green-200 text-green-900',
-    outward: 'bg-orange-200 text-orange-900',
+    outward: 'bg-purple-200 text-purple-900',
+    transfer: 'bg-blue-200 text-blue-900',
 };
 const ROW_BORDER: Record<string, string> = {
     balance: 'border-l-4 border-l-red-500',
     inward: 'border-l-4 border-l-green-500',
-    outward: 'border-l-4 border-l-orange-500',
+    outward: 'border-l-4 border-l-purple-500',
+    transfer: 'border-l-4 border-l-blue-500',
 };
 
 /** Extract HH:MM from a created_at string */
@@ -222,6 +227,8 @@ export default function StockHistory() {
                     else if (rec.dispatch_type === 'customer') typeLabel = `Out → Customer (${rec.customer_name || '—'})`;
                     else if (rec.dispatch_type === 'store_transfer') typeLabel = `Transfer → ${rec.to_district || '—'}`;
 
+                    const isTransfer = rec.dispatch_type === 'store_transfer';
+
                     const values: Record<string, number> = {};
                     (rec.items || []).forEach((item: any) => {
                         if (item.component === 'inverter' && item.sub_type) {
@@ -236,7 +243,7 @@ export default function StockHistory() {
                         id: `out-${rec.id}`,
                         date: rec.created_at?.slice(0, 10) || '',
                         time: extractTime(rec.created_at),
-                        type: 'outward',
+                        type: isTransfer ? 'transfer' : 'outward',
                         typeLabel,
                         district: rec.from_district,
                         brand: rec.brand,
@@ -251,7 +258,7 @@ export default function StockHistory() {
             // Sort: newest date first, then inward → outward → balance within same date
             allRows.sort((a, b) => {
                 if (a.date !== b.date) return b.date.localeCompare(a.date);
-                const typeOrder: Record<string, number> = { inward: 0, outward: 1, balance: 2 };
+                const typeOrder: Record<string, number> = { inward: 0, outward: 1, transfer: 2, balance: 3 };
                 return (typeOrder[a.type] ?? 9) - (typeOrder[b.type] ?? 9);
             });
 
@@ -407,9 +414,9 @@ export default function StockHistory() {
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                     <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-14rem)]">
                         <table className="w-full text-xl">
-                            <thead className="sticky top-0 z-10">
+                            <thead className="sticky top-0 z-20">
                                 <tr className="bg-gray-100 border-b-2 border-gray-300">
-                                    <th className="px-3 py-3 text-left font-bold text-gray-700 whitespace-nowrap sticky left-0 bg-gray-100 z-10">Date</th>
+                                    <th className="px-3 py-3 text-left font-bold text-gray-700 whitespace-nowrap sticky left-0 bg-gray-100 z-30 shadow-[2px_0_5px_-1px_rgba(0,0,0,0.12)]">Date</th>
                                     <th className="px-3 py-3 text-left font-bold text-gray-700 whitespace-nowrap">Time <span className="text-xs text-gray-400 font-normal">(IST)</span></th>
                                     <th className="px-3 py-3 text-left font-bold text-gray-700 whitespace-nowrap">Type</th>
                                     <th className="px-3 py-3 text-left font-bold text-gray-700 whitespace-nowrap">District</th>
@@ -431,9 +438,9 @@ export default function StockHistory() {
                                     const badge = TYPE_BADGE[row.type] || 'bg-gray-100 text-gray-600';
                                     return (
                                         <tr key={row.id}
-                                            className={`${bg} ${hover} ${borderL} border-b border-gray-200/60 transition-colors`}>
-                                            {/* Date — sticky */}
-                                            <td className={`px-3 py-2.5 font-semibold text-gray-800 whitespace-nowrap sticky left-0 z-10 ${stickyBg}`}>
+                                            className={`${bg} ${hover} border-b border-gray-200/60 transition-colors`}>
+                                            {/* Date — sticky, border-left here so it scrolls with the sticky cell */}
+                                            <td className={`px-3 py-2.5 font-semibold text-gray-800 whitespace-nowrap sticky left-0 z-20 ${stickyBg} ${borderL} shadow-[2px_0_5px_-1px_rgba(0,0,0,0.08)]`}>
                                                 {row.date}
                                             </td>
                                             {/* Time */}
@@ -501,8 +508,12 @@ export default function StockHistory() {
                     <span className="font-semibold">Inward</span>
                 </span>
                 <span className="flex items-center gap-1.5">
-                    <span className="w-4 h-3 rounded border-l-4 border-l-orange-500 bg-orange-50 border border-orange-200" />
+                    <span className="w-4 h-3 rounded border-l-4 border-l-purple-500 bg-purple-50 border border-purple-200" />
                     <span className="font-semibold">Outward</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                    <span className="w-4 h-3 rounded border-l-4 border-l-blue-500 bg-blue-100 border border-blue-200" />
+                    <span className="font-semibold">Transfer</span>
                 </span>
                 <span className="flex items-center gap-1.5">
                     <span className="w-4 h-3 rounded border-l-4 border-l-red-500 bg-red-50 border border-red-200" />

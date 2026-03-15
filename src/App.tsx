@@ -17,6 +17,7 @@ import StockDashboard from './pages/StockDashboard';
 import StockInward from './pages/StockInward';
 import StockOutward from './pages/StockOutward';
 import StockHistory from './pages/StockHistory';
+import StockCorrection from './pages/StockCorrection';
 import QATravelPunch from './pages/QATravelPunch';
 import TravelAllowanceReview from './pages/TravelAllowanceReview';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
@@ -153,7 +154,7 @@ function App() {
       <Route
         path="/stock-dashboard"
         element={
-          <ProtectedRoute requiredRoles={['Stock Controller', 'Inventory Operator', 'Master Admin', 'Accountant']}>
+          <ProtectedRoute requiredRoles={['Stock Controller', 'Inventory Operator', 'Master Admin', 'Accountant']} allowWithStockAccess>
             <AppLayout>
               <StockDashboard />
             </AppLayout>
@@ -163,7 +164,7 @@ function App() {
       <Route
         path="/stock-inward"
         element={
-          <ProtectedRoute requiredRoles={['Stock Controller', 'Inventory Operator', 'Master Admin', 'Accountant']}>
+          <ProtectedRoute requiredRoles={['Stock Controller', 'Inventory Operator', 'Master Admin', 'Accountant']} allowWithStockAccess>
             <AppLayout>
               <StockInward />
             </AppLayout>
@@ -173,7 +174,7 @@ function App() {
       <Route
         path="/stock-outward"
         element={
-          <ProtectedRoute requiredRoles={['Stock Controller', 'Inventory Operator', 'Master Admin', 'Accountant']}>
+          <ProtectedRoute requiredRoles={['Stock Controller', 'Inventory Operator', 'Master Admin', 'Accountant']} allowWithStockAccess>
             <AppLayout>
               <StockOutward />
             </AppLayout>
@@ -183,9 +184,19 @@ function App() {
       <Route
         path="/stock-history"
         element={
-          <ProtectedRoute requiredRoles={['Stock Controller', 'Inventory Operator', 'Master Admin', 'Accountant']}>
+          <ProtectedRoute requiredRoles={['Stock Controller', 'Inventory Operator', 'Master Admin', 'Accountant']} allowWithStockAccess>
             <AppLayout>
               <StockHistory />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/stock-correction"
+        element={
+          <ProtectedRoute requiredRoles={['Master Admin']}>
+            <AppLayout>
+              <StockCorrection />
             </AppLayout>
           </ProtectedRoute>
         }
