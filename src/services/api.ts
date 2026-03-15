@@ -1423,6 +1423,20 @@ export const stockAPI = {
         if (!response.ok) throw new Error('Failed to trigger snapshot');
         return await response.json();
     },
+
+    // --- Stock Corrections (Master Admin) ---
+    async correctMovementLog(token: string, logId: number, data: { new_quantity_change: number; reason: string }) {
+        const response = await fetch(`${API_BASE}/stock/movement-log/${logId}/correct`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.message || 'Failed to correct movement log');
+        }
+        return await response.json();
+    },
 };
 
 // ============================================================================

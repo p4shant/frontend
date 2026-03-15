@@ -1,7 +1,15 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-export const ProtectedRoute = ({ children, requiredRoles }: { children: React.ReactNode; requiredRoles?: string[] }) => {
+export const ProtectedRoute = ({
+    children,
+    requiredRoles,
+    allowWithStockAccess,
+}: {
+    children: React.ReactNode;
+    requiredRoles?: string[];
+    allowWithStockAccess?: boolean;
+}) => {
     const { isAuthenticated, loading, user } = useAuth();
     const location = useLocation();
 
@@ -20,8 +28,12 @@ export const ProtectedRoute = ({ children, requiredRoles }: { children: React.Re
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    if (requiredRoles && user && !requiredRoles.includes(user.employee_role)) {
-        return <Navigate to="/" replace />;
+    if (requiredRoles && user) {
+        const hasRole = requiredRoles.includes(user.employee_role);
+        const hasStockFlag = allowWithStockAccess && user.stock_access === 1;
+        if (!hasRole && !hasStockFlag) {
+            return <Navigate to="/" replace />;
+        }
     }
 
     return <>{children}</>;

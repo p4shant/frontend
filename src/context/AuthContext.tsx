@@ -10,6 +10,7 @@ export type Employee = {
     district?: string;
     created_at?: string;
     updated_at?: string;
+    stock_access?: number; // 1 = granted, 0 or undefined = no access
 };
 
 type AuthContextType = {

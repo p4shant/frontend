@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { CalendarCheck, LayoutDashboard, PanelsTopLeft, UserRound, Eye, FileText, UserPlus, Wallet, BarChart3, CheckSquare, ClipboardPlus, Package, ArrowDownToLine, ArrowUpFromLine, History, Users, Gauge, Car } from 'lucide-react';
+import { CalendarCheck, LayoutDashboard, PanelsTopLeft, UserRound, Eye, FileText, UserPlus, Wallet, BarChart3, CheckSquare, ClipboardPlus, Package, ArrowDownToLine, ArrowUpFromLine, History, Users, Gauge, Car, ShieldCheck } from 'lucide-react';
 import kamnLogo from '../assets/kaman-logo.png';
 import { useAuth } from '../context/AuthContext';
 
@@ -28,6 +28,8 @@ const STOCK_ITEMS = [
     { label: 'Stock Outward', to: '/stock-outward', icon: <ArrowUpFromLine size={18} /> },
     { label: 'Stock History', to: '/stock-history', icon: <History size={18} /> },
 ];
+
+const STOCK_CORRECTION_ITEM = { label: 'Stock Correction', to: '/stock-correction', icon: <ShieldCheck size={18} /> };
 
 const MONITOR_ATTENDANCE_ITEM = { label: 'Monitor Attendance', to: '/monitor-attendance', icon: <Eye size={18} /> };
 
@@ -65,6 +67,8 @@ function Sidebar({ state }: Props) {
     const isQATester = user?.employee_role === 'QA Tester';
     const isSFDCAdmin = user?.employee_role === 'SFDC Admin';
     const isSupervisor = user?.name && SUPERVISOR_NAMES.includes(user.name);
+    // Any employee with stock_access=1 flag gets stock pages regardless of role
+    const hasStockAccess = !!(user?.stock_access === 1);
 
     // Build nav items based on user role
     // Stock Controller sees ONLY stock pages + profile (no attendance)
@@ -93,7 +97,8 @@ function Sidebar({ state }: Props) {
                     ...NAV_ITEMS,
                     ...(isMasterAdmin ? [...MASTER_ADMIN_ITEMS, TRAVEL_REVIEW_ITEM] : []),
                     ...(isSFDCAdmin ? [TRAVEL_REVIEW_ITEM] : []),
-                    ...(isMasterAdmin || isAccountant ? STOCK_ITEMS : []),
+                    ...(isMasterAdmin || isAccountant || hasStockAccess ? STOCK_ITEMS : []),
+                    ...(isMasterAdmin ? [STOCK_CORRECTION_ITEM] : []),
                     ...(!isMasterAdmin && isAccountant ? [MONITOR_ATTENDANCE_ITEM] : []),
                     ...(isSupervisor ? [TEAM_ATTENDANCE_ITEM] : []),
                     ...COMMON_ITEMS,
@@ -140,7 +145,7 @@ function Sidebar({ state }: Props) {
                     </button>
                 </div>
 
-                <nav className="flex flex-col gap-1.5 px-2.5 py-2 pb-4">
+                <nav className="flex-1 overflow-y-auto flex flex-col gap-1.5 px-2.5 py-2 pb-4">
                     {visibleNavItems.map((item) => (
                         <NavLink
                             key={item.to}
@@ -198,7 +203,7 @@ function Sidebar({ state }: Props) {
                     </button>
                 </div>
 
-                <nav className="flex flex-col gap-1.5 px-2.5 py-2 pb-4">
+                <nav className="flex-1 overflow-y-auto flex flex-col gap-1.5 px-2.5 py-2 pb-4">
                     {visibleNavItems.map((item) => (
                         <NavLink
                             key={item.to}
