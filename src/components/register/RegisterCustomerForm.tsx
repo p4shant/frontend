@@ -40,6 +40,15 @@ type FormState = {
     [key: string]: string | boolean | File | null;
 };
 
+/** Determine preview type from a URL's extension (for existing server-stored files). */
+const getFileTypeFromUrl = (url: string): 'image' | 'pdf' | 'other' => {
+    if (!url) return 'image'
+    const lower = url.toLowerCase().split('?')[0]
+    if (lower.endsWith('.pdf')) return 'pdf'
+    if (lower.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/)) return 'image'
+    return 'image' // default – blob URLs carry no extension, rely on fileTypes state
+}
+
 export default function RegisterCustomerForm({
     session = { employeeId: '', name: '' },
     applicationId = null,
@@ -174,6 +183,9 @@ export default function RegisterCustomerForm({
     })
 
     const [previews, setPreviews] = useState<Record<string, string | null>>({})
+    const [fileTypes, setFileTypes] = useState<Record<string, 'image' | 'pdf' | 'other'>>({})
+    const [cotFileTypes, setCotFileTypes] = useState<Record<string, 'image' | 'pdf' | 'other'>>({})
+    const [previewModal, setPreviewModal] = useState<{ url: string; type: 'image' | 'pdf' | 'other'; label: string } | null>(null)
     const [creatorInfo, setCreatorInfo] = useState<{ name: string; role?: string; phone?: string } | null>(null)
 
     const normalizeSelectNumericValue = (value: any): string => {
@@ -324,6 +336,12 @@ export default function RegisterCustomerForm({
 
                 if (Object.keys(existingPreviews).length > 0) {
                     setPreviews(existingPreviews)
+                    // Infer file types from URL extensions so preview renders correctly
+                    const existingFileTypes: Record<string, 'image' | 'pdf' | 'other'> = {}
+                    for (const [key, url] of Object.entries(existingPreviews)) {
+                        existingFileTypes[key] = getFileTypeFromUrl(url)
+                    }
+                    setFileTypes(existingFileTypes)
                 }
 
                 // Set COT previews if any COT documents exist
@@ -332,6 +350,18 @@ export default function RegisterCustomerForm({
                 );
                 if (hasCotPreviews) {
                     setCotPreviews(existingCotPreviews);
+                    // Infer COT file types from URL extensions
+                    const existingCotFileTypes: Record<string, 'image' | 'pdf' | 'other'> = {}
+                    for (const [key, val] of Object.entries(existingCotPreviews)) {
+                        if (Array.isArray(val)) {
+                            val.forEach((url, i) => {
+                                if (url) existingCotFileTypes[`aadhaar_photos_${i}`] = getFileTypeFromUrl(url)
+                            })
+                        } else if (val) {
+                            existingCotFileTypes[key] = getFileTypeFromUrl(val as string)
+                        }
+                    }
+                    setCotFileTypes(existingCotFileTypes)
                 }
 
                 // Set creator info for edit mode
@@ -456,23 +486,34 @@ export default function RegisterCustomerForm({
     const onFile = async (name: string, file: File | null) => {
         if (!file) return
         const previewUrl = URL.createObjectURL(file)
-
+        const type: 'image' | 'pdf' | 'other' =
+            file.type === 'application/pdf' ? 'pdf'
+                : file.type.startsWith('image/') ? 'image'
+                    : 'other'
         setPreviews((prev) => ({ ...prev, [name]: previewUrl }))
+        setFileTypes((prev) => ({ ...prev, [name]: type }))
         setFiles((prev) => ({ ...prev, [name]: file }))
     }
 
     const retakePhoto = (name: string) => {
-        if (previews[name]) {
-            URL.revokeObjectURL(previews[name])
+        const currentPreview = previews[name]
+        if (currentPreview && currentPreview.startsWith('blob:')) {
+            URL.revokeObjectURL(currentPreview)
         }
         setPreviews((prev) => ({ ...prev, [name]: null }))
         setFiles((prev) => ({ ...prev, [name]: null }))
+        setFileTypes((prev) => { const n = { ...prev }; delete n[name]; return n })
     }
 
     const onCotFile = (name: string, file: File | null) => {
         if (!file) return
         const previewUrl = URL.createObjectURL(file)
+        const type: 'image' | 'pdf' | 'other' =
+            file.type === 'application/pdf' ? 'pdf'
+                : file.type.startsWith('image/') ? 'image'
+                    : 'other'
         setCotPreviews((prev) => ({ ...prev, [name]: previewUrl }))
+        setCotFileTypes((prev) => ({ ...prev, [name]: type }))
         setCotFiles((prev) => ({ ...prev, [name]: file }))
     }
 
@@ -492,6 +533,10 @@ export default function RegisterCustomerForm({
     const onAadhaarPhoto = (index: number, file: File | null) => {
         if (!file) return
         const previewUrl = URL.createObjectURL(file)
+        const type: 'image' | 'pdf' | 'other' =
+            file.type === 'application/pdf' ? 'pdf'
+                : file.type.startsWith('image/') ? 'image'
+                    : 'other'
 
         setCotFiles(prev => {
             const newPhotos = [...prev.aadhaar_photos]
@@ -504,6 +549,8 @@ export default function RegisterCustomerForm({
             newPreviews[index] = previewUrl
             return { ...prev, aadhaar_photos: newPreviews }
         })
+
+        setCotFileTypes(prev => ({ ...prev, [`aadhaar_photos_${index}`]: type }))
     }
 
     const removeAadhaarPhoto = (index: number) => {
@@ -749,50 +796,135 @@ export default function RegisterCustomerForm({
         }
     }
 
-    const CameraCapture = ({ name, label }: { name: string; label: string }) => (
-        <div className="w-full">
-            <label className="block text-sm font-medium text-slate-700 mb-2">{label}</label>
-            {!previews[name] ? (
-                <div className="relative">
-                    <input
-                        type="file"
-                        accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
-                        capture="environment"
-                        onChange={(e) => onFile(name, e.target.files?.[0] || null)}
-                        className="hidden"
-                        id={`file-${name}`}
-                    />
-                    <label
-                        htmlFor={`file-${name}`}
-                        className="flex flex-col items-center justify-center w-full h-24 md:h-28 bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors"
-                    >
-                        <svg className="w-6 h-6 md:w-7 md:h-7 text-blue-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+    /** Renders a compact preview thumbnail for COT documents with a Preview button. */
+    const renderCotPreview = (
+        previewUrl: string | null | undefined,
+        typeKey: string,
+        altLabel: string
+    ) => {
+        if (!previewUrl) return null
+        const type = cotFileTypes[typeKey] || getFileTypeFromUrl(previewUrl)
+        return (
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+                {type === 'pdf' ? (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
+                        <svg className="w-5 h-5 text-red-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
                         </svg>
-                        <span className="text-xs md:text-sm text-blue-600 font-medium">📷 Capture Photo</span>
-                    </label>
-                </div>
-            ) : (
-                <div className="space-y-2">
-                    <div className="relative">
-                        <img
-                            src={previews[name]}
-                            alt={label}
-                            className="w-full h-32 md:h-40 object-cover rounded-lg border-4 border-green-500"
-                        />
+                        <span className="text-xs text-red-600 font-medium">PDF uploaded ✓</span>
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => retakePhoto(name)}
-                        className="w-full py-2 md:py-2.5 rounded-lg font-medium text-sm text-white bg-slate-600 hover:bg-slate-700"
-                    >
-                        📷 Retake
-                    </button>
-                </div>
-            )}
-        </div>
-    )
+                ) : (
+                    <img
+                        src={previewUrl}
+                        alt={altLabel}
+                        className="w-24 h-24 object-cover rounded-lg border-2 border-green-500 cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => setPreviewModal({ url: previewUrl, type, label: altLabel })}
+                    />
+                )}
+                <button
+                    type="button"
+                    onClick={() => setPreviewModal({ url: previewUrl, type, label: altLabel })}
+                    className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-1"
+                >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    Preview
+                </button>
+            </div>
+        )
+    }
+
+    const CameraCapture = ({ name, label }: { name: string; label: string }) => {
+        const previewUrl = previews[name]
+        const fileType = previewUrl ? (fileTypes[name] || getFileTypeFromUrl(previewUrl)) : null
+        return (
+            <div className="w-full">
+                <label className="block text-sm font-medium text-slate-700 mb-2">{label}</label>
+                {!previewUrl ? (
+                    <div className="relative">
+                        <input
+                            type="file"
+                            accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+                            capture="environment"
+                            onChange={(e) => onFile(name, e.target.files?.[0] || null)}
+                            className="hidden"
+                            id={`file-${name}`}
+                        />
+                        <label
+                            htmlFor={`file-${name}`}
+                            className="flex flex-col items-center justify-center w-full h-24 md:h-28 bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors"
+                        >
+                            <svg className="w-6 h-6 md:w-7 md:h-7 text-blue-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span className="text-xs md:text-sm text-blue-600 font-medium">📷 Capture Photo</span>
+                        </label>
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        {/* Thumbnail / PDF placeholder */}
+                        {fileType === 'pdf' ? (
+                            <div
+                                className="w-full h-32 md:h-40 bg-red-50 border-4 border-green-500 rounded-lg flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-red-100 transition-colors"
+                                onClick={() => setPreviewModal({ url: previewUrl, type: 'pdf', label })}
+                            >
+                                <svg className="w-10 h-10 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                                </svg>
+                                <span className="text-sm font-semibold text-red-600">PDF Uploaded ✓</span>
+                                <span className="text-xs text-slate-500">Click to preview</span>
+                            </div>
+                        ) : (
+                            <div
+                                className="relative group cursor-pointer"
+                                onClick={() => setPreviewModal({ url: previewUrl, type: 'image', label })}
+                            >
+                                <img
+                                    src={previewUrl}
+                                    alt={label}
+                                    className="w-full h-32 md:h-40 object-cover rounded-lg border-4 border-green-500"
+                                />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 rounded-lg transition-all flex items-center justify-center">
+                                    <span className="opacity-0 group-hover:opacity-100 text-white bg-black/70 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1">
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        Click to Preview
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Action buttons */}
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setPreviewModal({ url: previewUrl, type: fileType || 'image', label })}
+                                className="flex-1 py-2 md:py-2.5 rounded-lg font-medium text-sm text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                Preview
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => retakePhoto(name)}
+                                className="flex-1 py-2 md:py-2.5 rounded-lg font-medium text-sm text-white bg-slate-600 hover:bg-slate-700 transition-colors"
+                            >
+                                📷 Retake
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        )
+    }
 
     if (isEditMode && prefillLoading) {
         return (
@@ -1323,9 +1455,7 @@ export default function RegisterCustomerForm({
                                                     onChange={(e) => onCotFile('live_to_live_aadhaar_1', e.target.files?.[0] ?? null)}
                                                     className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500"
                                                 />
-                                                {cotPreviews.live_to_live_aadhaar_1 && (
-                                                    <img src={cotPreviews.live_to_live_aadhaar_1} alt="First Person Aadhaar" className="mt-2 w-32 h-32 object-cover rounded border" />
-                                                )}
+                                                {renderCotPreview(cotPreviews.live_to_live_aadhaar_1, 'live_to_live_aadhaar_1', 'First Person Aadhaar Card')}
                                             </div>
 
                                             {/* Second Person Aadhaar */}
@@ -1337,9 +1467,7 @@ export default function RegisterCustomerForm({
                                                     onChange={(e) => onCotFile('live_to_live_aadhaar_2', e.target.files?.[0] ?? null)}
                                                     className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500"
                                                 />
-                                                {cotPreviews.live_to_live_aadhaar_2 && (
-                                                    <img src={cotPreviews.live_to_live_aadhaar_2} alt="Second Person Aadhaar" className="mt-2 w-32 h-32 object-cover rounded border" />
-                                                )}
+                                                {renderCotPreview(cotPreviews.live_to_live_aadhaar_2, 'live_to_live_aadhaar_2', 'Second Person Aadhaar Card')}
                                             </div>
                                         </div>
                                     )}
@@ -1362,9 +1490,7 @@ export default function RegisterCustomerForm({
                                                     onChange={(e) => onCotFile('death_certificate', e.target.files?.[0] ?? null)}
                                                     className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500"
                                                 />
-                                                {cotPreviews.death_certificate && (
-                                                    <img src={cotPreviews.death_certificate} alt="Death Certificate" className="mt-2 w-32 h-32 object-cover rounded border" />
-                                                )}
+                                                {renderCotPreview(cotPreviews.death_certificate, 'death_certificate', 'Death Certificate')}
                                             </div>
 
                                             {/* House Papers */}
@@ -1376,9 +1502,7 @@ export default function RegisterCustomerForm({
                                                     onChange={(e) => onCotFile('house_papers', e.target.files?.[0] ?? null)}
                                                     className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500"
                                                 />
-                                                {cotPreviews.house_papers && (
-                                                    <img src={cotPreviews.house_papers} alt="House Papers" className="mt-2 w-32 h-32 object-cover rounded border" />
-                                                )}
+                                                {renderCotPreview(cotPreviews.house_papers, 'house_papers', 'House Papers')}
                                             </div>
 
                                             {/* Passport Size Photo */}
@@ -1390,9 +1514,7 @@ export default function RegisterCustomerForm({
                                                     onChange={(e) => onCotFile('passport_photo', e.target.files?.[0] ?? null)}
                                                     className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500"
                                                 />
-                                                {cotPreviews.passport_photo && (
-                                                    <img src={cotPreviews.passport_photo} alt="Passport Photo" className="mt-2 w-32 h-32 object-cover rounded border" />
-                                                )}
+                                                {renderCotPreview(cotPreviews.passport_photo, 'passport_photo', 'Passport Size Photo')}
                                             </div>
 
                                             {/* Family Registration Papers */}
@@ -1404,9 +1526,7 @@ export default function RegisterCustomerForm({
                                                     onChange={(e) => onCotFile('family_registration', e.target.files?.[0] ?? null)}
                                                     className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500"
                                                 />
-                                                {cotPreviews.family_registration && (
-                                                    <img src={cotPreviews.family_registration} alt="Family Registration" className="mt-2 w-32 h-32 object-cover rounded border" />
-                                                )}
+                                                {renderCotPreview(cotPreviews.family_registration, 'family_registration', 'Family Registration Papers')}
                                             </div>
 
                                             {/* Aadhaar Photos (up to 6) */}
@@ -1422,9 +1542,7 @@ export default function RegisterCustomerForm({
                                                                     onChange={(e) => onAadhaarPhoto(index, e.target.files?.[0] ?? null)}
                                                                     className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500"
                                                                 />
-                                                                {cotPreviews.aadhaar_photos[index] && (
-                                                                    <img src={cotPreviews.aadhaar_photos[index]} alt={`Aadhaar ${index + 1}`} className="mt-2 w-24 h-24 object-cover rounded border" />
-                                                                )}
+                                                                {renderCotPreview(cotPreviews.aadhaar_photos[index], `aadhaar_photos_${index}`, `Aadhaar Card ${index + 1}`)}
                                                             </div>
                                                             <button
                                                                 type="button"
@@ -1727,6 +1845,66 @@ export default function RegisterCustomerForm({
                     </button>
                 </div>
             </form>
+
+            {/* ── Document Preview Modal ── */}
+            {previewModal && (
+                <div
+                    className="fixed inset-0 z-[2000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+                    onClick={() => setPreviewModal(null)}
+                >
+                    <div
+                        className="relative w-full max-w-4xl bg-white rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+                        style={{ maxHeight: '92vh' }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 bg-white shrink-0">
+                            <h3 className="font-semibold text-slate-800 text-sm md:text-base truncate pr-4">
+                                {previewModal.label}
+                            </h3>
+                            <div className="flex items-center gap-2 shrink-0">
+                                <a
+                                    href={previewModal.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors"
+                                >
+                                    🔗 Open in New Tab
+                                </a>
+                                <button
+                                    type="button"
+                                    onClick={() => setPreviewModal(null)}
+                                    className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 font-bold transition-colors text-base leading-none"
+                                    aria-label="Close preview"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="overflow-auto flex-1 bg-slate-100">
+                            {previewModal.type === 'pdf' ? (
+                                <iframe
+                                    src={previewModal.url}
+                                    className="w-full border-0"
+                                    style={{ height: '78vh' }}
+                                    title={previewModal.label}
+                                />
+                            ) : (
+                                <div className="flex items-center justify-center p-4 min-h-[50vh]">
+                                    <img
+                                        src={previewModal.url}
+                                        alt={previewModal.label}
+                                        className="max-w-full object-contain rounded-lg shadow-md"
+                                        style={{ maxHeight: '78vh' }}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

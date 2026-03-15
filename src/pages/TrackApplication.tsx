@@ -432,7 +432,7 @@ function TrackApplication() {
                             <p className="text-sm mt-2">Try adjusting your search or filters</p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto relative">
+                        <div className="overflow-auto max-h-[calc(100vh-18rem)]">
                             <table className="w-full min-w-max text-xs border-separate border-spacing-0">
                                 <thead className="sticky top-0 z-30">
                                     <tr>
