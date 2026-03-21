@@ -8,7 +8,8 @@ interface Task {
     work: string;
     work_type: string;
     status: string;
-    assigned_to_id: number;
+    assigned_to_id: number | number[];
+    assigned_to_ids?: number[];
     assigned_to_name: string;
     assigned_to_role: string;
     registered_customer_id: number;

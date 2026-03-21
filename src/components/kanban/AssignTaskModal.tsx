@@ -116,6 +116,7 @@ export const AssignTaskModal: React.FC<AssignTaskModalProps> = ({
                 work_type: `reassign_task_approval_${work_type}`,
                 status: 'pending',
                 assigned_to_id: user.id,
+                assigned_to_ids: [user.id],
                 assigned_to_name: user.name,
                 assigned_to_role: user.employee_role,
                 registered_customer_id: finalCustomerId,
