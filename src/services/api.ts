@@ -64,6 +64,8 @@ type Task = {
     registered_customer_data?: any;
     registered_customer_id?: number;
     assigned_to_name?: string;
+    assigned_to_id?: number | number[];
+    assigned_to_ids?: number[];
 };
 
 function normalizeStatus(status: string): 'pending' | 'in-progress' | 'completed' {
@@ -73,6 +75,22 @@ function normalizeStatus(status: string): 'pending' | 'in-progress' | 'completed
 
 function transformTask(task: any): Task {
     const customerData = task.registered_customer_data || {};
+    const assignedToIds = Array.isArray(task.assigned_to_ids)
+        ? task.assigned_to_ids
+        : Array.isArray(task.assigned_to_id)
+            ? task.assigned_to_id
+            : typeof task.assigned_to_ids === 'string'
+                ? (() => {
+                    try {
+                        const parsed = JSON.parse(task.assigned_to_ids);
+                        return Array.isArray(parsed) ? parsed : [];
+                    } catch {
+                        return [];
+                    }
+                })()
+                : task.assigned_to_id
+                    ? [Number(task.assigned_to_id)]
+                    : [];
 
     return {
         id: String(task.id),
@@ -93,6 +111,8 @@ function transformTask(task: any): Task {
         requiredActions: [],
         registered_customer_id: task.registered_customer_id,
         registered_customer_data: task.registered_customer_data,
+        assigned_to_id: task.assigned_to_id,
+        assigned_to_ids: assignedToIds,
     };
 }
 
@@ -1223,6 +1243,57 @@ export const notificationsAPI = {
         });
 
         if (!response.ok) throw new Error('Failed to send punch-out reminders');
+        return await response.json();
+    },
+};
+
+// ============================================================================
+// PUSH NOTIFICATIONS API
+// ============================================================================
+export const pushAPI = {
+    async getVapidPublicKey(): Promise<string> {
+        const response = await fetch(`${API_BASE}/push/vapid-public-key`, {
+            headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch VAPID public key');
+        const data = await response.json();
+        return data.publicKey as string;
+    },
+
+    async subscribe(subscription: PushSubscriptionJSON, token: string) {
+        const response = await fetch(`${API_BASE}/push/subscribe`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(subscription),
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to subscribe for push notifications' }));
+            throw new Error(error.message || 'Failed to subscribe for push notifications');
+        }
+
+        return await response.json();
+    },
+
+    async unsubscribe(endpoint: string, token: string) {
+        const response = await fetch(`${API_BASE}/push/unsubscribe`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ endpoint }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to unsubscribe from push notifications' }));
+            throw new Error(error.message || 'Failed to unsubscribe from push notifications');
+        }
+
         return await response.json();
     },
 };

@@ -165,6 +165,7 @@ function CreateTask() {
                     work_type: selectedWorkType.key,
                     status,
                     assigned_to_id: selectedEmployee.id,
+                    assigned_to_ids: [selectedEmployee.id],
                     assigned_to_name: selectedEmployee.name,
                     assigned_to_role: selectedEmployee.employee_role,
                     registered_customer_id: selectedCustomer.id,

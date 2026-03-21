@@ -62,7 +62,9 @@ export const CustomerDataGathering: React.FC<WorkTypeDetailsProps> = ({ task, cu
 
     // Get sales executive name and id from task assignment
     const salesExecutiveName = task?.assigned_to_name || 'Unknown';
-    const salesExecutiveId = task?.assigned_to_id || '';
+    const salesExecutiveId = Array.isArray(task?.assigned_to_id)
+        ? task.assigned_to_id[0]
+        : task?.assigned_to_ids?.[0] || task?.assigned_to_id || '';
 
     return (
         <>

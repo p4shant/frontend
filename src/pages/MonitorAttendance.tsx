@@ -54,6 +54,8 @@ function MonitorAttendance() {
     // Get today's date in IST format (YYYY-MM-DD) for API queries
     const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
 
+    const [selectedDate, setSelectedDate] = useState<string>(todayStr)
+
     const [stats, setStats] = useState<Stats>({
         totalEmployees: 0,
         presentToday: 0,
@@ -79,16 +81,16 @@ function MonitorAttendance() {
 
     useEffect(() => {
         if (user && token && (user.employee_role === 'Master Admin' || user.employee_role === 'Accountant')) {
-            fetchStats()
+            fetchStats(selectedDate)
         }
-    }, [user, token])
+    }, [user, token, selectedDate])
 
-    const fetchStats = async () => {
+    const fetchStats = async (date: string = selectedDate) => {
         try {
             setLoading(true)
             // Fetch with includeAbsentees flag to get all employees including absent ones
             const response = await fetch(
-                `${API_BASE}/attendance?limit=500&date_from=${todayStr}&date_to=${todayStr}&includeAbsentees=true`,
+                `${API_BASE}/attendance?limit=500&date_from=${date}&date_to=${date}&includeAbsentees=true`,
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -453,7 +455,7 @@ function MonitorAttendance() {
         const link = document.createElement('a')
         const url = URL.createObjectURL(blob)
 
-        const fileName = `Attendance_${new Date().toISOString().split('T')[0]}_${filterStatus}.csv`
+        const fileName = `Attendance_${selectedDate}_${filterStatus}.csv`
         link.setAttribute('href', url)
         link.setAttribute('download', fileName)
         link.style.visibility = 'hidden'
@@ -477,17 +479,38 @@ function MonitorAttendance() {
     return (
         <div className="h-full overflow-y-auto bg-gradient-to-br from-slate-100 to-blue-50">
             <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
-                <div className="mb-4 sm:mb-8">
-                    <p className="text-gray-600 text-sm sm:text-base">
-                        {/* Display today's date in IST timezone */}
-                        {new Date().toLocaleDateString('en-US', {
-                            timeZone: 'Asia/Kolkata',
+                <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <p className="text-gray-600 text-sm sm:text-base font-medium">
+                        {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {
                             weekday: 'long',
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric'
                         })}
+                        {selectedDate === todayStr && (
+                            <span className="ml-2 text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded-full border border-green-300">Today</span>
+                        )}
                     </p>
+                    <div className="flex items-center gap-2">
+                        <label className="text-xs sm:text-sm text-gray-500 font-medium whitespace-nowrap">Select Date:</label>
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            max={todayStr}
+                            onChange={(e) => {
+                                if (e.target.value) setSelectedDate(e.target.value)
+                            }}
+                            className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
+                        />
+                        {selectedDate !== todayStr && (
+                            <button
+                                onClick={() => setSelectedDate(todayStr)}
+                                className="px-3 py-1.5 bg-blue text-white text-xs sm:text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
+                            >
+                                Today
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {loading ? (
