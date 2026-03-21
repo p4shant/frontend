@@ -1228,6 +1228,57 @@ export const notificationsAPI = {
 };
 
 // ============================================================================
+// PUSH NOTIFICATIONS API
+// ============================================================================
+export const pushAPI = {
+    async getVapidPublicKey(): Promise<string> {
+        const response = await fetch(`${API_BASE}/push/vapid-public-key`, {
+            headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch VAPID public key');
+        const data = await response.json();
+        return data.publicKey as string;
+    },
+
+    async subscribe(subscription: PushSubscriptionJSON, token: string) {
+        const response = await fetch(`${API_BASE}/push/subscribe`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(subscription),
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to subscribe for push notifications' }));
+            throw new Error(error.message || 'Failed to subscribe for push notifications');
+        }
+
+        return await response.json();
+    },
+
+    async unsubscribe(endpoint: string, token: string) {
+        const response = await fetch(`${API_BASE}/push/unsubscribe`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ endpoint }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to unsubscribe from push notifications' }));
+            throw new Error(error.message || 'Failed to unsubscribe from push notifications');
+        }
+
+        return await response.json();
+    },
+};
+
+// ============================================================================
 // STOCK MANAGEMENT API
 // ============================================================================
 export const stockAPI = {

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { authAPI, employeesAPI } from '../services/api';
+import { initPushNotifications, removePushSubscription } from '../utils/pushNotifications';
 
 export type Employee = {
     id: string;
@@ -81,6 +82,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 console.error('Error fetching employees list:', empErr);
                 // Non-critical error, don't throw
             }
+
+            // Initialize push notifications (non-blocking)
+            void initPushNotifications(newToken);
         } catch (err) {
             const message = err instanceof Error ? err.message : 'An error occurred during login';
             setError(message);
@@ -91,6 +95,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const logout = () => {
+        if (token) {
+            // Best-effort cleanup; do not block logout flow
+            void removePushSubscription(token);
+        }
+
         setUser(null);
         setToken(null);
         setError(null);
