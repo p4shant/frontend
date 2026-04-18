@@ -40,7 +40,7 @@ const WORK_TYPE_LABELS: Record<string, string> = {
     hard_copy_indent_creation: 'Indent Creation', submit_indent_to_electrical_department: 'Submit Indent',
     meter_installation: 'Meter Install', collect_remaining_amount: 'Payment Collection',
     generate_bill: 'Bill Generation', approval_of_payment_collection: 'Payment Approval',
-    plant_installation: 'Plant Installation', approval_of_plant_installation: 'Install Approval',
+    plant_installation: 'Plant Installation',
     take_installed_item_photos: 'Take Photos', upload_installed_item_serial_number: 'Upload Serial',
     inspection: 'Inspection', create_cdr: 'Create CDR', apply_subsidy: 'Apply Subsidy',
     subsidy_redemption: 'Subsidy Redemption', document_handover: 'Doc Handover',

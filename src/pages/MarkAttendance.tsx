@@ -33,6 +33,7 @@ const MarkAttendance = () => {
     const [processing, setProcessing] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [submitError, setSubmitError] = useState('');
     const [showCamera, setShowCamera] = useState(false);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [location, setLocation] = useState<Location | null>(null);
@@ -158,6 +159,7 @@ const MarkAttendance = () => {
     const handleOpenCamera = async (actionType: 'punchIn' | 'punchOut') => {
         setError('');
         setSuccess('');
+        setSubmitError('');
         setAction(actionType);
 
         try {
@@ -195,6 +197,7 @@ const MarkAttendance = () => {
         setCapturedImage(null);
         setLocation(null);
         setAction('');
+        setSubmitError('');
         stopCamera();
     };
 
@@ -243,7 +246,7 @@ const MarkAttendance = () => {
             fetchTodayStatus();
         } catch (err) {
             const msg = (err as any)?.message || 'Failed to record attendance';
-            setError(msg);
+            setSubmitError(msg);
         } finally {
             setProcessing(false);
         }
@@ -498,6 +501,12 @@ const MarkAttendance = () => {
                             {location && (
                                 <div className="mt-3 rounded border border-blue/12 bg-panel-strong text-text px-3 py-2 text-sm">
                                     Location: {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+                                </div>
+                            )}
+
+                            {submitError && (
+                                <div className="mt-3 rounded-lg border border-red-300 bg-red-50 text-red-700 px-3 py-2.5 text-sm font-medium text-left">
+                                    ⚠️ {submitError}
                                 </div>
                             )}
                         </div>

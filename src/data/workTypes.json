@@ -70,11 +70,6 @@
         "description": "Create the Customer Data Record (CDR) in the system to document the complete transaction and installation details for billing and subsidy purposes."
     },
     {
-        "key": "approval_of_plant_installation",
-        "label": "Installation Approval",
-        "description": "Review and approve the plant installation request. Verify site feasibility, equipment list, and technician assignment before granting approval to proceed with installation."
-    },
-    {
         "key": "plant_installation",
         "label": "Plant Installation",
         "description": "Execute the physical installation of the solar plant at the customer's site. Record installation date, assign technicians and technical assistants, and designate a photo taker for documentation."

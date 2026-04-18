@@ -4081,28 +4081,7 @@ export const SerialNumberUpload: React.FC<WorkTypeDetailsProps> = ({ task: _task
 };
 
 // Plant Installation Approval Component
-export const PlantInstallationApproval: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
-    return (
-        <div className="flex items-start gap-3 bg-teal/5 border border-teal/20 rounded-lg p-3">
-            <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-muted uppercase mb-2">Plant Installation Details</p>
-                <div className="space-y-2 text-sm">
-                    <p><span className="font-semibold">Solar Plant Type:</span> {customer?.solar_plant_type || '-'}</p>
-                    <p><span className="font-semibold">Solar System Type:</span> {customer?.solar_system_type || '-'}</p>
-                    <p><span className="font-semibold">Plant Size (kW):</span> {customer?.plant_size_kw || '-'}</p>
-                    <p><span className="font-semibold">Plant Price:</span> {customer?.plant_price || '-'}</p>
-                    <p><span className="font-semibold">Payment Mode:</span> {customer?.payment_mode || '-'}</p>
-                </div>
-                <p className="text-xs font-semibold text-muted uppercase mb-2 mt-4">Building/Structure Details</p>
-                <div className="space-y-2 text-sm">
-                    <p><span className="font-semibold">Building Floor Number:</span> {customer?.building_floor_number || '-'}</p>
-                    <p><span className="font-semibold">Structure Type:</span> {customer?.structure_type || '-'}</p>
-                    <p><span className="font-semibold">Free Shadow Area (sq.m):</span> {customer?.free_shadow_area || '-'}</p>
-                </div>
-            </div>
-        </div>
-    );
-};
+
 
 // Indent Submission Component
 export const IndentSubmission: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
