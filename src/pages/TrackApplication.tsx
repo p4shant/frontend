@@ -18,7 +18,6 @@ const WORK_TYPES = [
     { key: 'generate_bill', label: 'Bill Generation' },
     { key: 'approval_of_payment_collection', label: 'Payment Approval' },
     { key: 'plant_installation', label: 'Plant Installation' },
-    { key: 'approval_of_plant_installation', label: 'Installation Approval' },
     { key: 'take_installed_item_photos', label: 'Take Photos' },
     { key: 'upload_installed_item_serial_number', label: 'Upload Serial No' },
     { key: 'inspection', label: 'Inspection' },
@@ -96,7 +95,7 @@ const PIPELINE_PHASES = [
         connectorBg: 'bg-purple-300',
         progressFill: 'bg-purple-500',
         countText: 'text-purple-600',
-        workTypes: ['approval_of_plant_installation', 'plant_installation', 'take_installed_item_photos', 'upload_installed_item_serial_number'],
+        workTypes: ['plant_installation', 'take_installed_item_photos', 'upload_installed_item_serial_number'],
     },
     {
         id: 'verification',
