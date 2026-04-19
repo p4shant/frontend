@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { CalendarCheck, LayoutDashboard, PanelsTopLeft, UserRound, Eye, FileText, UserPlus, Wallet, BarChart3, CheckSquare, ClipboardPlus, Package, ArrowDownToLine, ArrowUpFromLine, History, Users, Gauge, Car, ShieldCheck } from 'lucide-react';
+import { CalendarCheck, LayoutDashboard, PanelsTopLeft, UserRound, Eye, FileText, UserPlus, Wallet, BarChart3, CheckSquare, ClipboardPlus, Package, ArrowDownToLine, ArrowUpFromLine, History, Users, Gauge, Car, ShieldCheck, Shield } from 'lucide-react';
 import kamnLogo from '../assets/kaman-logo.png';
 import { useAuth } from '../context/AuthContext';
 
@@ -45,6 +45,8 @@ const QA_TESTER_ITEMS = [
 
 const TRAVEL_REVIEW_ITEM = { label: 'Travel Allowance', to: '/travel-allowance', icon: <Car size={18} /> };
 
+const ADMIN_ATTENDANCE_ITEM = { label: 'Admin Attendance', to: '/admin-mark-attendance', icon: <Shield size={18} /> };
+
 interface SidebarState {
     isCollapsed: boolean;
     isMobileOpen: boolean;
@@ -66,6 +68,7 @@ function Sidebar({ state }: Props) {
     const isInventoryOperator = user?.employee_role === 'Inventory Operator';
     const isQATester = user?.employee_role === 'QA Tester';
     const isSFDCAdmin = user?.employee_role === 'SFDC Admin';
+    const isAdminAssistant = user?.employee_role === 'Admin Assistant';
     const isSupervisor = user?.name && SUPERVISOR_NAMES.includes(user.name);
     // Any employee with stock_access=1 flag gets stock pages regardless of role
     const hasStockAccess = !!(user?.stock_access === 1);
@@ -74,35 +77,44 @@ function Sidebar({ state }: Props) {
     // Stock Controller sees ONLY stock pages + profile (no attendance)
     // Inventory Operator sees stock pages + mark attendance + profile
     // QA Tester sees core pages + Travel Log (NOT Mark Attendance — handled via travel punch)
-    const visibleNavItems = isStockController
+    // Admin Assistant sees Dashboard + Admin Attendance + Mark Attendance + Profile
+    const visibleNavItems = isAdminAssistant
         ? [
-            ...STOCK_ITEMS,
+            { label: 'Dashboard', to: '/', icon: <LayoutDashboard size={18} /> },
+            ADMIN_ATTENDANCE_ITEM,
+            { label: 'Mark Attendance', to: '/mark-attendance', icon: <CalendarCheck size={18} /> },
+            MONITOR_ATTENDANCE_ITEM,
             ...COMMON_ITEMS,
         ]
-        : isInventoryOperator
+        : isStockController
             ? [
                 ...STOCK_ITEMS,
-                { label: 'Mark Attendance', to: '/mark-attendance', icon: <CalendarCheck size={18} /> },
-                ...(isSupervisor ? [TEAM_ATTENDANCE_ITEM] : []),
                 ...COMMON_ITEMS,
             ]
-            : isQATester
+            : isInventoryOperator
                 ? [
-                    { label: 'Dashboard', to: '/', icon: <LayoutDashboard size={18} /> },
-                    { label: 'Register Customer', to: '/register-customer', icon: <PanelsTopLeft size={18} /> },
-                    ...QA_TESTER_ITEMS,
-                    ...COMMON_ITEMS,
-                ]
-                : [
-                    ...NAV_ITEMS,
-                    ...(isMasterAdmin ? [...MASTER_ADMIN_ITEMS, TRAVEL_REVIEW_ITEM] : []),
-                    ...(isSFDCAdmin ? [TRAVEL_REVIEW_ITEM] : []),
-                    ...(isMasterAdmin || isAccountant || hasStockAccess ? STOCK_ITEMS : []),
-                    ...(isMasterAdmin ? [STOCK_CORRECTION_ITEM] : []),
-                    ...(!isMasterAdmin && isAccountant ? [MONITOR_ATTENDANCE_ITEM] : []),
+                    ...STOCK_ITEMS,
+                    { label: 'Mark Attendance', to: '/mark-attendance', icon: <CalendarCheck size={18} /> },
                     ...(isSupervisor ? [TEAM_ATTENDANCE_ITEM] : []),
                     ...COMMON_ITEMS,
-                ];
+                ]
+                : isQATester
+                    ? [
+                        { label: 'Dashboard', to: '/', icon: <LayoutDashboard size={18} /> },
+                        { label: 'Register Customer', to: '/register-customer', icon: <PanelsTopLeft size={18} /> },
+                        ...QA_TESTER_ITEMS,
+                        ...COMMON_ITEMS,
+                    ]
+                    : [
+                        ...NAV_ITEMS,
+                        ...(isMasterAdmin ? [...MASTER_ADMIN_ITEMS, ADMIN_ATTENDANCE_ITEM, TRAVEL_REVIEW_ITEM] : []),
+                        ...(isSFDCAdmin ? [TRAVEL_REVIEW_ITEM] : []),
+                        ...(isMasterAdmin || isAccountant || hasStockAccess ? STOCK_ITEMS : []),
+                        ...(isMasterAdmin ? [STOCK_CORRECTION_ITEM] : []),
+                        ...(!isMasterAdmin && isAccountant ? [MONITOR_ATTENDANCE_ITEM] : []),
+                        ...(isSupervisor ? [TEAM_ATTENDANCE_ITEM] : []),
+                        ...COMMON_ITEMS,
+                    ];
 
     return (
         <>

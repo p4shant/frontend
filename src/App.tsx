@@ -20,6 +20,7 @@ import StockHistory from './pages/StockHistory';
 import StockCorrection from './pages/StockCorrection';
 import QATravelPunch from './pages/QATravelPunch';
 import TravelAllowanceReview from './pages/TravelAllowanceReview';
+import AdminMarkAttendance from './pages/AdminMarkAttendance';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
 function App() {
@@ -65,6 +66,16 @@ function App() {
           <ProtectedRoute>
             <AppLayout>
               <MarkTeamAttendance />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-mark-attendance"
+        element={
+          <ProtectedRoute requiredRoles={['Admin Assistant', 'Master Admin']}>
+            <AppLayout>
+              <AdminMarkAttendance />
             </AppLayout>
           </ProtectedRoute>
         }
