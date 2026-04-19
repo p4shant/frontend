@@ -1,20 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-const EMPLOYEE_ROLES = [
-    'Master Admin',
-    'Operation Manager',
-    'Sale Executive',
-    'SFDC Admin',
-    'Electrician',
-    'System Admin',
-    'Technician',
-    'Technical Assistant',
-    'Accountant',
-    'Stock Controller',
-    'Inventory Operator',
-    'QA Tester'
-];
+const API_BASE = import.meta.env.VITE_API_BASE;
 
 const DISTRICTS = [
     'All',
@@ -27,6 +14,7 @@ const DISTRICTS = [
 
 function RegisterEmployee() {
     const { user, token } = useAuth();
+    const [roles, setRoles] = useState<string[]>([]);
     const [formData, setFormData] = useState({
         name: '',
         phone_number: '',
@@ -37,6 +25,16 @@ function RegisterEmployee() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+
+    useEffect(() => {
+        if (!token) return;
+        fetch(`${API_BASE}/employees/roles`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+        })
+            .then(res => res.json())
+            .then(data => setRoles(data.roles || []))
+            .catch(() => setRoles([]));
+    }, [token]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData({
@@ -183,7 +181,7 @@ function RegisterEmployee() {
                         required
                     >
                         <option value="">Select Role</option>
-                        {EMPLOYEE_ROLES.map(role => (
+                        {roles.map((role: string) => (
                             <option key={role} value={role}>{role}</option>
                         ))}
                     </select>

@@ -80,7 +80,7 @@ function MonitorAttendance() {
     const [addressCache, setAddressCache] = useState<Record<string, string>>({})
 
     useEffect(() => {
-        if (user && token && (user.employee_role === 'Master Admin' || user.employee_role === 'Accountant')) {
+        if (user && token && (user.employee_role === 'Master Admin' || user.employee_role === 'Accountant' || user.employee_role === 'Admin Assistant')) {
             fetchStats(selectedDate)
         }
     }, [user, token, selectedDate])
@@ -415,6 +415,11 @@ function MonitorAttendance() {
                         👤 By Supervisor
                     </span>
                 )}
+                {attendanceMode === 'admin' && (
+                    <span className="px-2 py-1 text-xs font-semibold rounded bg-indigo-100 text-indigo-700 border border-indigo-300" title={`Marked by ${markedByName || 'Admin'}`}>
+                        🛡️ By Admin
+                    </span>
+                )}
             </div>
         )
     }
@@ -465,12 +470,12 @@ function MonitorAttendance() {
         document.body.removeChild(link)
     }
 
-    if (user?.employee_role !== 'Master Admin' && user?.employee_role !== 'Accountant') {
+    if (user?.employee_role !== 'Master Admin' && user?.employee_role !== 'Accountant' && user?.employee_role !== 'Admin Assistant') {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-50 flex items-center justify-center p-4">
                 <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-6 sm:p-8 text-center max-w-md">
                     <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Access Denied</h2>
-                    <p className="text-gray-600 text-sm sm:text-base">This page is only available for Master Admin and Accountant users.</p>
+                    <p className="text-gray-600 text-sm sm:text-base">This page is only available for Master Admin, Accountant, and Admin Assistant users.</p>
                 </div>
             </div>
         )

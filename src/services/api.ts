@@ -461,6 +461,24 @@ export const attendanceAPI = {
 
         return await response.json();
     },
+
+    async getAdminAttendanceStatus(token: string) {
+        const response = await fetch(`${API_BASE}/attendance/admin/status`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) { const e = await response.json(); throw new Error(e.message || 'Failed'); }
+        return await response.json();
+    },
+
+    async adminMarkAttendance(data: { attendance: Array<{ employee_id: number; status: 'present' | 'absent' }> }, token: string) {
+        const response = await fetch(`${API_BASE}/attendance/admin/mark`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) { const e = await response.json(); throw new Error(e.message || 'Failed'); }
+        return await response.json();
+    },
 };
 
 // ============================================================================
