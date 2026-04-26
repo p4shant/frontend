@@ -2870,7 +2870,7 @@ export const WarrantyDocument: React.FC<WorkTypeDetailsProps> = ({ task: _task, 
 };
 
 // Upload DCR Document
-export const CDRCreation: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
+export const DCRCreation: React.FC<WorkTypeDetailsProps> = ({ task: _task, customer }) => {
     const existingDcrUrl = getAdditionalDocUrl(customer, 'dcr_document');
     const [dcrFile, setDcrFile] = React.useState<File | null>(null);
     const [filePreview, setFilePreview] = React.useState<string>('');

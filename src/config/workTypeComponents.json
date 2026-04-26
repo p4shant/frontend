@@ -110,9 +110,9 @@
             "label": "Warranty Document",
             "icon": "Award"
         },
-        "create_cdr": {
-            "component": "CDRCreation",
-            "label": "CDR Creation",
+        "create_dcr": {
+            "component": "DCRCreation",
+            "label": "DCR Creation",
             "icon": "FileText"
         }
     }

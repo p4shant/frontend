@@ -8,7 +8,6 @@ import MarkTeamAttendance from './pages/MarkTeamAttendance';
 import Profile from './pages/Profile';
 import TrackApplication from './pages/TrackApplication';
 import MonitorAttendance from './pages/MonitorAttendance';
-import TrackPayment from './pages/TrackPayment';
 import AdminStats from './pages/AdminStats';
 import TaskApproval from './pages/TaskApproval';
 import CreateTask from './pages/CreateTask';
@@ -21,6 +20,8 @@ import StockCorrection from './pages/StockCorrection';
 import QATravelPunch from './pages/QATravelPunch';
 import TravelAllowanceReview from './pages/TravelAllowanceReview';
 import AdminMarkAttendance from './pages/AdminMarkAttendance';
+import PaymentCollection from './pages/PaymentCollection';
+import PaymentApproval from './pages/PaymentApproval';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
 function App() {
@@ -106,16 +107,6 @@ function App() {
           <ProtectedRoute>
             <AppLayout>
               <MonitorAttendance />
-            </AppLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/track-payment"
-        element={
-          <ProtectedRoute>
-            <AppLayout>
-              <TrackPayment />
             </AppLayout>
           </ProtectedRoute>
         }
@@ -208,6 +199,28 @@ function App() {
           <ProtectedRoute requiredRoles={['Master Admin']}>
             <AppLayout>
               <StockCorrection />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Payment Collection & Approval routes */}
+      <Route
+        path="/payment-collection"
+        element={
+          <ProtectedRoute requiredRoles={['Help Desk']}>
+            <AppLayout>
+              <PaymentCollection />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/payment-approval"
+        element={
+          <ProtectedRoute requiredRoles={['Master Admin', 'Admin Assistant']}>
+            <AppLayout>
+              <PaymentApproval />
             </AppLayout>
           </ProtectedRoute>
         }

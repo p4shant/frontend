@@ -62,12 +62,20 @@ export default function RegisterCustomerForm({
     onSuccess?: (customerId?: number) => void;
     onCancel?: () => void;
 }) {
-    const { token } = useAuth()
+    const { token, user } = useAuth()
     const [loading, setLoading] = useState(false)
     const [msg, setMsg] = useState('')
     const [locationLoading, setLocationLoading] = useState(false)
     const [prefillLoading, setPrefillLoading] = useState(false)
     const [manualGps, setManualGps] = useState(false)
+    const [onBehalfOf, setOnBehalfOf] = useState<string>('')  // Employee ID for "on behalf of"
+
+    // Get employees list from localStorage for "on behalf of" dropdown
+    const allEmployees = (() => {
+        try {
+            return JSON.parse(localStorage.getItem('employees_list') || '[]');
+        } catch { return []; }
+    })();
 
     const isEditMode = Boolean(applicationId)
 
@@ -679,7 +687,7 @@ export default function RegisterCustomerForm({
                 free_shadow_area: toNum(form.free_shadow_area),
                 installation_date_feasible: toDate(form.installation_date_feasible),
                 application_status: form.application_status || 'DRAFT',
-                created_by: session?.employeeId || '',
+                created_by: (user?.employee_role === 'Help Desk' && onBehalfOf) ? onBehalfOf : (session?.employeeId || ''),
             }
 
             const created = isEditMode
@@ -986,6 +994,27 @@ export default function RegisterCustomerForm({
                         />
                     )}
                 </section>
+
+                {/* On Behalf Of - Help Desk only */}
+                {user?.employee_role === 'Help Desk' && !isEditMode && (
+                    <section className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-amber-200 bg-amber-50/30">
+                        <h3 className="text-base md:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 md:gap-3">
+                            <span className="w-7 h-7 md:w-8 md:h-8 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-sm font-semibold">★</span>
+                            Create On Behalf Of
+                        </h3>
+                        <p className="text-xs text-slate-500 mb-3">Optionally create this customer application on behalf of another employee (e.g., a Sales Executive)</p>
+                        <select
+                            value={onBehalfOf}
+                            onChange={e => setOnBehalfOf(e.target.value)}
+                            className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                        >
+                            <option value="">Self ({session?.name || 'Me'})</option>
+                            {(allEmployees || []).filter((emp: any) => emp.id !== Number(session?.employeeId)).map((emp: any) => (
+                                <option key={emp.id} value={emp.id}>{emp.name} — {emp.employee_role} ({emp.district || 'N/A'})</option>
+                            ))}
+                        </select>
+                    </section>
+                )}
 
                 {/* Applicant Details */}
                 <section className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-slate-200">

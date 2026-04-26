@@ -21,7 +21,7 @@ const WORK_TYPES = [
     { key: 'take_installed_item_photos', label: 'Take Photos' },
     { key: 'upload_installed_item_serial_number', label: 'Upload Serial No' },
     { key: 'inspection', label: 'Inspection' },
-    { key: 'create_cdr', label: 'Create CDR' },
+    { key: 'create_dcr', label: 'Create DCR' },
     { key: 'apply_subsidy', label: 'Apply Subsidy' },
     { key: 'subsidy_redemption', label: 'Subsidy Redemption' },
     { key: 'document_handover', label: 'Document Handover' },
@@ -84,7 +84,7 @@ const PIPELINE_PHASES = [
         connectorBg: 'bg-green-300',
         progressFill: 'bg-green-500',
         countText: 'text-green-600',
-        workTypes: ['collect_remaining_amount', 'approval_of_payment_collection', 'generate_bill', 'create_cdr'],
+        workTypes: ['collect_remaining_amount', 'approval_of_payment_collection', 'generate_bill', 'create_dcr'],
     },
     {
         id: 'installation',

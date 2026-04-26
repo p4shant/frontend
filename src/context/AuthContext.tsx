@@ -70,11 +70,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             try {
                 const employeesList = await employeesAPI.list(newToken);
                 if (employeesList?.data && Array.isArray(employeesList.data)) {
-                    // Extract only name, phone_number, and employee_role from each employee
+                    // Extract key fields from each employee
                     const simplifiedEmployees = employeesList.data.map((emp: any) => ({
+                        id: emp.id,
                         name: emp.name,
                         phone_number: emp.phone_number,
                         employee_role: emp.employee_role,
+                        district: emp.district,
                     }));
                     localStorage.setItem('employees_list', JSON.stringify(simplifiedEmployees));
                 }

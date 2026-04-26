@@ -42,7 +42,7 @@ const WORK_TYPE_LABELS: Record<string, string> = {
     generate_bill: 'Bill Generation', approval_of_payment_collection: 'Payment Approval',
     plant_installation: 'Plant Installation',
     take_installed_item_photos: 'Take Photos', upload_installed_item_serial_number: 'Upload Serial',
-    inspection: 'Inspection', create_cdr: 'Create CDR', apply_subsidy: 'Apply Subsidy',
+    inspection: 'Inspection', create_dcr: 'Create DCR', apply_subsidy: 'Apply Subsidy',
     subsidy_redemption: 'Subsidy Redemption', document_handover: 'Doc Handover',
     quality_assurance: 'QA', submit_warranty_document: 'Submit Warranty', assign_qa: 'Assign QA',
 };

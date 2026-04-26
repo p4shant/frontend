@@ -65,9 +65,9 @@
         "description": "Generate the final payment bill (paybill) for the customer. Upload the bill document and ensure it reflects the correct amount including all charges."
     },
     {
-        "key": "create_cdr",
-        "label": "Create CDR",
-        "description": "Create the Customer Data Record (CDR) in the system to document the complete transaction and installation details for billing and subsidy purposes."
+        "key": "create_dcr",
+        "label": "Create DCR",
+        "description": "Create the Dealer Commission Record (DCR) in the system to document the complete transaction and installation details for billing and subsidy purposes."
     },
     {
         "key": "plant_installation",
