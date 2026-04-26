@@ -619,6 +619,55 @@ export const transactionLogsAPI = {
 };
 
 // ============================================================================
+// PAYMENT COLLECTION & APPROVAL API
+// ============================================================================
+export const paymentAPI = {
+    async getCollection(token: string) {
+        const response = await fetch(`${API_BASE}/payments/collection`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to fetch payment collection data');
+        return await response.json();
+    },
+
+    async recordCollection(customerId: number, amount: string, proofFile: File, token: string) {
+        const formData = new FormData();
+        formData.append('amount', amount);
+        formData.append('proof', proofFile);
+        const response = await fetch(`${API_BASE}/payments/collection/${customerId}/record`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData,
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to record payment');
+        }
+        return await response.json();
+    },
+
+    async getApprovals(token: string) {
+        const response = await fetch(`${API_BASE}/payments/approval`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to fetch payment approval data');
+        return await response.json();
+    },
+
+    async approve(customerId: number, token: string) {
+        const response = await fetch(`${API_BASE}/payments/approval/${customerId}/approve`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to approve payment');
+        }
+        return await response.json();
+    },
+};
+
+// ============================================================================
 // ADDITIONAL DOCUMENTS API
 // ============================================================================
 export const additionalDocumentsAPI = {

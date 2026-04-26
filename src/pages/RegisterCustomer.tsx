@@ -60,8 +60,8 @@ function RegisterCustomer() {
                 setLoading(true);
                 let data;
 
-                // Check if user is Master Admin or System Admin
-                if (user.employee_role === 'Master Admin' || user.employee_role === 'System Admin') {
+                // Check if user is Master Admin or Help Desk
+                if (user.employee_role === 'Master Admin' || user.employee_role === 'Help Desk') {
                     // Fetch all registered customers
                     data = await registeredCustomersAPI.list(token, { page: 1, limit: 10000 });
                 } else {
@@ -126,8 +126,8 @@ function RegisterCustomer() {
             try {
                 let data;
 
-                // Check if user is Master Admin or System Admin
-                if (user.employee_role === 'Master Admin' || user.employee_role === 'System Admin') {
+                // Check if user is Master Admin or Help Desk
+                if (user.employee_role === 'Master Admin' || user.employee_role === 'Help Desk') {
                     // Fetch all registered customers
                     data = await registeredCustomersAPI.list(token, { page: 1, limit: 10000 });
                 } else {

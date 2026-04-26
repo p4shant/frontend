@@ -78,8 +78,8 @@ export default function UnconfirmedLeadsList({
                 filters.status = 'active';
             }
 
-            // Check if user is Master Admin or System Admin
-            if (user.employee_role === 'Master Admin' || user.employee_role === 'System Admin') {
+            // Check if user is Master Admin or Help Desk
+            if (user.employee_role === 'Master Admin' || user.employee_role === 'Help Desk') {
                 // Fetch all leads
                 data = await unconfirmedLeadsAPI.list(token, filters);
             } else {
