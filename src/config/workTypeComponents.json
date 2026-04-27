@@ -45,11 +45,6 @@
             "label": "Finance Registration",
             "icon": "DollarSign"
         },
-        "hard_copy_indent_creation": {
-            "component": "createHardCopyindentCreationTask",
-            "label": "Hard Copy Indent",
-            "icon": "FileText"
-        },
         "submit_indent_to_electrical_department": {
             "component": "IndentSubmission",
             "label": "Indent Submission",

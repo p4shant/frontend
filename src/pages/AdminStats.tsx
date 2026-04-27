@@ -37,7 +37,7 @@ const WORK_TYPE_LABELS: Record<string, string> = {
     customer_data_gathering: 'Data Collection', complete_registration: 'Registration',
     cot_request: 'COT Request', name_correction_request: 'Name Correction', load_request: 'Load Request',
     finance_registration: 'Finance Reg', submit_finance_to_bank: 'Submit to Bank',
-    hard_copy_indent_creation: 'Indent Creation', submit_indent_to_electrical_department: 'Submit Indent',
+    submit_indent_to_electrical_department: 'Submit Indent',
     meter_installation: 'Meter Install', collect_remaining_amount: 'Payment Collection',
     generate_bill: 'Bill Generation', approval_of_payment_collection: 'Payment Approval',
     plant_installation: 'Plant Installation',
