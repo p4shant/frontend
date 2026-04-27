@@ -35,11 +35,6 @@
         "description": "Submit a request to enhance the sanctioned load on the electricity connection to meet the solar plant requirements. Coordinate with the electrical department for approval."
     },
     {
-        "key": "hard_copy_indent_creation",
-        "label": "Indent Creation",
-        "description": "Create the hard copy indent document listing all equipment and materials required for the solar plant installation. Upload the signed indent document for further processing."
-    },
-    {
         "key": "submit_indent_to_electrical_department",
         "label": "Submit Indent to Electrical Dept",
         "description": "Submit the created indent document to the electrical department for sanctioning. Track the submission status and follow up for timely approval."

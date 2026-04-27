@@ -11,7 +11,6 @@ const WORK_TYPES = [
     { key: 'cot_request', label: 'COT Request' },
     { key: 'name_correction_request', label: 'Name Correction' },
     { key: 'load_request', label: 'Load Request' },
-    { key: 'hard_copy_indent_creation', label: 'Indent Creation' },
     { key: 'submit_indent_to_electrical_department', label: 'Submit Indent' },
     { key: 'meter_installation', label: 'Meter Install' },
     { key: 'collect_remaining_amount', label: 'Payment Collection' },
@@ -73,7 +72,7 @@ const PIPELINE_PHASES = [
         connectorBg: 'bg-amber-300',
         progressFill: 'bg-amber-500',
         countText: 'text-amber-600',
-        workTypes: ['hard_copy_indent_creation', 'submit_indent_to_electrical_department', 'meter_installation'],
+        workTypes: ['submit_indent_to_electrical_department', 'meter_installation'],
     },
     {
         id: 'payment',
