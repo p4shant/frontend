@@ -69,6 +69,8 @@ export default function RegisterCustomerForm({
     const [prefillLoading, setPrefillLoading] = useState(false)
     const [manualGps, setManualGps] = useState(false)
     const [onBehalfOf, setOnBehalfOf] = useState<string>('')  // Employee ID for "on behalf of"
+    const [onBehalfSearch, setOnBehalfSearch] = useState('')  // Search text for employee dropdown
+    const [showOnBehalfDropdown, setShowOnBehalfDropdown] = useState(false)
 
     // Get employees list from localStorage for "on behalf of" dropdown
     const allEmployees = (() => {
@@ -1003,16 +1005,60 @@ export default function RegisterCustomerForm({
                             Create On Behalf Of
                         </h3>
                         <p className="text-xs text-slate-500 mb-3">Optionally create this customer application on behalf of another employee (e.g., a Sales Executive)</p>
-                        <select
-                            value={onBehalfOf}
-                            onChange={e => setOnBehalfOf(e.target.value)}
-                            className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                        >
-                            <option value="">Self ({session?.name || 'Me'})</option>
-                            {(allEmployees || []).filter((emp: any) => emp.id !== Number(session?.employeeId)).map((emp: any) => (
-                                <option key={emp.id} value={emp.id}>{emp.name} — {emp.employee_role} ({emp.district || 'N/A'})</option>
-                            ))}
-                        </select>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="🔍 Search employee by name, role, or district..."
+                                value={onBehalfOf
+                                    ? (allEmployees || []).find((emp: any) => String(emp.id) === onBehalfOf)
+                                        ? `${(allEmployees || []).find((emp: any) => String(emp.id) === onBehalfOf)?.name} — ${(allEmployees || []).find((emp: any) => String(emp.id) === onBehalfOf)?.employee_role}`
+                                        : onBehalfSearch
+                                    : onBehalfSearch
+                                }
+                                onChange={e => { setOnBehalfSearch(e.target.value); setOnBehalfOf(''); setShowOnBehalfDropdown(true); }}
+                                onFocus={() => setShowOnBehalfDropdown(true)}
+                                className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                            />
+                            {onBehalfOf && (
+                                <button type="button" onClick={() => { setOnBehalfOf(''); setOnBehalfSearch(''); }}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 text-xs font-medium">
+                                    ✕ Clear
+                                </button>
+                            )}
+                            {showOnBehalfDropdown && (
+                                <>
+                                    <div className="fixed inset-0 z-40" onClick={() => setShowOnBehalfDropdown(false)} />
+                                    <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                        <div
+                                            className={`px-4 py-2.5 cursor-pointer hover:bg-amber-50 text-sm font-medium ${!onBehalfOf ? 'bg-amber-100 text-amber-800' : 'text-slate-700'}`}
+                                            onClick={() => { setOnBehalfOf(''); setOnBehalfSearch(''); setShowOnBehalfDropdown(false); }}
+                                        >
+                                            ✓ Self ({session?.name || 'Me'})
+                                        </div>
+                                        {(allEmployees || [])
+                                            .filter((emp: any) => emp.id !== Number(session?.employeeId))
+                                            .filter((emp: any) => {
+                                                if (!onBehalfSearch) return true;
+                                                const s = onBehalfSearch.toLowerCase();
+                                                return emp.name?.toLowerCase().includes(s) ||
+                                                    emp.employee_role?.toLowerCase().includes(s) ||
+                                                    emp.district?.toLowerCase().includes(s);
+                                            })
+                                            .sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''))
+                                            .map((emp: any) => (
+                                                <div
+                                                    key={emp.id}
+                                                    className={`px-4 py-2.5 cursor-pointer hover:bg-blue-50 text-sm ${String(emp.id) === onBehalfOf ? 'bg-blue-100 text-blue-800 font-medium' : 'text-slate-700'}`}
+                                                    onClick={() => { setOnBehalfOf(String(emp.id)); setOnBehalfSearch(''); setShowOnBehalfDropdown(false); }}
+                                                >
+                                                    {emp.name} — <span className="text-slate-500">{emp.employee_role}</span> <span className="text-slate-400">({emp.district || 'N/A'})</span>
+                                                </div>
+                                            ))
+                                        }
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </section>
                 )}
 
