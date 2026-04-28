@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, Edit2, X, Upload, Check, FileText, Image, Download } from 'lucide-react';
+import { AlertCircle, Edit2, X, Upload, Check, FileText, Image, Download, RotateCcw } from 'lucide-react';
 import RegisterCustomerForm from '../register/RegisterCustomerForm';
 import { transactionLogsAPI, additionalDocumentsAPI } from '../../services/api';
 
@@ -3419,6 +3419,7 @@ export const PhotoCapture: React.FC<WorkTypeDetailsProps> = ({ task: _task, cust
         onFileChange,
         onRemove,
         onSubmit,
+        onRetake,
         isSingleImage = true,
         imageCount = 1,
     }: {
@@ -3429,9 +3430,12 @@ export const PhotoCapture: React.FC<WorkTypeDetailsProps> = ({ task: _task, cust
         onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
         onRemove?: () => void;
         onSubmit: () => void;
+        onRetake?: () => void;
         isSingleImage?: boolean;
         imageCount?: number;
     }) => {
+        const retakeInputRef = React.useRef<HTMLInputElement>(null);
+
         return (
             <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow">
                 {/* Header */}
@@ -3466,7 +3470,7 @@ export const PhotoCapture: React.FC<WorkTypeDetailsProps> = ({ task: _task, cust
                     </div>
                 )}
 
-                {/* Upload Area */}
+                {/* Upload Area - show when not submitted */}
                 {!isSubmitted && (
                     <label className="cursor-pointer block">
                         <input
@@ -3487,6 +3491,21 @@ export const PhotoCapture: React.FC<WorkTypeDetailsProps> = ({ task: _task, cust
                     </label>
                 )}
 
+                {/* Retake hidden input */}
+                {isSubmitted && onRetake && (
+                    <input
+                        ref={retakeInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple={!isSingleImage}
+                        onChange={(e) => {
+                            onRetake();
+                            onFileChange(e);
+                        }}
+                        className="hidden"
+                    />
+                )}
+
                 {/* Actions */}
                 <div className="flex gap-2">
                     {!isSubmitted && preview && onRemove && (
@@ -3505,6 +3524,15 @@ export const PhotoCapture: React.FC<WorkTypeDetailsProps> = ({ task: _task, cust
                             className="flex-1 px-3 py-2 text-xs bg-blue text-white rounded-lg hover:bg-blue-700 font-semibold transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {isSubmitting ? 'Uploading...' : 'Upload'}
+                        </button>
+                    )}
+                    {isSubmitted && onRetake && (
+                        <button
+                            onClick={() => retakeInputRef.current?.click()}
+                            disabled={isSubmitting}
+                            className="flex-1 px-3 py-2.5 text-xs bg-amber-100 text-amber-700 border border-amber-300 rounded-lg hover:bg-amber-200 font-semibold transition disabled:opacity-50 flex items-center justify-center gap-1.5"
+                        >
+                            <RotateCcw size={14} /> Retake Photo
                         </button>
                     )}
                 </div>
@@ -3562,6 +3590,7 @@ export const PhotoCapture: React.FC<WorkTypeDetailsProps> = ({ task: _task, cust
                     onFileChange={handleSolarPanelChange}
                     onRemove={() => solarPanelImages.length > 0 && removeSolarPanelImage(0)}
                     onSubmit={submitSolarPanelImages}
+                    onRetake={() => setSolarPanelImages([])}
                     isSingleImage={false}
                     imageCount={solarPanelImages.length}
                 />
@@ -3575,6 +3604,7 @@ export const PhotoCapture: React.FC<WorkTypeDetailsProps> = ({ task: _task, cust
                     onFileChange={handleApplicantPanelChange}
                     onRemove={() => removeSingleImage(setApplicantPanelImage, setApplicantPanelPreview, setApplicantPanelIsSubmitted)}
                     onSubmit={submitApplicantPanelImage}
+                    onRetake={() => removeSingleImage(setApplicantPanelImage, setApplicantPanelPreview, setApplicantPanelIsSubmitted)}
                     isSingleImage={true}
                 />
 
@@ -3587,6 +3617,7 @@ export const PhotoCapture: React.FC<WorkTypeDetailsProps> = ({ task: _task, cust
                     onFileChange={handleInvertorChange}
                     onRemove={() => removeSingleImage(setInvertorImage, setInvertorPreview, setInvertorIsSubmitted)}
                     onSubmit={submitInvertorImage}
+                    onRetake={() => removeSingleImage(setInvertorImage, setInvertorPreview, setInvertorIsSubmitted)}
                     isSingleImage={true}
                 />
 
@@ -3599,6 +3630,7 @@ export const PhotoCapture: React.FC<WorkTypeDetailsProps> = ({ task: _task, cust
                     onFileChange={handleApplicantInvertorChange}
                     onRemove={() => removeSingleImage(setApplicantInvertorImage, setApplicantInvertorPreview, setApplicantInvertorIsSubmitted)}
                     onSubmit={submitApplicantInvertorImage}
+                    onRetake={() => removeSingleImage(setApplicantInvertorImage, setApplicantInvertorPreview, setApplicantInvertorIsSubmitted)}
                     isSingleImage={true}
                 />
             </div>
