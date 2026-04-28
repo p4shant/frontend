@@ -240,7 +240,7 @@ function App() {
       <Route
         path="/travel-allowance"
         element={
-          <ProtectedRoute requiredRoles={['Master Admin', 'SFDC Admin']}>
+          <ProtectedRoute requiredRoles={['Master Admin', 'SFDC Admin', 'Help Desk']}>
             <AppLayout>
               <TravelAllowanceReview />
             </AppLayout>
