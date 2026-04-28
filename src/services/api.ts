@@ -1199,6 +1199,33 @@ export const statsAPI = {
         if (!res.ok) throw new Error('Failed');
         return await res.json();
     },
+    async getPlantInstallationsDone(token: string, filters?: { month?: number; year?: number; district?: string }) {
+        const params = new URLSearchParams();
+        if (filters?.month) params.append('month', String(filters.month));
+        if (filters?.year) params.append('year', String(filters.year));
+        if (filters?.district) params.append('district', filters.district);
+        const res = await fetch(`${API_BASE}/stats/plant-installations-done?${params}`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } });
+        if (!res.ok) throw new Error('Failed');
+        return await res.json();
+    },
+    async getRegistrationsByDistrict(token: string, filters?: { month?: number; year?: number }) {
+        const params = new URLSearchParams();
+        if (filters?.month) params.append('month', String(filters.month));
+        if (filters?.year) params.append('year', String(filters.year));
+        const res = await fetch(`${API_BASE}/stats/registrations-by-district?${params}`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } });
+        if (!res.ok) throw new Error('Failed');
+        return await res.json();
+    },
+    async getIndentSubmissions(token: string, filters?: { month?: number; year?: number; district?: string; status?: string }) {
+        const params = new URLSearchParams();
+        if (filters?.month) params.append('month', String(filters.month));
+        if (filters?.year) params.append('year', String(filters.year));
+        if (filters?.district) params.append('district', filters.district);
+        if (filters?.status) params.append('status', filters.status);
+        const res = await fetch(`${API_BASE}/stats/indent-submissions?${params}`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } });
+        if (!res.ok) throw new Error('Failed');
+        return await res.json();
+    },
 };
 
 // ============================================================================

@@ -201,9 +201,9 @@ function CameraModal({
                                 </button>
                                 <button
                                     onClick={handleSubmit}
-                                    className="flex-2 flex-1 flex items-center justify-center gap-1 bg-blue-600 text-white font-bold py-2.5 rounded-lg text-sm"
+                                    className="flex-1 flex items-center justify-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg text-sm shadow-md shadow-emerald-200 transition-colors"
                                 >
-                                    Continue <ChevronRight size={14} />
+                                    Submit <ChevronRight size={14} />
                                 </button>
                             </div>
                         </div>
