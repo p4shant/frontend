@@ -3820,24 +3820,36 @@ export const SerialNumberUpload: React.FC<WorkTypeDetailsProps> = ({ task: _task
 
                 {solarPanelSummaryImageUrl && (
                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
-                        <div className="relative group overflow-hidden rounded-lg bg-gray-100 h-40">
-                            <img
-                                src={solarPanelSummaryImageUrl}
-                                alt="Solar Panel Summary"
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform cursor-pointer"
-                                onClick={() => handlePreview(solarPanelSummaryImageUrl, 'Solar Panel Summary Image')}
-                            />
-                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
-                                <span className="text-white text-xs font-semibold">Click to Preview</span>
+                        {solarPanelSummaryImageUrl.match(/\.xlsx?$/i) ? (
+                            <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg p-4">
+                                <span className="text-4xl">📊</span>
+                                <div className="flex-1">
+                                    <p className="text-sm font-bold text-green-800">Excel File Uploaded</p>
+                                    <p className="text-xs text-gray-600">{getFileNameFromUrl(solarPanelSummaryImageUrl)}</p>
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="relative group overflow-hidden rounded-lg bg-gray-100 h-40">
+                                <img
+                                    src={solarPanelSummaryImageUrl}
+                                    alt="Solar Panel Summary"
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform cursor-pointer"
+                                    onClick={() => handlePreview(solarPanelSummaryImageUrl, 'Solar Panel Summary Image')}
+                                />
+                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <span className="text-white text-xs font-semibold">Click to Preview</span>
+                                </div>
+                            </div>
+                        )}
                         <div className="flex gap-2">
-                            <button
-                                onClick={() => handlePreview(solarPanelSummaryImageUrl, 'Solar Panel Summary Image')}
-                                className="flex-1 px-3 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-semibold"
-                            >
-                                Preview
-                            </button>
+                            {!solarPanelSummaryImageUrl.match(/\.xlsx?$/i) && (
+                                <button
+                                    onClick={() => handlePreview(solarPanelSummaryImageUrl, 'Solar Panel Summary Image')}
+                                    className="flex-1 px-3 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-semibold"
+                                >
+                                    Preview
+                                </button>
+                            )}
                             <button
                                 onClick={() => handleDownload(solarPanelSummaryImageUrl, `solar_panel_summary_${getFileNameFromUrl(solarPanelSummaryImageUrl)}`)}
                                 className="flex-1 px-3 py-2 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-semibold"
@@ -3849,10 +3861,10 @@ export const SerialNumberUpload: React.FC<WorkTypeDetailsProps> = ({ task: _task
                 )}
 
                 <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-3 space-y-3">
-                    <label className="block text-xs font-semibold text-gray-700 uppercase">Upload Solar Panel Summary Image *</label>
+                    <label className="block text-xs font-semibold text-gray-700 uppercase">Upload Solar Panel Summary Image / Excel *</label>
                     <input
                         type="file"
-                        accept="image/*"
+                        accept="image/*,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                         onChange={handleSummaryImageChange}
                         className="w-full border border-cyan-300 rounded-lg px-3 py-2 text-sm"
                     />
@@ -3864,9 +3876,13 @@ export const SerialNumberUpload: React.FC<WorkTypeDetailsProps> = ({ task: _task
                                     <img src={summaryImagePreview} alt="Solar panel summary preview" className="h-20 w-20 object-cover" />
                                 </div>
                             ) : (
-                                <p className="text-xs text-muted flex items-center gap-1">
-                                    <span>📄</span> {summaryImageFile.name}
-                                </p>
+                                <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                                    <span className="text-2xl">{summaryImageFile.name.match(/\.xlsx?$/i) ? '📊' : '📄'}</span>
+                                    <div>
+                                        <p className="text-sm font-semibold text-gray-700">{summaryImageFile.name}</p>
+                                        <p className="text-xs text-gray-500">{(summaryImageFile.size / 1024).toFixed(1)} KB — Ready to upload</p>
+                                    </div>
+                                </div>
                             )}
                         </div>
                     )}
@@ -3883,7 +3899,7 @@ export const SerialNumberUpload: React.FC<WorkTypeDetailsProps> = ({ task: _task
                         className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-cyan-600 text-white rounded-lg font-semibold hover:bg-cyan-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <Upload size={16} />
-                        {summaryIsSubmitting ? 'Uploading...' : 'Upload Summary Image'}
+                        {summaryIsSubmitting ? 'Uploading...' : 'Upload Summary Image / Excel'}
                     </button>
 
                     {!solarPanelSummaryImageUrl && (
