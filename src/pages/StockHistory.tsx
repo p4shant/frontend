@@ -52,7 +52,7 @@ interface FlatRow {
     id: string;
     date: string;
     time: string;           // HH:MM for inward/outward, '—' for balance
-    type: 'balance' | 'inward' | 'outward' | 'transfer';
+    type: 'balance' | 'inward' | 'outward' | 'transfer' | 'transfer_out' | 'transfer_in';
     typeLabel: string;
     district: string;
     brand: string;
@@ -69,30 +69,40 @@ const ROW_BG: Record<string, string> = {
     inward: 'bg-green-100',
     outward: 'bg-purple-50',
     transfer: 'bg-blue-100',
+    transfer_out: 'bg-orange-100',
+    transfer_in: 'bg-cyan-100',
 };
 const ROW_HOVER: Record<string, string> = {
     balance: 'hover:bg-red-200/70',
     inward: 'hover:bg-green-200/70',
     outward: 'hover:bg-purple-100/70',
     transfer: 'hover:bg-blue-200/70',
+    transfer_out: 'hover:bg-orange-200/70',
+    transfer_in: 'hover:bg-cyan-200/70',
 };
 const ROW_STICKY_BG: Record<string, string> = {
     balance: 'bg-red-100',
     inward: 'bg-green-100',
     outward: 'bg-purple-50',
     transfer: 'bg-blue-100',
+    transfer_out: 'bg-orange-100',
+    transfer_in: 'bg-cyan-100',
 };
 const TYPE_BADGE: Record<string, string> = {
     balance: 'bg-red-200 text-red-900',
     inward: 'bg-green-200 text-green-900',
     outward: 'bg-purple-200 text-purple-900',
     transfer: 'bg-blue-200 text-blue-900',
+    transfer_out: 'bg-orange-200 text-orange-900',
+    transfer_in: 'bg-cyan-200 text-cyan-900',
 };
 const ROW_BORDER: Record<string, string> = {
     balance: 'border-l-4 border-l-red-500',
     inward: 'border-l-4 border-l-green-500',
     outward: 'border-l-4 border-l-purple-500',
     transfer: 'border-l-4 border-l-blue-500',
+    transfer_out: 'border-l-4 border-l-orange-500',
+    transfer_in: 'border-l-4 border-l-cyan-500',
 };
 
 /** Extract HH:MM from a created_at string */
@@ -220,14 +230,13 @@ export default function StockHistory() {
             }
 
             // 3. Outward rows
-            if (!filterType || filterType === 'outward') {
+            if (!filterType || filterType === 'outward' || filterType === 'transfer') {
                 (outwardResult?.data || []).forEach((rec: any) => {
-                    let typeLabel = 'Outward';
-                    if (rec.dispatch_type === 'dealer') typeLabel = `Out → Dealer (${rec.dealer_name || '—'})`;
-                    else if (rec.dispatch_type === 'customer') typeLabel = `Out → Customer (${rec.customer_name || '—'})`;
-                    else if (rec.dispatch_type === 'store_transfer') typeLabel = `Transfer → ${rec.to_district || '—'}`;
-
                     const isTransfer = rec.dispatch_type === 'store_transfer';
+
+                    // If filter is 'outward' only, skip transfers; if 'transfer' only, skip non-transfers
+                    if (filterType === 'outward' && isTransfer) return;
+                    if (filterType === 'transfer' && !isTransfer) return;
 
                     const values: Record<string, number> = {};
                     (rec.items || []).forEach((item: any) => {
@@ -239,31 +248,73 @@ export default function StockHistory() {
                             values[`simple:${item.component}`] = (values[`simple:${item.component}`] || 0) + item.actual_quantity;
                         }
                     });
-                    allRows.push({
-                        id: `out-${rec.id}`,
-                        date: rec.created_at?.slice(0, 10) || '',
-                        time: extractTime(rec.created_at),
-                        type: isTransfer ? 'transfer' : 'outward',
-                        typeLabel,
-                        district: rec.from_district,
-                        brand: rec.brand,
-                        dcr_type: rec.dcr_type,
-                        values,
-                        notes: rec.notes,
-                        createdByName: rec.created_by_name || '—',
-                    });
+
+                    if (isTransfer) {
+                        // Transfer OUT row — source district
+                        allRows.push({
+                            id: `tout-${rec.id}`,
+                            date: rec.created_at?.slice(0, 10) || '',
+                            time: extractTime(rec.created_at),
+                            type: 'transfer_out',
+                            typeLabel: `Transfer Out → ${rec.to_district || '—'}`,
+                            district: rec.from_district,
+                            brand: rec.brand,
+                            dcr_type: rec.dcr_type,
+                            values: { ...values },
+                            notes: rec.notes,
+                            createdByName: rec.created_by_name || '—',
+                        });
+
+                        // Transfer IN row — destination district
+                        allRows.push({
+                            id: `tin-${rec.id}`,
+                            date: rec.created_at?.slice(0, 10) || '',
+                            time: extractTime(rec.created_at),
+                            type: 'transfer_in',
+                            typeLabel: `Transfer In ← ${rec.from_district || '—'}`,
+                            district: rec.to_district,
+                            brand: rec.brand,
+                            dcr_type: rec.dcr_type,
+                            values: { ...values },
+                            notes: rec.notes,
+                            createdByName: rec.created_by_name || '—',
+                        });
+                    } else {
+                        let typeLabel = 'Outward';
+                        if (rec.dispatch_type === 'dealer') typeLabel = `Out → Dealer (${rec.dealer_name || '—'})`;
+                        else if (rec.dispatch_type === 'customer') typeLabel = `Out → Customer (${rec.customer_name || '—'})`;
+
+                        allRows.push({
+                            id: `out-${rec.id}`,
+                            date: rec.created_at?.slice(0, 10) || '',
+                            time: extractTime(rec.created_at),
+                            type: 'outward',
+                            typeLabel,
+                            district: rec.from_district,
+                            brand: rec.brand,
+                            dcr_type: rec.dcr_type,
+                            values,
+                            notes: rec.notes,
+                            createdByName: rec.created_by_name || '—',
+                        });
+                    }
                 });
             }
 
-            // Sort: newest date first, then inward → outward → balance within same date
+            // Sort: newest date first, then inward → outward → transfers → balance within same date
             allRows.sort((a, b) => {
                 if (a.date !== b.date) return b.date.localeCompare(a.date);
-                const typeOrder: Record<string, number> = { inward: 0, outward: 1, transfer: 2, balance: 3 };
+                const typeOrder: Record<string, number> = { inward: 0, outward: 1, transfer_out: 2, transfer_in: 3, transfer: 4, balance: 5 };
                 return (typeOrder[a.type] ?? 9) - (typeOrder[b.type] ?? 9);
             });
 
+            // Filter transfer_in rows by district if filter is active
+            const filteredRows = filterDistrict
+                ? allRows.filter(row => row.district === filterDistrict || row.district === undefined)
+                : allRows;
+
             // Compute calculated columns
-            allRows.forEach(row => {
+            filteredRows.forEach(row => {
                 // Panel total — sum of all panel wattage quantities in this row
                 let panelTotal = 0;
                 PANEL_WATTAGES.forEach(w => { panelTotal += row.values[`panel:${w}`] || 0; });
@@ -284,7 +335,7 @@ export default function StockHistory() {
                 }
             });
 
-            setRows(allRows);
+            setRows(filteredRows);
         } catch (err) {
             console.error('Failed to fetch history:', err);
         } finally {
@@ -391,6 +442,7 @@ export default function StockHistory() {
                         <option value="balance">Balance</option>
                         <option value="inward">Inward</option>
                         <option value="outward">Outward</option>
+                        <option value="transfer">Transfer</option>
                     </select>
                     <input type="date" value={filterFromDate} onChange={e => setFilterFromDate(e.target.value)}
                         className="px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="From" />
@@ -471,7 +523,8 @@ export default function StockHistory() {
                                                         {val || '·'}
                                                     </td>
                                                 );
-                                            })}
+                                            })
+                                            }
                                         </tr>
                                     );
                                 })}
@@ -479,27 +532,30 @@ export default function StockHistory() {
                         </table>
                     </div>
                 </div>
-            )}
+            )
+            }
 
             {/* Pagination */}
-            {rows.length > 0 && (
-                <div className="flex items-center justify-between">
-                    <p className="text-xs sm:text-sm text-gray-500">
-                        Showing {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, rows.length)} of {rows.length} rows
-                    </p>
-                    <div className="flex gap-2">
-                        <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}
-                            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50 flex items-center gap-1">
-                            <ChevronLeft size={14} /> Prev
-                        </button>
-                        <span className="px-3 py-1.5 text-sm text-gray-600">{page}/{totalPages}</span>
-                        <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
-                            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50 flex items-center gap-1">
-                            Next <ChevronRight size={14} />
-                        </button>
+            {
+                rows.length > 0 && (
+                    <div className="flex items-center justify-between">
+                        <p className="text-xs sm:text-sm text-gray-500">
+                            Showing {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, rows.length)} of {rows.length} rows
+                        </p>
+                        <div className="flex gap-2">
+                            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}
+                                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50 flex items-center gap-1">
+                                <ChevronLeft size={14} /> Prev
+                            </button>
+                            <span className="px-3 py-1.5 text-sm text-gray-600">{page}/{totalPages}</span>
+                            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
+                                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50 flex items-center gap-1">
+                                Next <ChevronRight size={14} />
+                            </button>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Legend */}
             <div className="flex flex-wrap gap-4 text-xs text-gray-600 bg-white rounded-xl border border-gray-200 p-3 shadow-sm">
@@ -512,8 +568,12 @@ export default function StockHistory() {
                     <span className="font-semibold">Outward</span>
                 </span>
                 <span className="flex items-center gap-1.5">
-                    <span className="w-4 h-3 rounded border-l-4 border-l-blue-500 bg-blue-100 border border-blue-200" />
-                    <span className="font-semibold">Transfer</span>
+                    <span className="w-4 h-3 rounded border-l-4 border-l-orange-500 bg-orange-100 border border-orange-200" />
+                    <span className="font-semibold">Transfer Out</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                    <span className="w-4 h-3 rounded border-l-4 border-l-cyan-500 bg-cyan-100 border border-cyan-200" />
+                    <span className="font-semibold">Transfer In</span>
                 </span>
                 <span className="flex items-center gap-1.5">
                     <span className="w-4 h-3 rounded border-l-4 border-l-red-500 bg-red-50 border border-red-200" />
@@ -521,6 +581,6 @@ export default function StockHistory() {
                 </span>
                 <span className="ml-auto text-purple-600 font-semibold">P/Inv = Expected panels based on inverter BOM</span>
             </div>
-        </div>
+        </div >
     );
 }

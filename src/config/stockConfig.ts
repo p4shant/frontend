@@ -56,7 +56,7 @@ export type EntryMode = 'system' | 'component';
 // ---------------------------------------------------------------------------
 export const COMPONENTS_WITH_SUBTYPES: StockComponent[] = ['panel', 'inverter'];
 
-export const PANEL_WATTAGES = ['570', '575', '580', '585', '590'] as const;
+export const PANEL_WATTAGES = ['570', '575', '580', '585', '590', '595'] as const;
 export type PanelWattage = (typeof PANEL_WATTAGES)[number];
 
 export const INVERTER_TYPES = ['2KW', '3KW', '4KW', '5(I)KW', '5(III)KW', '6KW', '8KW', '10KW', 'H-3KW', 'H-5KW', 'H-6KW'] as const;
