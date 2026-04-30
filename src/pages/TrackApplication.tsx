@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { X, Search, Filter, ChevronDown, ChevronUp, CheckCircle2, Loader2, Clock, Circle, Minus, MapPin, Phone, User } from 'lucide-react'
+import { X, Search, Filter, ChevronDown, ChevronUp, CheckCircle2, Loader2, Clock, Circle, Minus, MapPin, Phone, User, Download } from 'lucide-react'
 
 // All possible work types in order (matching backend Tasks.js)
 const WORK_TYPES = [
@@ -162,6 +162,7 @@ function TrackApplication() {
     const [showCustomerModal, setShowCustomerModal] = useState(false)
     const [collapsedPhases, setCollapsedPhases] = useState<Set<string>>(new Set())
     const [columnFilters, setColumnFilters] = useState<Record<string, string>>({})
+    const [columnFilterOrder, setColumnFilterOrder] = useState<string[]>([])
 
     useEffect(() => {
         if (token) {
@@ -242,8 +243,8 @@ function TrackApplication() {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     }).filter(Boolean) as string[])).sort().reverse()
 
-    // Filter customers
-    const filteredCustomers = customers.filter(customer => {
+    // Base-filtered customers (month, district, search, createdBy — NO column filters) — used for stats cards
+    const baseFilteredCustomers = customers.filter(customer => {
         const matchesSearch =
             customer.applicant_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             customer.mobile_number?.includes(searchTerm) ||
@@ -254,21 +255,22 @@ function TrackApplication() {
         const matchesCreatedBy = createdByFilter === 'all' || customer.created_by_name === createdByFilter
         const matchesMonth = monthFilter === 'all' || (customer.created_at && customer.created_at.startsWith(monthFilter))
 
-        // Per-column task status filters
-        const matchesColumnFilters = Object.entries(columnFilters).every(([workType, filterVal]) => {
-            if (!filterVal || filterVal === 'all') return true
-            const status = getTaskStatus(customer, workType)
-            return status === filterVal
-        })
-
-        if (filterStatus === 'all') return matchesSearch && matchesDistrict && matchesCreatedBy && matchesMonth && matchesColumnFilters
+        if (filterStatus === 'all') return matchesSearch && matchesDistrict && matchesCreatedBy && matchesMonth
 
         const progress = calculateProgress(customer)
-        if (filterStatus === 'completed' && progress === 100) return matchesSearch && matchesDistrict && matchesCreatedBy && matchesMonth && matchesColumnFilters
-        if (filterStatus === 'in-progress' && progress > 0 && progress < 100) return matchesSearch && matchesDistrict && matchesCreatedBy && matchesMonth && matchesColumnFilters
-        if (filterStatus === 'pending' && progress === 0) return matchesSearch && matchesDistrict && matchesCreatedBy && matchesMonth && matchesColumnFilters
+        if (filterStatus === 'completed' && progress === 100) return matchesSearch && matchesDistrict && matchesCreatedBy && matchesMonth
+        if (filterStatus === 'in-progress' && progress > 0 && progress < 100) return matchesSearch && matchesDistrict && matchesCreatedBy && matchesMonth
+        if (filterStatus === 'pending' && progress === 0) return matchesSearch && matchesDistrict && matchesCreatedBy && matchesMonth
 
         return false
+    })
+
+    // Table display customers (column filters applied on top of base)
+    const filteredCustomers = baseFilteredCustomers.filter(customer => {
+        return Object.entries(columnFilters).every(([workType, filterVal]) => {
+            if (!filterVal || filterVal === 'all') return true
+            return getTaskStatus(customer, workType) === filterVal
+        })
     })
 
     // Status badge component
@@ -359,35 +361,139 @@ function TrackApplication() {
         )
     }
 
+    const exportToCSV = () => {
+        const statusLabel = (s: string) => s === 'completed' ? 'Completed' : s === 'inprogress' ? 'In Progress' : s === 'pending' ? 'Pending' : s === 'not_started' ? 'Not Started' : s === 'not_applicable' ? 'N/A' : s
+
+        const headers = ['Customer Name', 'Mobile', 'District', 'Month', 'Progress %', ...WORK_TYPES.map(wt => wt.label)]
+        const csvRows = [headers.join(',')]
+
+        filteredCustomers.forEach(c => {
+            const progress = calculateProgress(c)
+            const month = c.created_at ? new Date(c.created_at).toLocaleString('en-US', { month: 'short', year: 'numeric' }) : ''
+            const row = [
+                `"${(c.applicant_name || '').replace(/"/g, '""')}"`,
+                c.mobile_number || '',
+                c.district || '',
+                month,
+                `${progress}%`,
+                ...WORK_TYPES.map(wt => statusLabel(getTaskStatus(c, wt.key))),
+            ]
+            csvRows.push(row.join(','))
+        })
+
+        const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `track-application-${new Date().toISOString().slice(0, 10)}.csv`
+        a.click()
+        URL.revokeObjectURL(url)
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-50 p-2 sm:p-4 md:p-6">
             <div className="max-w-[1600px] mx-auto">
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
-                    <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 border-l-4 border-blue-500">
-                        <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Total</p>
-                        <p className="text-xl sm:text-2xl font-bold text-gray-800 mt-1">{customers.length}</p>
-                    </div>
-                    <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 border-l-4 border-green-500">
-                        <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Completed</p>
-                        <p className="text-xl sm:text-2xl font-bold text-green-600 mt-1">
-                            {customers.filter(c => calculateProgress(c) === 100).length}
-                        </p>
-                    </div>
-                    <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 border-l-4 border-blue-500">
-                        <p className="text-[10px] sm:text-xs text-gray-500 font-medium">In Progress</p>
-                        <p className="text-xl sm:text-2xl font-bold text-blue-600 mt-1">
-                            {customers.filter(c => { const p = calculateProgress(c); return p > 0 && p < 100; }).length}
-                        </p>
-                    </div>
-                    <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 border-l-4 border-red-500">
-                        <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Pending</p>
-                        <p className="text-xl sm:text-2xl font-bold text-red-600 mt-1">
-                            {customers.filter(c => calculateProgress(c) === 0).length}
-                        </p>
-                    </div>
+                {/* Export Button */}
+                <div className="flex justify-end mb-3">
+                    <button
+                        onClick={exportToCSV}
+                        disabled={filteredCustomers.length === 0}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm font-medium shadow-md"
+                    >
+                        <Download size={16} />
+                        Export CSV ({filteredCustomers.length})
+                    </button>
                 </div>
+
+                {/* Stats Cards — react to filters */}
+                {(() => {
+                    const activeColumnKeys = columnFilterOrder.filter(k => columnFilters[k] && columnFilters[k] !== 'all')
+                    const hasColumnFilter = activeColumnKeys.length > 0
+
+                    let completed = 0, inProgress = 0, pending = 0, notStarted = 0, na = 0
+                    let statsLabel = ''
+
+                    if (hasColumnFilter) {
+                        // Last filter = the one we show stats for
+                        const statsColumn = activeColumnKeys[activeColumnKeys.length - 1]
+                        const previousFilters = activeColumnKeys.slice(0, -1)
+
+                        // Narrow customers by all previous column filters
+                        const customerPool = baseFilteredCustomers.filter(c =>
+                            previousFilters.every(wt => getTaskStatus(c, wt) === columnFilters[wt])
+                        )
+
+                        // Count ALL statuses of the stats column across the narrowed pool
+                        customerPool.forEach(c => {
+                            const s = getTaskStatus(c, statsColumn)
+                            if (s === 'completed') completed++
+                            else if (s === 'inprogress') inProgress++
+                            else if (s === 'pending') pending++
+                            else if (s === 'not_started') notStarted++
+                            else if (s === 'not_applicable') na++
+                        })
+
+                        const statsColumnLabel = WORK_TYPES.find(w => w.key === statsColumn)?.label || statsColumn
+                        const prevLabels = previousFilters.map(k => {
+                            const label = WORK_TYPES.find(w => w.key === k)?.label || k
+                            const val = columnFilters[k]
+                            const valLabel = val === 'completed' ? 'Done' : val === 'inprogress' ? 'Active' : val === 'pending' ? 'Pending' : val === 'not_started' ? 'Not Started' : 'N/A'
+                            return `${label}=${valLabel}`
+                        }).join(', ')
+
+                        statsLabel = prevLabels
+                            ? `📊 ${statsColumnLabel} stats (where ${prevLabels}) — ${customerPool.length} customers`
+                            : `📊 ${statsColumnLabel} stats — ${baseFilteredCustomers.length} customers`
+                    } else {
+                        // No column filter: count all tasks across all base-filtered customers
+                        baseFilteredCustomers.forEach(c => {
+                            WORK_TYPES.forEach(wt => {
+                                const s = getTaskStatus(c, wt.key)
+                                if (s === 'completed') completed++
+                                else if (s === 'inprogress') inProgress++
+                                else if (s === 'pending') pending++
+                                else if (s === 'not_started') notStarted++
+                                else if (s === 'not_applicable') na++
+                            })
+                        })
+                    }
+                    const total = completed + inProgress + pending + notStarted + na
+
+                    return (
+                        <div>
+                            {statsLabel && (
+                                <p className="text-xs text-blue-600 font-semibold mb-2">{statsLabel}</p>
+                            )}
+                            <div className="grid grid-cols-3 md:grid-cols-6 gap-2 sm:gap-3 mb-4 sm:mb-6">
+                                <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 border-l-4 border-slate-500">
+                                    <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Total</p>
+                                    <p className="text-xl sm:text-2xl font-bold text-gray-800 mt-1">{total}</p>
+                                </div>
+                                <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 border-l-4 border-green-500">
+                                    <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Completed</p>
+                                    <p className="text-xl sm:text-2xl font-bold text-green-600 mt-1">{completed}</p>
+                                </div>
+                                <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 border-l-4 border-yellow-500">
+                                    <p className="text-[10px] sm:text-xs text-gray-500 font-medium">In Progress</p>
+                                    <p className="text-xl sm:text-2xl font-bold text-yellow-600 mt-1">{inProgress}</p>
+                                </div>
+                                <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 border-l-4 border-orange-500">
+                                    <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Pending</p>
+                                    <p className="text-xl sm:text-2xl font-bold text-orange-600 mt-1">{pending}</p>
+                                </div>
+                                <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 border-l-4 border-blue-500">
+                                    <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Not Started</p>
+                                    <p className="text-xl sm:text-2xl font-bold text-blue-600 mt-1">{notStarted}</p>
+                                </div>
+                                <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 border-l-4 border-gray-400">
+                                    <p className="text-[10px] sm:text-xs text-gray-500 font-medium">N/A</p>
+                                    <p className="text-xl sm:text-2xl font-bold text-gray-500 mt-1">{na}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                })()}
 
                 {/* Search and Filter */}
                 <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 mb-4 sm:mb-6">
@@ -512,7 +618,12 @@ function TrackApplication() {
                                                         value={columnFilters[wt.key] || 'all'}
                                                         onChange={(e) => {
                                                             e.stopPropagation()
-                                                            setColumnFilters(prev => ({ ...prev, [wt.key]: e.target.value }))
+                                                            const val = e.target.value
+                                                            setColumnFilters(prev => ({ ...prev, [wt.key]: val }))
+                                                            setColumnFilterOrder(prev => {
+                                                                const without = prev.filter(k => k !== wt.key)
+                                                                return val && val !== 'all' ? [...without, wt.key] : without
+                                                            })
                                                         }}
                                                         onClick={(e) => e.stopPropagation()}
                                                         className={`w-full max-w-[90px] rounded border text-[10px] px-1 py-0.5 font-normal ${columnFilters[wt.key] && columnFilters[wt.key] !== 'all'
