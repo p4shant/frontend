@@ -157,9 +157,11 @@ function TrackApplication() {
     const [filterStatus, setFilterStatus] = useState('all')
     const [districtFilter, setDistrictFilter] = useState('all')
     const [createdByFilter, setCreatedByFilter] = useState('all')
+    const [monthFilter, setMonthFilter] = useState('all')
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
     const [showCustomerModal, setShowCustomerModal] = useState(false)
     const [collapsedPhases, setCollapsedPhases] = useState<Set<string>>(new Set())
+    const [columnFilters, setColumnFilters] = useState<Record<string, string>>({})
 
     useEffect(() => {
         if (token) {
@@ -234,6 +236,11 @@ function TrackApplication() {
 
     const uniqueDistricts = Array.from(new Set(customers.map(c => c.district).filter(Boolean))).sort()
     const uniqueCreatedBy = Array.from(new Set(customers.map(c => c.created_by_name).filter(Boolean))).sort()
+    const uniqueMonths = Array.from(new Set(customers.map(c => {
+        if (!c.created_at) return null
+        const d = new Date(c.created_at)
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    }).filter(Boolean) as string[])).sort().reverse()
 
     // Filter customers
     const filteredCustomers = customers.filter(customer => {
@@ -245,13 +252,21 @@ function TrackApplication() {
 
         const matchesDistrict = districtFilter === 'all' || customer.district === districtFilter
         const matchesCreatedBy = createdByFilter === 'all' || customer.created_by_name === createdByFilter
+        const matchesMonth = monthFilter === 'all' || (customer.created_at && customer.created_at.startsWith(monthFilter))
 
-        if (filterStatus === 'all') return matchesSearch && matchesDistrict && matchesCreatedBy
+        // Per-column task status filters
+        const matchesColumnFilters = Object.entries(columnFilters).every(([workType, filterVal]) => {
+            if (!filterVal || filterVal === 'all') return true
+            const status = getTaskStatus(customer, workType)
+            return status === filterVal
+        })
+
+        if (filterStatus === 'all') return matchesSearch && matchesDistrict && matchesCreatedBy && matchesMonth && matchesColumnFilters
 
         const progress = calculateProgress(customer)
-        if (filterStatus === 'completed' && progress === 100) return matchesSearch && matchesDistrict && matchesCreatedBy
-        if (filterStatus === 'in-progress' && progress > 0 && progress < 100) return matchesSearch && matchesDistrict && matchesCreatedBy
-        if (filterStatus === 'pending' && progress === 0) return matchesSearch && matchesDistrict && matchesCreatedBy
+        if (filterStatus === 'completed' && progress === 100) return matchesSearch && matchesDistrict && matchesCreatedBy && matchesMonth && matchesColumnFilters
+        if (filterStatus === 'in-progress' && progress > 0 && progress < 100) return matchesSearch && matchesDistrict && matchesCreatedBy && matchesMonth && matchesColumnFilters
+        if (filterStatus === 'pending' && progress === 0) return matchesSearch && matchesDistrict && matchesCreatedBy && matchesMonth && matchesColumnFilters
 
         return false
     })
@@ -466,6 +481,23 @@ function TrackApplication() {
                                                 </select>
                                             </div>
                                         </th>
+                                        <th className="px-3 sm:px-4 py-4 text-left font-bold border-l border-gray-300" style={{ backgroundColor: '#FFFDE1', color: '#233D4D' }}>
+                                            <div className="flex flex-col gap-1">
+                                                <span>Month</span>
+                                                <select
+                                                    value={monthFilter}
+                                                    onChange={(e) => setMonthFilter(e.target.value)}
+                                                    className="w-full max-w-[140px] rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] text-gray-700"
+                                                >
+                                                    <option value="all">All</option>
+                                                    {uniqueMonths.map(m => {
+                                                        const [y, mo] = m.split('-')
+                                                        const label = new Date(Number(y), Number(mo) - 1).toLocaleString('en-US', { month: 'short', year: 'numeric' })
+                                                        return <option key={m} value={m}>{label}</option>
+                                                    })}
+                                                </select>
+                                            </div>
+                                        </th>
                                         <th className="px-3 sm:px-4 py-4 text-center font-bold border-l border-gray-300" style={{ backgroundColor: '#F5E7C6', color: '#0F2854' }}>Progress</th>
                                         {WORK_TYPES.map((wt, idx) => (
                                             <th key={wt.key} className="px-2 sm:px-3 py-4 text-center font-bold whitespace-nowrap border-l border-gray-300"
@@ -474,7 +506,28 @@ function TrackApplication() {
                                                     color: idx % 4 === 0 ? '#30364F' : idx % 4 === 1 ? '#0C2C55' : idx % 4 === 2 ? '#233D4D' : '#0F2854'
                                                 }}
                                                 title={wt.label}>
-                                                {wt.label}
+                                                <div className="flex flex-col items-center gap-1">
+                                                    <span>{wt.label}</span>
+                                                    <select
+                                                        value={columnFilters[wt.key] || 'all'}
+                                                        onChange={(e) => {
+                                                            e.stopPropagation()
+                                                            setColumnFilters(prev => ({ ...prev, [wt.key]: e.target.value }))
+                                                        }}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className={`w-full max-w-[90px] rounded border text-[10px] px-1 py-0.5 font-normal ${columnFilters[wt.key] && columnFilters[wt.key] !== 'all'
+                                                            ? 'bg-blue-100 border-blue-400 text-blue-800'
+                                                            : 'bg-white border-gray-300 text-gray-600'
+                                                            }`}
+                                                    >
+                                                        <option value="all">All</option>
+                                                        <option value="completed">✓ Done</option>
+                                                        <option value="inprogress">● Active</option>
+                                                        <option value="pending">⏸ Pending</option>
+                                                        <option value="not_started">○ Not Started</option>
+                                                        <option value="not_applicable">N/A</option>
+                                                    </select>
+                                                </div>
                                             </th>
                                         ))}
                                     </tr>
@@ -499,6 +552,9 @@ function TrackApplication() {
                                                 </td>
                                                 <td className="px-3 sm:px-4 py-4 text-gray-800 whitespace-nowrap border-l border-gray-300 font-medium">{customer.mobile_number}</td>
                                                 <td className="px-3 sm:px-4 py-4 text-gray-800 border-l border-gray-300 font-medium">{customer.district}</td>
+                                                <td className="px-3 sm:px-4 py-4 text-gray-800 border-l border-gray-300 font-medium whitespace-nowrap">
+                                                    {customer.created_at ? new Date(customer.created_at).toLocaleString('en-US', { month: 'short', year: 'numeric' }) : '—'}
+                                                </td>
                                                 <td className="px-3 sm:px-4 py-4 border-l border-gray-300">
                                                     <div className="flex flex-col items-center gap-1">
                                                         <div className="w-20 sm:w-24 bg-gray-200 rounded-full h-2.5 overflow-hidden">
