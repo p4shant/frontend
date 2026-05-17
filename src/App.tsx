@@ -134,7 +134,7 @@ function App() {
       <Route
         path="/create-task"
         element={
-          <ProtectedRoute requiredRoles={['Master Admin']}>
+          <ProtectedRoute requiredRoles={['Master Admin', 'Help Desk']}>
             <AppLayout>
               <CreateTask />
             </AppLayout>
