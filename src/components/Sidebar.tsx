@@ -96,6 +96,7 @@ function Sidebar({ state }: Props) {
                 { label: 'Dashboard', to: '/', icon: <LayoutDashboard size={18} /> },
                 { label: 'Register Customer', to: '/register-customer', icon: <PanelsTopLeft size={18} /> },
                 { label: 'Track Application', to: '/track-application', icon: <FileText size={18} /> },
+                { label: 'Create Task', to: '/create-task', icon: <ClipboardPlus size={18} /> },
                 PAYMENT_COLLECTION_ITEM,
                 TRAVEL_REVIEW_ITEM,
                 { label: 'Mark Attendance', to: '/mark-attendance', icon: <CalendarCheck size={18} /> },
