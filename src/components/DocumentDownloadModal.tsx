@@ -37,8 +37,33 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
         if (typeof url !== 'string') return null;
         const trimmed = url.trim();
         if (!trimmed) return null;
-        if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
-        return `${API_ORIGIN}${trimmed}`;
+
+        // Determine the correct origin for file serving:
+        // - In production: files are served from the same origin as the app
+        // - In development: files are on the backend server (API_ORIGIN, e.g. localhost:3000)
+        const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+        const fileOrigin = isProduction ? window.location.origin : (API_ORIGIN || window.location.origin);
+
+        // Extract relative path from any full URL (handles localhost or old domain URLs stored in DB)
+        const uploadsMatch = trimmed.match(/\/uploads\/.+/);
+        if (uploadsMatch) {
+            const relativePath = uploadsMatch[0].split('?')[0];
+            return `${fileOrigin}${relativePath}`;
+        }
+        // If it's already a valid full URL, check if it points to wrong origin
+        if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+            if (isProduction && (trimmed.includes('localhost') || trimmed.includes('127.0.0.1'))) {
+                try {
+                    const parsed = new URL(trimmed);
+                    return `${fileOrigin}${parsed.pathname}`;
+                } catch {
+                    return trimmed;
+                }
+            }
+            return trimmed;
+        }
+        // Relative path without /uploads prefix
+        return `${fileOrigin}${trimmed}`;
     };
 
     const getDocField = (key: string): unknown => {
@@ -669,15 +694,30 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
                                                                         >
                                                                             <Eye size={14} /> Preview
                                                                         </button>
-                                                                        <a
-                                                                            href={doc.url || '#'}
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                            onClick={e => e.stopPropagation()}
+                                                                        <button
+                                                                            onClick={async (e) => {
+                                                                                e.stopPropagation();
+                                                                                if (!doc.url) return;
+                                                                                try {
+                                                                                    const response = await fetch(doc.url, { method: 'GET', cache: 'no-cache' });
+                                                                                    if (!response.ok) throw new Error('Download failed');
+                                                                                    const blob = await response.blob();
+                                                                                    const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'application/octet-stream' }));
+                                                                                    const a = document.createElement('a');
+                                                                                    a.href = blobUrl;
+                                                                                    a.download = doc.name || 'download';
+                                                                                    document.body.appendChild(a);
+                                                                                    a.click();
+                                                                                    a.remove();
+                                                                                    URL.revokeObjectURL(blobUrl);
+                                                                                } catch {
+                                                                                    window.open(doc.url, '_blank');
+                                                                                }
+                                                                            }}
                                                                             className="text-xs px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-1 font-medium"
                                                                         >
                                                                             <Download size={14} /> Download
-                                                                        </a>
+                                                                        </button>
                                                                     </div>
                                                                 </div>
                                                             </div>
