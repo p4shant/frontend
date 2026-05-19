@@ -30,6 +30,17 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
     const [previewTitle, setPreviewTitle] = useState<string>('');
     const [isDownloading, setIsDownloading] = useState(false);
 
+    const API_ORIGIN = import.meta.env.VITE_API_ORIGIN || (import.meta.env.VITE_API_BASE?.replace('/api', '') ?? '');
+
+    const buildFullUrl = (url: string | null | undefined): string | null => {
+        if (!url) return null;
+        if (typeof url !== 'string') return null;
+        const trimmed = url.trim();
+        if (!trimmed) return null;
+        if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+        return `${API_ORIGIN}${trimmed}`;
+    };
+
     const getDocField = (key: string): unknown => {
         const rootValue = (customer as any)?.[key];
         if (rootValue) return rootValue;
@@ -38,25 +49,26 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
 
     const normalizeUrls = (value: unknown): string[] => {
         if (!value) return [];
+        let rawUrls: string[] = [];
         if (Array.isArray(value)) {
-            return value.map(String).map(v => v.trim()).filter(Boolean);
-        }
-        if (typeof value === 'string') {
+            rawUrls = value.map(String).map(v => v.trim()).filter(Boolean);
+        } else if (typeof value === 'string') {
             const trimmed = value.trim();
             if (!trimmed) return [];
             if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
                 try {
                     const parsed = JSON.parse(trimmed);
                     if (Array.isArray(parsed)) {
-                        return parsed.map(String).map(v => v.trim()).filter(Boolean);
+                        rawUrls = parsed.map(String).map(v => v.trim()).filter(Boolean);
                     }
                 } catch {
-                    // fall through to delimiter parsing
+                    rawUrls = trimmed.split(',').map(v => v.trim()).filter(Boolean);
                 }
+            } else {
+                rawUrls = trimmed.split(',').map(v => v.trim()).filter(Boolean);
             }
-            return trimmed.split(',').map(v => v.trim()).filter(Boolean);
         }
-        return [];
+        return rawUrls.map(u => buildFullUrl(u)).filter(Boolean) as string[];
     };
 
     const buildDocItems = (baseName: string, raw: unknown, category: string, type: DocumentItem['type']): DocumentItem[] => {
@@ -81,10 +93,10 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
 
         // KYC Documents
         const kycDocs: DocumentItem[] = [
-            { name: 'Aadhaar Front', url: getDocField('aadhaar_front_url') as string | null, category: 'KYC', type: 'image' },
-            { name: 'Aadhaar Back', url: getDocField('aadhaar_back_url') as string | null, category: 'KYC', type: 'image' },
-            { name: 'PAN Card', url: getDocField('pan_card_url') as string | null, category: 'KYC', type: 'image' },
-            { name: 'Electric Bill', url: getDocField('electric_bill_url') as string | null, category: 'KYC', type: 'image' },
+            { name: 'Aadhaar Front', url: buildFullUrl(getDocField('aadhaar_front_url') as string | null), category: 'KYC', type: 'image' },
+            { name: 'Aadhaar Back', url: buildFullUrl(getDocField('aadhaar_back_url') as string | null), category: 'KYC', type: 'image' },
+            { name: 'PAN Card', url: buildFullUrl(getDocField('pan_card_url') as string | null), category: 'KYC', type: 'image' },
+            { name: 'Electric Bill', url: buildFullUrl(getDocField('electric_bill_url') as string | null), category: 'KYC', type: 'image' },
         ];
         categories.push({
             name: 'KYC & Personal Documents',
@@ -94,9 +106,9 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
 
         // Bank & Financial Documents
         const bankDocs: DocumentItem[] = [
-            { name: 'Ceiling Paper Photo', url: getDocField('ceiling_paper_photo_url') as string | null, category: 'Financial', type: 'image' },
-            { name: 'Cancel Cheque / Passbook', url: getDocField('cancel_cheque_url') as string | null, category: 'Financial', type: 'image' },
-            { name: 'Site Image with GPS Geo Location', url: getDocField('site_image_gps_url') as string | null, category: 'Financial', type: 'document' },
+            { name: 'Ceiling Paper Photo', url: buildFullUrl(getDocField('ceiling_paper_photo_url') as string | null), category: 'Financial', type: 'image' },
+            { name: 'Cancel Cheque / Passbook', url: buildFullUrl(getDocField('cancel_cheque_url') as string | null), category: 'Financial', type: 'image' },
+            { name: 'Site Image with GPS Geo Location', url: buildFullUrl(getDocField('site_image_gps_url') as string | null), category: 'Financial', type: 'document' },
         ];
         categories.push({
             name: 'Bank & Financial',
@@ -106,14 +118,14 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
 
         // COT Documents
         const cotDocs: DocumentItem[] = [
-            { name: 'COT Documents (General)', url: getDocField('cot_documents') as string | null, category: 'COT', type: 'document' },
-            { name: 'COT Death Certificate', url: getDocField('cot_death_certificate_url') as string | null, category: 'COT', type: 'document' },
-            { name: 'COT House Papers', url: getDocField('cot_house_papers_url') as string | null, category: 'COT', type: 'document' },
-            { name: 'COT Passport Photo', url: getDocField('cot_passport_photo_url') as string | null, category: 'COT', type: 'image' },
-            { name: 'COT Family Registration', url: getDocField('cot_family_registration_url') as string | null, category: 'COT', type: 'document' },
+            { name: 'COT Documents (General)', url: buildFullUrl(getDocField('cot_documents') as string | null), category: 'COT', type: 'document' },
+            { name: 'COT Death Certificate', url: buildFullUrl(getDocField('cot_death_certificate_url') as string | null), category: 'COT', type: 'document' },
+            { name: 'COT House Papers', url: buildFullUrl(getDocField('cot_house_papers_url') as string | null), category: 'COT', type: 'document' },
+            { name: 'COT Passport Photo', url: buildFullUrl(getDocField('cot_passport_photo_url') as string | null), category: 'COT', type: 'image' },
+            { name: 'COT Family Registration', url: buildFullUrl(getDocField('cot_family_registration_url') as string | null), category: 'COT', type: 'document' },
             ...buildDocItems('COT Aadhaar Photos', getDocField('cot_aadhaar_photos_urls'), 'COT', 'image'),
-            { name: 'COT Live Aadhaar 1', url: getDocField('cot_live_aadhaar_1_url') as string | null, category: 'COT', type: 'image' },
-            { name: 'COT Live Aadhaar 2', url: getDocField('cot_live_aadhaar_2_url') as string | null, category: 'COT', type: 'image' },
+            { name: 'COT Live Aadhaar 1', url: buildFullUrl(getDocField('cot_live_aadhaar_1_url') as string | null), category: 'COT', type: 'image' },
+            { name: 'COT Live Aadhaar 2', url: buildFullUrl(getDocField('cot_live_aadhaar_2_url') as string | null), category: 'COT', type: 'image' },
         ];
         categories.push({
             name: 'COT Documents',
@@ -123,8 +135,8 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
 
         // Application & Feasibility Documents
         const appDocs: DocumentItem[] = [
-            { name: 'Application Form', url: getDocField('application_form') as string | null, category: 'Application', type: 'document' },
-            { name: 'Feasibility Form', url: getDocField('feasibility_form') as string | null, category: 'Application', type: 'document' },
+            { name: 'Application Form', url: buildFullUrl(getDocField('application_form') as string | null), category: 'Application', type: 'document' },
+            { name: 'Feasibility Form', url: buildFullUrl(getDocField('feasibility_form') as string | null), category: 'Application', type: 'document' },
         ];
         categories.push({
             name: 'Application & Feasibility',
@@ -134,8 +146,8 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
 
         // Regulatory & Approval Documents
         const regDocs: DocumentItem[] = [
-            { name: 'E-Token Document', url: getDocField('etoken_document') as string | null, category: 'Regulatory', type: 'document' },
-            { name: 'Net Metering Document', url: getDocField('net_metering_document') as string | null, category: 'Regulatory', type: 'document' },
+            { name: 'E-Token Document', url: buildFullUrl(getDocField('etoken_document') as string | null), category: 'Regulatory', type: 'document' },
+            { name: 'Net Metering Document', url: buildFullUrl(getDocField('net_metering_document') as string | null), category: 'Regulatory', type: 'document' },
         ];
         categories.push({
             name: 'Regulatory & Net Metering',
@@ -145,8 +157,8 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
 
         // Finance Documents
         const financeDocs: DocumentItem[] = [
-            { name: 'Finance Quotation', url: getDocField('finance_quotation_document') as string | null, category: 'Finance', type: 'document' },
-            { name: 'Finance Digital Approval', url: getDocField('finance_digital_approval') as string | null, category: 'Finance', type: 'document' },
+            { name: 'Finance Quotation', url: buildFullUrl(getDocField('finance_quotation_document') as string | null), category: 'Finance', type: 'document' },
+            { name: 'Finance Digital Approval', url: buildFullUrl(getDocField('finance_digital_approval') as string | null), category: 'Finance', type: 'document' },
         ];
         categories.push({
             name: 'Finance Documents',
@@ -156,9 +168,9 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
 
         // Certification & Installation Documents
         const certDocs: DocumentItem[] = [
-            { name: 'UBI Sanction Certificate', url: getDocField('ubi_sanction_certificate_document') as string | null, category: 'Certification', type: 'document' },
-            { name: 'Indent Document', url: getDocField('indent_document') as string | null, category: 'Certification', type: 'document' },
-            { name: 'Warranty Card', url: getDocField('warranty_card_document') as string | null, category: 'Certification', type: 'document' },
+            { name: 'UBI Sanction Certificate', url: buildFullUrl(getDocField('ubi_sanction_certificate_document') as string | null), category: 'Certification', type: 'document' },
+            { name: 'Indent Document', url: buildFullUrl(getDocField('indent_document') as string | null), category: 'Certification', type: 'document' },
+            { name: 'Warranty Card', url: buildFullUrl(getDocField('warranty_card_document') as string | null), category: 'Certification', type: 'document' },
         ];
         categories.push({
             name: 'Certification & Warranty',
@@ -182,9 +194,9 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
 
         // Commissioning & Compliance Documents
         const commissionDocs: DocumentItem[] = [
-            { name: 'Pay Bill Document', url: getDocField('paybill_document') as string | null, category: 'Commissioning', type: 'document' },
-            { name: 'DCR Document', url: getDocField('dcr_document') as string | null, category: 'Commissioning', type: 'document' },
-            { name: 'Commissioning Document', url: getDocField('commissioning_document') as string | null, category: 'Commissioning', type: 'document' },
+            { name: 'Pay Bill Document', url: buildFullUrl(getDocField('paybill_document') as string | null), category: 'Commissioning', type: 'document' },
+            { name: 'DCR Document', url: buildFullUrl(getDocField('dcr_document') as string | null), category: 'Commissioning', type: 'document' },
+            { name: 'Commissioning Document', url: buildFullUrl(getDocField('commissioning_document') as string | null), category: 'Commissioning', type: 'document' },
         ];
         categories.push({
             name: 'Commissioning & Compliance',
@@ -768,28 +780,36 @@ export const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
                     className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4"
                     onClick={() => setPreviewUrl(null)}
                 >
+                    {/* Fixed close button - always visible at top right */}
+                    <button
+                        onClick={() => setPreviewUrl(null)}
+                        className="fixed top-4 right-4 z-[10001] p-2 bg-white rounded-full shadow-lg hover:bg-gray-100 transition-colors"
+                        title="Close preview"
+                    >
+                        <X size={28} className="text-gray-800" />
+                    </button>
                     <div
-                        className="bg-white rounded-xl shadow-2xl max-w-4xl max-h-[85vh] overflow-auto"
+                        className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
                         onClick={e => e.stopPropagation()}
                     >
-                        <div className="bg-blue-600 px-6 py-4 flex items-center justify-between sticky top-0">
-                            <p className="text-white font-bold">{previewTitle}</p>
+                        <div className="bg-blue-600 px-6 py-4 flex items-center justify-between flex-shrink-0">
+                            <p className="text-white font-bold truncate">{previewTitle}</p>
                             <button
                                 onClick={() => setPreviewUrl(null)}
-                                className="p-1 hover:bg-white/20 rounded-lg transition-colors text-white"
+                                className="p-2 hover:bg-white/20 rounded-lg transition-colors text-white flex-shrink-0 ml-4"
                             >
                                 <X size={24} />
                             </button>
                         </div>
-                        <div className="p-6">
+                        <div className="p-6 overflow-auto flex-1 flex items-center justify-center">
                             {previewUrl.endsWith('.pdf') || previewUrl.includes('pdf') ? (
                                 <iframe
                                     src={previewUrl}
-                                    className="w-full h-96"
+                                    className="w-full h-[70vh]"
                                     title={previewTitle}
                                 />
                             ) : (
-                                <img src={previewUrl} alt={previewTitle} className="max-w-full h-auto rounded-lg" />
+                                <img src={previewUrl} alt={previewTitle} className="max-w-full max-h-[70vh] object-contain rounded-lg" />
                             )}
                         </div>
                     </div>
