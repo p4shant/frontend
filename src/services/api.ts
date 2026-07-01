@@ -541,6 +541,24 @@ export const employeesAPI = {
 
         return await response.json();
     },
+
+    async resetPassword(employeeId: string, token: string) {
+        const response = await fetch(`${API_BASE}/employees/reset-password`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ employee_id: employeeId }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to reset password');
+        }
+
+        return await response.json();
+    },
 };
 
 // ============================================================================

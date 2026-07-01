@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { CalendarCheck, LayoutDashboard, PanelsTopLeft, UserRound, Eye, FileText, UserPlus, BarChart3, CheckSquare, ClipboardPlus, Package, ArrowDownToLine, ArrowUpFromLine, History, Users, Gauge, Car, ShieldCheck, Shield, IndianRupee, CircleDollarSign } from 'lucide-react';
+import { CalendarCheck, LayoutDashboard, PanelsTopLeft, UserRound, Eye, FileText, UserPlus, BarChart3, CheckSquare, ClipboardPlus, Package, ArrowDownToLine, ArrowUpFromLine, History, Users, Gauge, Car, ShieldCheck, Shield, IndianRupee, CircleDollarSign, KeyRound } from 'lucide-react';
 import kamnLogo from '../assets/kaman-logo.png';
 import { useAuth } from '../context/AuthContext';
 
@@ -19,6 +19,7 @@ const MASTER_ADMIN_ITEMS = [
     { label: 'Task Approval', to: '/task-approval', icon: <CheckSquare size={18} /> },
     { label: 'Create Task', to: '/create-task', icon: <ClipboardPlus size={18} /> },
     { label: 'Admin Dashboard', to: '/admin-stats', icon: <BarChart3 size={18} /> },
+    { label: 'Reset Password', to: '/reset-employee-password', icon: <KeyRound size={18} /> },
 ];
 
 const STOCK_ITEMS = [
