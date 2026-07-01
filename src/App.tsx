@@ -22,6 +22,7 @@ import TravelAllowanceReview from './pages/TravelAllowanceReview';
 import AdminMarkAttendance from './pages/AdminMarkAttendance';
 import PaymentCollection from './pages/PaymentCollection';
 import PaymentApproval from './pages/PaymentApproval';
+import ResetEmployeePassword from './pages/ResetEmployeePassword';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
 function App() {
@@ -243,6 +244,18 @@ function App() {
           <ProtectedRoute requiredRoles={['Master Admin', 'SFDC Admin', 'Help Desk']}>
             <AppLayout>
               <TravelAllowanceReview />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Master Admin: Reset Employee Password */}
+      <Route
+        path="/reset-employee-password"
+        element={
+          <ProtectedRoute requiredRoles={['Master Admin']}>
+            <AppLayout>
+              <ResetEmployeePassword />
             </AppLayout>
           </ProtectedRoute>
         }
