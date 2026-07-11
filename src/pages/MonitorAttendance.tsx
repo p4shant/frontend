@@ -317,11 +317,31 @@ function MonitorAttendance() {
         .slice()
         .sort((a, b) => (a.attendance_date < b.attendance_date ? 1 : -1))
 
+    const isSelectedTechnician = selectedEmployeeRole === 'Technician'
+
+    const isSunday = (dateStr: string) => {
+        const d = new Date(dateStr + 'T00:00:00')
+        return d.getDay() === 0
+    }
+
     const calendarEvents = useMemo<EventInput[]>(() => {
         return employeeHistory.map((record) => {
+            const eventDate = record.attendance_date
+
+            // Sunday = Holiday for non-technicians
+            if (!isSelectedTechnician && isSunday(eventDate)) {
+                return {
+                    title: '🏖️ Holiday',
+                    start: eventDate,
+                    allDay: true,
+                    backgroundColor: '#6366f1',
+                    borderColor: '#6366f1',
+                    textColor: '#ffffff'
+                }
+            }
+
             const isAbsent = record.status === 'absent'
             const isMissingPunchOut = record.status === 'forgot_to_punch_out' || !record.punch_out_time
-            const eventDate = record.attendance_date
             const title = isAbsent
                 ? 'Absent'
                 : `In: ${formatTime(record.punch_in_time)}\nOut: ${formatTime(record.punch_out_time)}`
@@ -339,7 +359,7 @@ function MonitorAttendance() {
                 textColor: '#ffffff'
             }
         })
-    }, [employeeHistory])
+    }, [employeeHistory, isSelectedTechnician])
 
     const handleCalendarDatesSet = (info: DatesSetArg) => {
         if (!selectedEmployeeId) return
@@ -360,11 +380,17 @@ function MonitorAttendance() {
 
     const employeeSummary = employeeHistory.reduce(
         (acc, r) => {
+            // Skip Sundays for non-technicians
+            if (!isSelectedTechnician && isSunday(r.attendance_date)) return acc
             acc.total += 1
-            if (r.status === 'present') acc.present += 1
-            if (r.status === 'late') acc.late += 1
-            if (r.status === 'absent') acc.absent += 1
-            if (r.status === 'forgot_to_punch_out') acc.forgot += 1
+            const hasPunchIn = !!r.punch_in_time
+            if (hasPunchIn) {
+                acc.present += 1
+                if (r.status === 'late') acc.late += 1
+                if (!r.punch_out_time || r.status === 'forgot_to_punch_out') acc.forgot += 1
+            } else {
+                acc.absent += 1
+            }
             return acc
         },
         { total: 0, present: 0, late: 0, absent: 0, forgot: 0 }

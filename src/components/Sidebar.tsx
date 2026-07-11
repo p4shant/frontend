@@ -33,9 +33,12 @@ const STOCK_CORRECTION_ITEM = { label: 'Stock Correction', to: '/stock-correctio
 
 const MONITOR_ATTENDANCE_ITEM = { label: 'Monitor Attendance', to: '/monitor-attendance', icon: <Eye size={18} /> };
 
+const MY_ATTENDANCE_ITEM = { label: 'My Attendance', to: '/my-attendance', icon: <CalendarCheck size={18} /> };
+
 const TEAM_ATTENDANCE_ITEM = { label: 'Team Attendance', to: '/mark-team-attendance', icon: <Users size={18} /> };
 
 const COMMON_ITEMS = [
+    MY_ATTENDANCE_ITEM,
     { label: 'Profile', to: '/profile', icon: <UserRound size={18} /> },
 ];
 

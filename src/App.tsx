@@ -23,6 +23,7 @@ import AdminMarkAttendance from './pages/AdminMarkAttendance';
 import PaymentCollection from './pages/PaymentCollection';
 import PaymentApproval from './pages/PaymentApproval';
 import ResetEmployeePassword from './pages/ResetEmployeePassword';
+import MyAttendance from './pages/MyAttendance';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
 function App() {
@@ -108,6 +109,16 @@ function App() {
           <ProtectedRoute>
             <AppLayout>
               <MonitorAttendance />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-attendance"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <MyAttendance />
             </AppLayout>
           </ProtectedRoute>
         }
